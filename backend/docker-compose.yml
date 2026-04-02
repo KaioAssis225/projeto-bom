@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:15
+    container_name: bom_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-bom_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    image: python:3.12-slim
+    container_name: bom_app
+    working_dir: /app
+    env_file:
+      - .env
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
