@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 from functools import lru_cache
+from typing import Any
 
-from pydantic import computed_field
+from pydantic import computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -32,6 +34,26 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
+
+    @field_validator("ALLOWED_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_allowed_cors_origins(cls, value: Any) -> list[str]:
+        if isinstance(value, list):
+            return [str(item).strip() for item in value if str(item).strip()]
+
+        if isinstance(value, str):
+            stripped_value = value.strip()
+            if not stripped_value:
+                return []
+
+            if stripped_value.startswith("["):
+                parsed_value = json.loads(stripped_value)
+                if isinstance(parsed_value, list):
+                    return [str(item).strip() for item in parsed_value if str(item).strip()]
+
+            return [stripped_value]
+
+        return []
 
     @computed_field
     @property

@@ -55,7 +55,7 @@ register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.APP_ENV != "production" else settings.ALLOWED_CORS_ORIGINS,
+    allow_origins=["*"] if settings.APP_ENV == "development" else settings.ALLOWED_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
