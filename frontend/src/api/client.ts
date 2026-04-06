@@ -35,7 +35,7 @@ export function extractErrorMessage(error: unknown): string {
 }
 
 export const client: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL ?? "https://sincere-simplicity-production-0936.up.railway.app",
   headers: {
     "Content-Type": "application/json",
   },
