@@ -34,8 +34,15 @@ export function extractErrorMessage(error: unknown): string {
   return fallbackErrorMessage;
 }
 
+function ensureHttps(url: string): string {
+  return url.replace(/^http:\/\//i, "https://");
+}
+
+const rawBaseURL: string =
+  import.meta.env.VITE_API_URL ?? "https://projeto-bom-production.up.railway.app";
+
 export const client: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "https://projeto-bom-production.up.railway.app",
+  baseURL: ensureHttps(rawBaseURL),
   headers: {
     "Content-Type": "application/json",
   },
