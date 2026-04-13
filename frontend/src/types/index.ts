@@ -58,6 +58,27 @@ export interface UnitOfMeasureUpdatePayload {
   decimal_places: number;
 }
 
+export interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface SupplierCreatePayload {
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export interface SupplierUpdatePayload {
+  name: string;
+  description?: string;
+  active: boolean;
+}
+
 export interface Item {
   id: string;
   code: string;
@@ -67,6 +88,8 @@ export interface Item {
   material_group_id?: string;
   active: boolean;
   notes?: string;
+  peso_liquido?: number | null;
+  supplier_id?: string | null;
   unit_of_measure?: {
     id: string;
     code: string;
@@ -75,6 +98,11 @@ export interface Item {
     id: string;
     name: string;
   } | null;
+  supplier?: {
+    id: string;
+    name: string;
+  } | null;
+  current_price?: number | null;
 }
 
 export interface ItemCreatePayload {
@@ -84,6 +112,8 @@ export interface ItemCreatePayload {
   unit_of_measure_id: string;
   material_group_id?: string;
   notes?: string;
+  peso_liquido?: number | null;
+  supplier_id?: string | null;
 }
 
 export interface ItemUpdatePayload {
@@ -91,6 +121,8 @@ export interface ItemUpdatePayload {
   active: boolean;
   notes?: string;
   material_group_id?: string;
+  peso_liquido?: number | null;
+  supplier_id?: string | null;
 }
 
 export interface ItemListParams extends PaginationParams {

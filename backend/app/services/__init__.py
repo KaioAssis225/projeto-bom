@@ -5,6 +5,7 @@ from app.services.export_service import ExportService
 from app.services.item_service import ItemService
 from app.services.material_group_service import MaterialGroupService
 from app.services.price_service import PriceService
+from app.services.supplier_service import SupplierService
 from app.services.unit_of_measure_service import UnitOfMeasureService
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "ItemService",
     "MaterialGroupService",
     "PriceService",
+    "SupplierService",
     "UnitOfMeasureService",
 ]

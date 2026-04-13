@@ -31,6 +31,12 @@ from app.schemas.material_group import (
     MaterialGroupResponse,
     MaterialGroupUpdate,
 )
+from app.schemas.supplier import (
+    SupplierCreate,
+    SupplierPaginatedResponse,
+    SupplierResponse,
+    SupplierUpdate,
+)
 from app.schemas.price import (
     AuditPriceChangeResponse,
     CurrentPriceResponse,
@@ -77,6 +83,10 @@ __all__ = [
     "PriceCreate",
     "PriceHistoryPaginatedResponse",
     "PriceResponse",
+    "SupplierCreate",
+    "SupplierPaginatedResponse",
+    "SupplierResponse",
+    "SupplierUpdate",
     "UnitOfMeasureCreate",
     "UnitOfMeasurePaginatedResponse",
     "UnitOfMeasureResponse",

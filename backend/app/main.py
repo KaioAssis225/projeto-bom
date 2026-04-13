@@ -14,6 +14,7 @@ from app.api.routers.items import router as items_router
 from app.api.routers.logs import router as logs_router
 from app.api.routers.material_groups import router as material_groups_router
 from app.api.routers.prices import router as prices_router
+from app.api.routers.suppliers import router as suppliers_router
 from app.api.routers.unit_of_measures import router as unit_of_measures_router
 from app.core.config import settings
 from app.core.error_handlers import register_exception_handlers
@@ -107,4 +108,5 @@ app.include_router(logs_router, prefix="/api/v1/logs", tags=["logs"])
 app.include_router(material_groups_router, prefix="/api/v1/grupos", tags=["grupos"])
 app.include_router(prices_router, prefix="/api/v1/precos", tags=["precos"])
 app.include_router(audit_router, prefix="/api/v1/auditoria", tags=["auditoria"])
+app.include_router(suppliers_router, prefix="/api/v1/fornecedores", tags=["fornecedores"])
 app.include_router(unit_of_measures_router, prefix="/api/v1/unidades", tags=["unidades"])

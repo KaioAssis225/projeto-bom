@@ -61,6 +61,10 @@ export function statusBadgeColor(status: 'SUCCESS' | 'ERROR' | 'PARTIAL'): strin
   return colors[status]
 }
 
+export function supplierLabel(supplier: { name: string } | null | undefined): string {
+  return supplier?.name ?? "—"
+}
+
 export function extractErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const response = (err as { response?: { data?: { detail?: string; message?: string } } }).response

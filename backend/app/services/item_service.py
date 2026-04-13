@@ -10,6 +10,7 @@ from app.core.exceptions import DuplicateCodeError, ItemNotFoundError
 from app.models.item import ItemType
 from app.repositories.item_repository import ItemRepository
 from app.repositories.material_group_repository import MaterialGroupRepository
+from app.repositories.supplier_repository import SupplierRepository
 from app.repositories.unit_of_measure_repository import UnitOfMeasureRepository
 from app.schemas.item import ItemCreate, ItemListFilter, ItemPaginatedResponse, ItemUpdate
 
@@ -21,6 +22,7 @@ class ItemService:
     def __init__(self, db: Session) -> None:
         self.repository = ItemRepository(db)
         self.material_group_repository = MaterialGroupRepository(db)
+        self.supplier_repository = SupplierRepository(db)
         self.unit_of_measure_repository = UnitOfMeasureRepository(db)
 
     def create(self, payload: ItemCreate):
@@ -31,6 +33,7 @@ class ItemService:
             item_type=payload.type,
             unit_of_measure_id=payload.unit_of_measure_id,
             material_group_id=payload.material_group_id,
+            supplier_id=payload.supplier_id,
         )
 
         data = payload.model_dump()
@@ -61,6 +64,7 @@ class ItemService:
             item_type=existing.type,
             unit_of_measure_id=existing.unit_of_measure_id,
             material_group_id=payload.material_group_id,
+            supplier_id=payload.supplier_id,
         )
 
         updated = self.repository.update(id=id, data=payload.model_dump())
@@ -81,6 +85,7 @@ class ItemService:
         item_type: ItemType,
         unit_of_measure_id: UUID,
         material_group_id: UUID | None,
+        supplier_id: UUID | None = None,
     ) -> None:
         if self.unit_of_measure_repository.get_by_id(unit_of_measure_id) is None:
             raise HTTPException(
@@ -99,4 +104,11 @@ class ItemService:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Material group not found",
+                )
+
+        if supplier_id is not None:
+            if self.supplier_repository.get_by_id(supplier_id) is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Supplier not found",
                 )

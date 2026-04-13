@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -9,6 +10,7 @@ from sqlalchemy import (
     CheckConstraint,
     Enum as SAEnum,
     ForeignKey,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     from app.models.calculation_execution_log import CalculationExecutionLog
     from app.models.item_price_history import ItemPriceHistory
     from app.models.material_group import MaterialGroup
+    from app.models.supplier import Supplier
     from app.models.unit_of_measure import UnitOfMeasure
 
 
@@ -67,9 +70,15 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         server_default=text("true"),
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    peso_liquido: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    supplier_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("supplier.id"),
+        nullable=True,
+    )
 
     unit_of_measure: Mapped["UnitOfMeasure"] = relationship()
     material_group: Mapped["MaterialGroup | None"] = relationship()
+    supplier: Mapped["Supplier | None"] = relationship()
     bom_headers: Mapped[list["Bom"]] = relationship(
         back_populates="parent_item",
         foreign_keys="Bom.parent_item_id",

@@ -5,6 +5,7 @@ from app.models.calculation_execution_log import CalculationExecutionLog, Calcul
 from app.models.item import Item, ItemType
 from app.models.item_price_history import ItemPriceHistory
 from app.models.material_group import MaterialGroup
+from app.models.supplier import Supplier
 from app.models.unit_of_measure import UnitOfMeasure
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "ItemPriceHistory",
     "ItemType",
     "MaterialGroup",
+    "Supplier",
     "UnitOfMeasure",
 ]
