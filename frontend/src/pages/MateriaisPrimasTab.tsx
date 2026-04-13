@@ -181,6 +181,7 @@ const materiaisSchema = z
     material_group_id: z.string().uuid("Selecione um grupo válido").optional().nullable(),
     supplier_id: z.string().uuid().optional().nullable(),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
+    unidade_conversao: z.string().max(20).optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
@@ -245,6 +246,7 @@ function MateriaisPrimasModal({
       material_group_id: null,
       supplier_id: null,
       peso_liquido: null,
+      unidade_conversao: null,
       custo: null,
       created_by: null,
       notes: "",
@@ -264,6 +266,7 @@ function MateriaisPrimasModal({
         material_group_id: null,
         supplier_id: null,
         peso_liquido: null,
+        unidade_conversao: null,
         custo: null,
         created_by: null,
         notes: "",
@@ -279,6 +282,7 @@ function MateriaisPrimasModal({
       material_group_id: item?.material_group_id ?? null,
       supplier_id: item?.supplier_id ?? null,
       peso_liquido: item?.peso_liquido ?? null,
+      unidade_conversao: item?.unidade_conversao ?? null,
       custo: null,
       created_by: null,
       notes: item?.notes ?? "",
@@ -313,6 +317,7 @@ function MateriaisPrimasModal({
             material_group_id: values.material_group_id ?? undefined,
             supplier_id: values.supplier_id ?? undefined,
             peso_liquido: values.peso_liquido ?? undefined,
+            unidade_conversao: values.unidade_conversao ?? undefined,
           },
         });
         itemId = item.id;
@@ -325,6 +330,7 @@ function MateriaisPrimasModal({
           material_group_id: values.material_group_id ?? undefined,
           supplier_id: values.supplier_id ?? undefined,
           peso_liquido: values.peso_liquido ?? undefined,
+          unidade_conversao: values.unidade_conversao ?? undefined,
           notes: values.notes?.trim() || undefined,
         });
         itemId = created.id;
@@ -497,31 +503,32 @@ function MateriaisPrimasModal({
               </div>
             </div>
 
-            {/* Fornecedor + Peso Líquido */}
+            {/* Fornecedor */}
+            <div className="space-y-2">
+              <label htmlFor="mp-supplier" className="text-sm font-medium text-slate-700">
+                Fornecedor
+              </label>
+              <select
+                id="mp-supplier"
+                disabled={isSubmitting}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                {...form.register("supplier_id")}
+                value={form.watch("supplier_id") ?? ""}
+              >
+                <option value="">Selecione</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} — {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Fator de Conversão + Unidade de Conversão */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label htmlFor="mp-supplier" className="text-sm font-medium text-slate-700">
-                  Fornecedor
-                </label>
-                <select
-                  id="mp-supplier"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("supplier_id")}
-                  value={form.watch("supplier_id") ?? ""}
-                >
-                  <option value="">Selecione</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} — {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
                 <label htmlFor="mp-peso" className="text-sm font-medium text-slate-700">
-                  Peso Líquido
+                  Fator de Conversão
                 </label>
                 <input
                   id="mp-peso"
@@ -538,6 +545,26 @@ function MateriaisPrimasModal({
                 {form.formState.errors.peso_liquido ? (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.peso_liquido.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="mp-unidade-conversao" className="text-sm font-medium text-slate-700">
+                  Unidade de Conversão
+                </label>
+                <input
+                  id="mp-unidade-conversao"
+                  type="text"
+                  maxLength={20}
+                  disabled={isSubmitting}
+                  placeholder="Ex: KG, UN, M²"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                  {...form.register("unidade_conversao")}
+                />
+                {form.formState.errors.unidade_conversao ? (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.unidade_conversao.message}
                   </p>
                 ) : null}
               </div>
@@ -880,7 +907,7 @@ export default function MateriaisPrimasTab() {
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Grupo</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Unidade</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">
-                      Peso Líq.
+                      Fat. Conversão
                     </th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">
                       Custo Vigente
@@ -918,7 +945,7 @@ export default function MateriaisPrimasTab() {
                         </td>
                         <td className="px-4 py-3 text-right text-slate-600">
                           {item.peso_liquido != null
-                            ? formatDecimal(item.peso_liquido, 3)
+                            ? `${formatDecimal(item.peso_liquido, 3)}${item.unidade_conversao ? ` ${item.unidade_conversao}` : ""}`
                             : "—"}
                         </td>
                         <td className="px-4 py-3 text-right">

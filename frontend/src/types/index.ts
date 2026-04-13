@@ -89,6 +89,7 @@ export interface Item {
   active: boolean;
   notes?: string;
   peso_liquido?: number | null;
+  unidade_conversao?: string | null;
   supplier_id?: string | null;
   unit_of_measure?: {
     id: string;
@@ -113,6 +114,7 @@ export interface ItemCreatePayload {
   material_group_id?: string;
   notes?: string;
   peso_liquido?: number | null;
+  unidade_conversao?: string | null;
   supplier_id?: string | null;
 }
 
@@ -122,6 +124,7 @@ export interface ItemUpdatePayload {
   notes?: string;
   material_group_id?: string;
   peso_liquido?: number | null;
+  unidade_conversao?: string | null;
   supplier_id?: string | null;
 }
 
