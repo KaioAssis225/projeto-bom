@@ -58,6 +58,15 @@ function CustoCell({ itemId }: { itemId: string }) {
   return <span className="text-slate-700">R$ {formatCurrency(data.price_value)}</span>;
 }
 
+function fatorConversaoLabel(item: Item): string {
+  if (item.peso_liquido == null) {
+    return "—";
+  }
+
+  const fator = formatDecimal(item.peso_liquido, 3);
+  return item.unidade_conversao?.code ? `${fator} ${item.unidade_conversao.code}` : fator;
+}
+
 // ─── CustoHistoricoModal ──────────────────────────────────────────────────────
 
 function CustoHistoricoModal({
@@ -181,7 +190,7 @@ const materiaisSchema = z
     material_group_id: z.string().uuid("Selecione um grupo válido").optional().nullable(),
     supplier_id: z.string().uuid().optional().nullable(),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
-    unidade_conversao: z.string().max(20).optional().nullable(),
+    unidade_conversao_id: z.string().uuid("Selecione uma unidade válida").optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
@@ -243,10 +252,10 @@ function MateriaisPrimasModal({
       description: "",
       type: "RAW_MATERIAL",
       unit_of_measure_id: "",
+      unidade_conversao_id: null,
       material_group_id: null,
       supplier_id: null,
       peso_liquido: null,
-      unidade_conversao: null,
       custo: null,
       created_by: null,
       notes: "",
@@ -263,10 +272,10 @@ function MateriaisPrimasModal({
         description: "",
         type: "RAW_MATERIAL",
         unit_of_measure_id: "",
+        unidade_conversao_id: null,
         material_group_id: null,
         supplier_id: null,
         peso_liquido: null,
-        unidade_conversao: null,
         custo: null,
         created_by: null,
         notes: "",
@@ -279,10 +288,10 @@ function MateriaisPrimasModal({
       description: item?.description ?? "",
       type: (item?.type as MateriaisItemType | undefined) ?? "RAW_MATERIAL",
       unit_of_measure_id: item?.unit_of_measure_id ?? "",
+      unidade_conversao_id: item?.unidade_conversao_id ?? null,
       material_group_id: item?.material_group_id ?? null,
       supplier_id: item?.supplier_id ?? null,
       peso_liquido: item?.peso_liquido ?? null,
-      unidade_conversao: item?.unidade_conversao ?? null,
       custo: null,
       created_by: null,
       notes: item?.notes ?? "",
@@ -317,7 +326,7 @@ function MateriaisPrimasModal({
             material_group_id: values.material_group_id ?? undefined,
             supplier_id: values.supplier_id ?? undefined,
             peso_liquido: values.peso_liquido ?? undefined,
-            unidade_conversao: values.unidade_conversao ?? undefined,
+            unidade_conversao_id: values.unidade_conversao_id ?? undefined,
           },
         });
         itemId = item.id;
@@ -330,7 +339,7 @@ function MateriaisPrimasModal({
           material_group_id: values.material_group_id ?? undefined,
           supplier_id: values.supplier_id ?? undefined,
           peso_liquido: values.peso_liquido ?? undefined,
-          unidade_conversao: values.unidade_conversao ?? undefined,
+          unidade_conversao_id: values.unidade_conversao_id ?? undefined,
           notes: values.notes?.trim() || undefined,
         });
         itemId = created.id;
@@ -524,11 +533,39 @@ function MateriaisPrimasModal({
               </select>
             </div>
 
-            {/* Fator de Conversão + Unidade de Conversão */}
+            {/* Unidade de Convers?o + Fator de Convers?o */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
+                <label
+                  htmlFor="mp-unidade-conversao"
+                  className="text-sm font-medium text-slate-700"
+                >
+                  Unidade de Convers?o
+                </label>
+                <select
+                  id="mp-unidade-conversao"
+                  disabled={isSubmitting}
+                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                  {...form.register("unidade_conversao_id")}
+                  value={form.watch("unidade_conversao_id") ?? ""}
+                >
+                  <option value="">Selecione</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.code} ??? {unit.description}
+                    </option>
+                  ))}
+                </select>
+                {form.formState.errors.unidade_conversao_id ? (
+                  <p className="text-sm text-red-600">
+                    {form.formState.errors.unidade_conversao_id.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
                 <label htmlFor="mp-peso" className="text-sm font-medium text-slate-700">
-                  Fator de Conversão
+                  Fator de Convers?o
                 </label>
                 <input
                   id="mp-peso"
@@ -545,26 +582,6 @@ function MateriaisPrimasModal({
                 {form.formState.errors.peso_liquido ? (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.peso_liquido.message}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="mp-unidade-conversao" className="text-sm font-medium text-slate-700">
-                  Unidade de Conversão
-                </label>
-                <input
-                  id="mp-unidade-conversao"
-                  type="text"
-                  maxLength={20}
-                  disabled={isSubmitting}
-                  placeholder="Ex: KG, UN, M²"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("unidade_conversao")}
-                />
-                {form.formState.errors.unidade_conversao ? (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.unidade_conversao.message}
                   </p>
                 ) : null}
               </div>
@@ -944,9 +961,7 @@ export default function MateriaisPrimasTab() {
                           {item.unit_of_measure?.code ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-600">
-                          {item.peso_liquido != null
-                            ? `${formatDecimal(item.peso_liquido, 3)}${item.unidade_conversao ? ` ${item.unidade_conversao}` : ""}`
-                            : "—"}
+                          {fatorConversaoLabel(item)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <CustoCell itemId={item.id} />

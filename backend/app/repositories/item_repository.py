@@ -65,6 +65,7 @@ class ItemRepository:
             select(Item)
             .options(
                 selectinload(Item.unit_of_measure),
+                selectinload(Item.unidade_conversao),
                 selectinload(Item.material_group),
                 selectinload(Item.supplier),
             )

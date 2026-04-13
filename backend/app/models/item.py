@@ -60,6 +60,10 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("unit_of_measure.id"),
         nullable=False,
     )
+    unidade_conversao_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("unit_of_measure.id"),
+        nullable=True,
+    )
     material_group_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("material_group.id"),
         nullable=True,
@@ -76,7 +80,12 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=True,
     )
 
-    unit_of_measure: Mapped["UnitOfMeasure"] = relationship()
+    unit_of_measure: Mapped["UnitOfMeasure"] = relationship(
+        foreign_keys=[unit_of_measure_id]
+    )
+    unidade_conversao: Mapped["UnitOfMeasure | None"] = relationship(
+        foreign_keys=[unidade_conversao_id]
+    )
     material_group: Mapped["MaterialGroup | None"] = relationship()
     supplier: Mapped["Supplier | None"] = relationship()
     bom_headers: Mapped[list["Bom"]] = relationship(

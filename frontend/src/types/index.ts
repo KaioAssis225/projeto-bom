@@ -85,16 +85,20 @@ export interface Item {
   description: string;
   type: ItemType;
   unit_of_measure_id: string;
+  unidade_conversao_id?: string | null;
   material_group_id?: string;
   active: boolean;
   notes?: string;
   peso_liquido?: number | null;
-  unidade_conversao?: string | null;
   supplier_id?: string | null;
   unit_of_measure?: {
     id: string;
     code: string;
   };
+  unidade_conversao?: {
+    id: string;
+    code: string;
+  } | null;
   material_group?: {
     id: string;
     name: string;
@@ -111,10 +115,10 @@ export interface ItemCreatePayload {
   description: string;
   type: ItemType;
   unit_of_measure_id: string;
+  unidade_conversao_id?: string | null;
   material_group_id?: string;
   notes?: string;
   peso_liquido?: number | null;
-  unidade_conversao?: string | null;
   supplier_id?: string | null;
 }
 
@@ -122,9 +126,9 @@ export interface ItemUpdatePayload {
   description: string;
   active: boolean;
   notes?: string;
+  unidade_conversao_id?: string | null;
   material_group_id?: string;
   peso_liquido?: number | null;
-  unidade_conversao?: string | null;
   supplier_id?: string | null;
 }
 

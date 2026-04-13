@@ -63,6 +63,15 @@ def upgrade() -> None:
     op.add_column(
         "item",
         sa.Column(
+            "unidade_conversao_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("unit_of_measure.id"),
+            nullable=True,
+        ),
+    )
+    op.add_column(
+        "item",
+        sa.Column(
             "supplier_id",
             postgresql.UUID(as_uuid=True),
             sa.ForeignKey("supplier.id"),
@@ -75,6 +84,8 @@ def downgrade() -> None:
     # Remover FK explicitamente antes de dropar a coluna
     op.drop_constraint("item_supplier_id_fkey", "item", type_="foreignkey")
     op.drop_column("item", "supplier_id")
+    op.drop_constraint("item_unidade_conversao_id_fkey", "item", type_="foreignkey")
+    op.drop_column("item", "unidade_conversao_id")
     op.drop_column("item", "peso_liquido")
 
     op.execute("DROP TRIGGER IF EXISTS trg_supplier_updated_at ON supplier;")

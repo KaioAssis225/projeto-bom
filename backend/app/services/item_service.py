@@ -32,6 +32,7 @@ class ItemService:
         self._validate_relations(
             item_type=payload.type,
             unit_of_measure_id=payload.unit_of_measure_id,
+            unidade_conversao_id=payload.unidade_conversao_id,
             material_group_id=payload.material_group_id,
             supplier_id=payload.supplier_id,
         )
@@ -63,6 +64,7 @@ class ItemService:
         self._validate_relations(
             item_type=existing.type,
             unit_of_measure_id=existing.unit_of_measure_id,
+            unidade_conversao_id=payload.unidade_conversao_id,
             material_group_id=payload.material_group_id,
             supplier_id=payload.supplier_id,
         )
@@ -84,6 +86,7 @@ class ItemService:
         self,
         item_type: ItemType,
         unit_of_measure_id: UUID,
+        unidade_conversao_id: UUID | None,
         material_group_id: UUID | None,
         supplier_id: UUID | None = None,
     ) -> None:
@@ -92,6 +95,13 @@ class ItemService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Unit of measure not found",
             )
+
+        if unidade_conversao_id is not None:
+            if self.unit_of_measure_repository.get_by_id(unidade_conversao_id) is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Conversion unit of measure not found",
+                )
 
         if item_type == ItemType.RAW_MATERIAL and material_group_id is None:
             raise HTTPException(
