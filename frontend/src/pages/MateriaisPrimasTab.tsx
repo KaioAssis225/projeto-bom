@@ -263,6 +263,7 @@ function MateriaisPrimasModal({
   });
 
   const selectedType = form.watch("type");
+  const selectedConversionUnitId = form.watch("unidade_conversao_id");
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -311,6 +312,12 @@ function MateriaisPrimasModal({
       form.setValue("material_group_id", null, { shouldValidate: false });
     }
   }, [form, selectedType]);
+
+  useEffect(() => {
+    if (!selectedConversionUnitId) {
+      form.setValue("peso_liquido", null, { shouldValidate: false });
+    }
+  }, [form, selectedConversionUnitId]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -572,7 +579,7 @@ function MateriaisPrimasModal({
                   type="number"
                   step="0.001"
                   min="0"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !selectedConversionUnitId}
                   placeholder="0,000"
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
                   {...form.register("peso_liquido", {
