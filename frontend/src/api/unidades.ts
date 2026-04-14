@@ -10,7 +10,7 @@ import type {
 export async function list(
   params?: PaginationParams & { active_only?: boolean },
 ): Promise<PaginatedResponse<UnitOfMeasure>> {
-  const response = await client.get<PaginatedResponse<UnitOfMeasure>>("/api/v1/unidades", {
+  const response = await client.get<PaginatedResponse<UnitOfMeasure>>("/api/v1/unidades/", {
     params: {
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 50,
@@ -27,7 +27,7 @@ export async function getById(id: string): Promise<UnitOfMeasure> {
 }
 
 export async function create(data: UnitOfMeasureCreatePayload): Promise<UnitOfMeasure> {
-  const response = await client.post<UnitOfMeasure>("/api/v1/unidades", data);
+  const response = await client.post<UnitOfMeasure>("/api/v1/unidades/", data);
   return response.data;
 }
 

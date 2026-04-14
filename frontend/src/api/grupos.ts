@@ -10,7 +10,7 @@ import type {
 export async function list(
   params?: PaginationParams & { active_only?: boolean },
 ): Promise<PaginatedResponse<MaterialGroup>> {
-  const response = await client.get<PaginatedResponse<MaterialGroup>>("/api/v1/grupos", {
+  const response = await client.get<PaginatedResponse<MaterialGroup>>("/api/v1/grupos/", {
     params: {
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 50,
@@ -27,7 +27,7 @@ export async function getById(id: string): Promise<MaterialGroup> {
 }
 
 export async function create(data: MaterialGroupCreatePayload): Promise<MaterialGroup> {
-  const response = await client.post<MaterialGroup>("/api/v1/grupos", data);
+  const response = await client.post<MaterialGroup>("/api/v1/grupos/", data);
   return response.data;
 }
 

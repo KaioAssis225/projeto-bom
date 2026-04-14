@@ -8,7 +8,7 @@ import type {
 } from "@/types";
 
 export async function list(params?: ItemListParams): Promise<PaginatedResponse<Item>> {
-  const response = await client.get<PaginatedResponse<Item>>("/api/v1/itens", {
+  const response = await client.get<PaginatedResponse<Item>>("/api/v1/itens/", {
     params: {
       type: params?.type,
       group_id: params?.material_group_id,
@@ -29,7 +29,7 @@ export async function getById(id: string): Promise<Item> {
 }
 
 export async function create(data: ItemCreatePayload): Promise<Item> {
-  const response = await client.post<Item>("/api/v1/itens", data);
+  const response = await client.post<Item>("/api/v1/itens/", data);
   return response.data;
 }
 

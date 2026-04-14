@@ -2,7 +2,7 @@ import { client } from "@/api/client";
 import type { ExecutionLog, LogListParams, PaginatedResponse } from "@/types";
 
 export async function list(params?: LogListParams): Promise<PaginatedResponse<ExecutionLog>> {
-  const response = await client.get<PaginatedResponse<ExecutionLog>>("/api/v1/logs", {
+  const response = await client.get<PaginatedResponse<ExecutionLog>>("/api/v1/logs/", {
     params: {
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 50,

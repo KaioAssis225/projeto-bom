@@ -799,7 +799,7 @@ export default function MateriaisPrimasTab() {
 
   const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 100 });
   const unitsQuery = useUnidades({ skip: 0, limit: 100 });
-  const fornecedoresQuery = useFornecedores({ active_only: true, skip: 0, limit: 200 });
+  const fornecedoresQuery = useFornecedores({ active_only: true, skip: 0, limit: 100 });
 
   const itemFilters = useMemo(
     () => ({

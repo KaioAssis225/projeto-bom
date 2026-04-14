@@ -195,7 +195,7 @@ export default function FornecedoresPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
-  const fornecedoresQuery = useFornecedores({ skip: 0, limit: 200, active_only: false });
+  const fornecedoresQuery = useFornecedores({ skip: 0, limit: 100, active_only: false });
   const deactivateFornecedor = useDeactivateFornecedor();
   const isMutating = deactivateFornecedor.isPending;
 

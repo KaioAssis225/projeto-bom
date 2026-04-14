@@ -15,7 +15,7 @@ export async function getTree(item_pai_id: string): Promise<BomTree> {
 }
 
 export async function createHeader(data: BomHeaderPayload): Promise<BomHeader> {
-  const response = await client.post<BomHeader>("/api/v1/bom", data);
+  const response = await client.post<BomHeader>("/api/v1/bom/", data);
   return response.data;
 }
 

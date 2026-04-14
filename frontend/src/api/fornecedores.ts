@@ -10,7 +10,7 @@ import type {
 export async function list(
   params?: PaginationParams & { active_only?: boolean },
 ): Promise<PaginatedResponse<Supplier>> {
-  const response = await client.get<PaginatedResponse<Supplier>>("/api/v1/fornecedores", {
+  const response = await client.get<PaginatedResponse<Supplier>>("/api/v1/fornecedores/", {
     params: {
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 100,
@@ -27,7 +27,7 @@ export async function getById(id: string): Promise<Supplier> {
 }
 
 export async function create(data: SupplierCreatePayload): Promise<Supplier> {
-  const response = await client.post<Supplier>("/api/v1/fornecedores", data);
+  const response = await client.post<Supplier>("/api/v1/fornecedores/", data);
   return response.data;
 }
 
