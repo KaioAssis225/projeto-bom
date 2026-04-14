@@ -61,6 +61,11 @@ class BomBatchRequest(BaseSchema):
     simulation_reference: str | None = Field(default=None, max_length=100)
 
 
+class BomCostPreview(BaseSchema):
+    item_id: UUID
+    custo_total: Decimal
+
+
 class CalculationLineResponse(BaseSchema):
     item_id: UUID
     code: str

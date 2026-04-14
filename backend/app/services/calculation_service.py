@@ -21,6 +21,7 @@ from app.repositories.price_repository import PriceRepository
 from app.schemas.calculation import (
     BomBatchRequest,
     BomCalculationRequest,
+    BomCostPreview,
     CalculationLineResponse,
     CalculationResponse,
     CalculationTotals,
@@ -41,6 +42,29 @@ class CalculationService:
         self.price_repository = PriceRepository(db)
         self.export_service = ExportService()
         self.log_service = ExecutionLogService(db)
+
+    def get_bom_cost_preview(self, item_id: UUID) -> BomCostPreview:
+        """Retorna o custo total da BOM para qty=1 sem gerar Excel nem gravar log."""
+        item = self.item_repository.get_by_id(item_id)
+        if item is None:
+            raise ItemNotFoundError()
+
+        reference_date = now_sp().replace(tzinfo=None)
+        structure_rows = self.bom_repository.get_calculation_structure(
+            root_item_id=item_id,
+            reference_date=reference_date.date(),
+        )
+        if not structure_rows:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="BOM vazia ou não encontrada",
+            )
+
+        calculator = BomCalculator(nodes=self._build_nodes(structure_rows), price_map={})
+        accumulated = calculator.explode(root_id=item_id, quantity=Decimal("1"))
+        price_map = self._build_price_map(accumulated.keys(), reference_date)
+        lines = calculator.calculate(accumulated=accumulated, price_map=price_map)
+        return BomCostPreview(item_id=item_id, custo_total=BomCalculator.total_cost(lines))
 
     def calculate_product(self, payload: BomCalculationRequest) -> CalculationResponse:
         started_at = now_sp()

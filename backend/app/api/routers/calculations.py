@@ -1,17 +1,32 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
-from app.schemas.calculation import BomBatchRequest, BomCalculationRequest, CalculationResponse
+from app.schemas.calculation import BomBatchRequest, BomCalculationRequest, BomCostPreview, CalculationResponse
 from app.services.calculation_service import CalculationService
 
 
 router = APIRouter(tags=["calculos"])
+
+
+@router.get(
+    "/{item_id}/custo-bom",
+    response_model=BomCostPreview,
+    summary="Prévia do custo BOM",
+    description="Retorna o custo total da BOM para quantidade 1 sem gerar Excel nem gravar log de execução.",
+)
+def get_bom_cost_preview(
+    item_id: UUID,
+    db: Session = Depends(get_db_session),
+) -> BomCostPreview:
+    service = CalculationService(db)
+    return service.get_bom_cost_preview(item_id)
 
 
 @router.post(

@@ -90,6 +90,9 @@ export interface Item {
   active: boolean;
   notes?: string;
   peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
   supplier_id?: string | null;
   unit_of_measure?: {
     id: string;
@@ -119,6 +122,9 @@ export interface ItemCreatePayload {
   material_group_id?: string;
   notes?: string;
   peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
   supplier_id?: string | null;
 }
 
@@ -129,6 +135,9 @@ export interface ItemUpdatePayload {
   unidade_conversao_id?: string | null;
   material_group_id?: string;
   peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
   supplier_id?: string | null;
 }
 
@@ -246,6 +255,11 @@ export interface CurrentPrice {
   price_value: number;
   valid_from: string;
   created_by: string;
+}
+
+export interface BomCostPreview {
+  item_id: string;
+  custo_total: number;
 }
 
 export interface CalculationLine {

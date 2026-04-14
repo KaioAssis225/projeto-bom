@@ -35,6 +35,9 @@ class ItemCreate(BaseSchema):
     material_group_id: UUID | None = None
     notes: str | None = None
     peso_liquido: Decimal | None = None
+    catalogo: str | None = None
+    linha: str | None = None
+    designer: str | None = None
     supplier_id: UUID | None = None
 
 
@@ -58,6 +61,9 @@ class ItemUpdate(BaseSchema):
     notes: str | None = None
     material_group_id: UUID | None = None
     peso_liquido: Decimal | None = None
+    catalogo: str | None = None
+    linha: str | None = None
+    designer: str | None = None
     unidade_conversao_id: UUID | None = None
     supplier_id: UUID | None = None
 
@@ -120,6 +126,9 @@ class ItemResponse(BaseSchema):
     active: bool
     notes: str | None
     peso_liquido: Decimal | None
+    catalogo: str | None
+    linha: str | None
+    designer: str | None
     supplier_id: UUID | None
     created_at: datetime
     updated_at: datetime

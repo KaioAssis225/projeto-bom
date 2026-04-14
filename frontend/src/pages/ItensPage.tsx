@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 import MateriaisPrimasTab from "@/pages/MateriaisPrimasTab";
+import ProdutosAcabadosTab from "@/pages/ProdutosAcabadosTab";
 
 type TabKey = "materias" | "produtos";
 
@@ -42,9 +43,7 @@ export default function ItensPage() {
       {activeTab === "materias" ? (
         <MateriaisPrimasTab />
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 shadow-sm">
-          <p className="text-center text-sm text-slate-500">Em breve</p>
-        </div>
+        <ProdutosAcabadosTab />
       )}
     </div>
   );

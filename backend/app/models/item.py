@@ -75,6 +75,9 @@ class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     peso_liquido: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
+    catalogo: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    linha: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    designer: Mapped[str | None] = mapped_column(String(120), nullable=True)
     supplier_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("supplier.id"),
         nullable=True,
