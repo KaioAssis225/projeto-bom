@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import BomPage from "@/pages/BomPage";
 import CalculosPage from "@/pages/CalculosPage";
+import FornecedoresPage from "@/pages/FornecedoresPage";
 import GruposPage from "@/pages/GruposPage";
 import ItensPage from "@/pages/ItensPage";
 import LogsPage from "@/pages/LogsPage";
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/calculos" element={<CalculosPage />} />
             <Route path="/grupos" element={<GruposPage />} />
             <Route path="/unidades" element={<UnidadesPage />} />
+            <Route path="/fornecedores" element={<FornecedoresPage />} />
             <Route path="/logs" element={<LogsPage />} />
             <Route path="*" element={<Navigate to="/itens" replace />} />
           </Route>
