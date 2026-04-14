@@ -105,6 +105,17 @@ function ProdutosAcabadosModal({
     });
   }, [form, item, open]);
 
+  useEffect(() => {
+    if (!open || isEditing) {
+      return;
+    }
+
+    const currentUnit = form.getValues("unit_of_measure_id");
+    if (!currentUnit && units.length > 0) {
+      form.setValue("unit_of_measure_id", units[0].id, { shouldValidate: true });
+    }
+  }, [form, isEditing, open, units]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       if (isEditing && item) {
@@ -167,7 +178,7 @@ function ProdutosAcabadosModal({
         <form onSubmit={onSubmit} className="max-h-[80vh] overflow-y-auto">
           <div className="space-y-4 px-6 py-5">
             {/* Código + Unidade */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className={cn("grid gap-4", isEditing ? "md:grid-cols-2" : "md:grid-cols-1")}>
               <div className="space-y-2">
                 <label htmlFor="pa-code" className="text-sm font-medium text-slate-700">
                   Código
@@ -190,29 +201,31 @@ function ProdutosAcabadosModal({
                 ) : null}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="pa-uom" className="text-sm font-medium text-slate-700">
-                  Unidade
-                </label>
-                <select
-                  id="pa-uom"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("unit_of_measure_id")}
-                >
-                  <option value="">Selecione</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.code} — {unit.description}
-                    </option>
-                  ))}
-                </select>
-                {form.formState.errors.unit_of_measure_id ? (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.unit_of_measure_id.message}
-                  </p>
-                ) : null}
-              </div>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <label htmlFor="pa-uom" className="text-sm font-medium text-slate-700">
+                    Unidade
+                  </label>
+                  <select
+                    id="pa-uom"
+                    disabled={isSubmitting}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    {...form.register("unit_of_measure_id")}
+                  >
+                    <option value="">Selecione</option>
+                    {units.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.code} ??? {unit.description}
+                      </option>
+                    ))}
+                  </select>
+                  {form.formState.errors.unit_of_measure_id ? (
+                    <p className="text-sm text-red-600">
+                      {form.formState.errors.unit_of_measure_id.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             {/* Descrição */}
