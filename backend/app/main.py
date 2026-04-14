@@ -4,7 +4,6 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.routers.audit import router as audit_router
@@ -61,13 +60,10 @@ register_exception_handlers(app)
 # request as plain HTTP and Starlette may issue 307 redirects.
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
-_use_wildcard = settings.APP_ENV == "development" or "*" in settings.ALLOWED_CORS_ORIGINS
-_effective_origins = ["*"] if _use_wildcard else settings.ALLOWED_CORS_ORIGINS
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_effective_origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -93,17 +89,6 @@ async def log_requests(request: Request, call_next):
     )
 
     return response
-
-
-@app.get("/api/v1/debug/cors", tags=["debug"])
-async def debug_cors():
-    return JSONResponse(
-        content={
-            "app_env": settings.APP_ENV,
-            "allowed_origins": settings.ALLOWED_CORS_ORIGINS,
-            "cors_mode": "wildcard" if _use_wildcard else "restricted",
-        }
-    )
 
 
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
