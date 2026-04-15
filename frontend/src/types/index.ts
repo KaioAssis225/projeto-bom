@@ -40,11 +40,19 @@ export interface MaterialGroupUpdatePayload {
   active: boolean;
 }
 
+export interface UnitConversion {
+  to_unit_id: string;
+  to_unit_code: string;
+  to_unit_description: string;
+  factor: number;
+}
+
 export interface UnitOfMeasure {
   id: string;
   code: string;
   description: string;
   decimal_places: number;
+  conversions?: UnitConversion[];
 }
 
 export interface UnitOfMeasureCreatePayload {

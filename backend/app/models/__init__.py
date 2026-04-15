@@ -8,6 +8,7 @@ from app.models.item_price_history import ItemPriceHistory
 from app.models.material_group import MaterialGroup
 from app.models.raw_material import RawMaterial
 from app.models.supplier import Supplier
+from app.models.unit_conversion import UnitConversion
 from app.models.unit_of_measure import UnitOfMeasure
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "MaterialGroup",
     "RawMaterial",
     "Supplier",
+    "UnitConversion",
     "UnitOfMeasure",
 ]

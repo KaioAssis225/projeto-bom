@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import ConfigDict, Field
 
 from app.schemas.common import BaseSchema, PaginatedResponse
+
+
+class UnitConversionResponse(BaseSchema):
+    model_config = ConfigDict(from_attributes=True)
+    to_unit_id: UUID
+    to_unit_code: str
+    to_unit_description: str
+    factor: Decimal
 
 
 class UnitOfMeasureCreate(BaseSchema):
@@ -43,12 +52,16 @@ class UnitOfMeasureResponse(BaseSchema):
         from_attributes=True,
         json_schema_extra={
             "example": {
-                "id": "ae24c37c-d5d2-4f33-91b7-03f6d7b3f6c3",
+                "id": "10000000-0000-0000-0000-000000000011",
                 "code": "KG",
                 "description": "Quilograma",
                 "decimal_places": 3,
                 "created_at": "2026-03-30T09:00:00-03:00",
                 "updated_at": "2026-03-30T09:00:00-03:00",
+                "conversions": [
+                    {"to_unit_id": "...", "to_unit_code": "G",   "to_unit_description": "Grama",    "factor": "1000"},
+                    {"to_unit_id": "...", "to_unit_code": "TON", "to_unit_description": "Tonelada", "factor": "0.001"},
+                ],
             }
         },
     )
@@ -58,6 +71,7 @@ class UnitOfMeasureResponse(BaseSchema):
     decimal_places: int
     created_at: datetime
     updated_at: datetime
+    conversions: list[UnitConversionResponse] = []
 
 
 UnitOfMeasurePaginatedResponse = PaginatedResponse[UnitOfMeasureResponse]
