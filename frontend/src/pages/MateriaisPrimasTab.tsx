@@ -163,12 +163,13 @@ function CustoHistoricoModal({
 
 const materiaisSchema = z
   .object({
-    code: z.string().trim().min(1, "Informe o código").max(60, "Máximo de 60 caracteres"),
+    code: z.string().trim().min(1, "Informe o código").max(8, "Máximo de 8 caracteres"),
     description: z
       .string()
       .trim()
       .min(1, "Informe a descrição")
-      .max(255, "Máximo de 255 caracteres"),
+      .max(255, "Máximo de 255 caracteres")
+      .transform((v) => v.toUpperCase()),
     unit_of_measure_id: z.string().uuid("Selecione uma unidade válida"),
     material_group_id: z.string().uuid("Selecione um grupo válido"),
     supplier_id: z.string().uuid().optional().nullable(),
@@ -371,7 +372,7 @@ function MateriaisPrimasModal({
               <input
                 id="mp-code"
                 type="text"
-                maxLength={60}
+                maxLength={8}
                 readOnly={isEditing}
                 disabled={isSubmitting}
                 className={cn(
@@ -396,8 +397,12 @@ function MateriaisPrimasModal({
                 type="text"
                 maxLength={255}
                 disabled={isSubmitting}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                {...form.register("description")}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                {...form.register("description", {
+                  onChange: (e) => {
+                    e.target.value = e.target.value.toUpperCase();
+                  },
+                })}
               />
               {form.formState.errors.description ? (
                 <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
