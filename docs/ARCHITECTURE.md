@@ -213,3 +213,31 @@ Foi escolhido para:
 - `loss_factor` é coluna gerada no banco e não calculada manualmente no Python.
 - O filtro por grupo de matéria-prima é uma visão do resultado do cálculo, não uma duplicação estrutural da BOM.
 - `RAW_MATERIAL` exige grupo de matéria-prima associado.
+
+## Entidades do Sistema
+
+| Entidade | Tabela | Descrição |
+|---|---|---|
+| `MaterialGroup` | `material_group` | Grupos de matéria-prima (ex: Aços, Plásticos) |
+| `UnitOfMeasure` | `unit_of_measure` | Unidades de medida (ex: KG, UN, M) |
+| `Supplier` | `supplier` | Fornecedores vinculados a matérias-primas |
+| `Item` | `item` | Itens do sistema: `RAW_MATERIAL` ou `FINISHED_PRODUCT` |
+| `BomHeader` | `bom_header` | Cabeçalho da estrutura BOM (versão, validade) |
+| `BomItem` | `bom_item` | Linha da BOM: pai → filho com quantidade e scrap |
+| `ItemPrice` | `item_price` | Histórico de preços com `valid_from`, `valid_to`, `is_current` |
+| `PriceAudit` | `price_audit` | Auditoria de alterações de preço |
+| `CalculationExecutionLog` | `calculation_execution_log` | Log de cálculos executados |
+
+## Tipos de Item
+
+- `RAW_MATERIAL` — matéria-prima. Exige `material_group_id`. Pode ter `supplier_id`, `unidade_conversao_id`, `peso_liquido`.
+- `FINISHED_PRODUCT` — produto acabado. Campos adicionais: `catalogo`, `linha`, `designer`, `peso_liquido`. Custo calculado pela BOM.
+
+## Migrations Alembic
+
+| Revisão | Descrição |
+|---|---|
+| `20260326_0001` | Schema inicial |
+| `20260326_0002` | Tabela de fornecedores + FK em item |
+| `20260326_0003` | Campo `unidade_conversao_id` em item |
+| `20260414_0004` | Campos `catalogo`, `linha`, `designer` em item |

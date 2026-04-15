@@ -54,7 +54,7 @@ class SupplierService:
                 detail="Supplier not found",
             )
 
-        updated = self.repository.update(id=id, data=payload.model_dump())
+        updated = self.repository.update(id=id, data=payload.model_dump(exclude_none=True))
         logger.info("Supplier updated: id=%s code=%s", updated.id, updated.code)
         return updated
 

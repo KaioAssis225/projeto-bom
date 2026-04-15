@@ -54,7 +54,7 @@ class MaterialGroupService:
                 detail="Material group not found",
             )
 
-        updated = self.repository.update(id=id, data=payload.model_dump())
+        updated = self.repository.update(id=id, data=payload.model_dump(exclude_none=True))
         logger.info("Material group updated: id=%s code=%s", updated.id, updated.code)
         return updated
 

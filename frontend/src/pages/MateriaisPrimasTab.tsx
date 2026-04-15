@@ -559,7 +559,7 @@ function MateriaisPrimasModal({
                   <option value="">Selecione</option>
                   {units.map((unit) => (
                     <option key={unit.id} value={unit.id}>
-                      {unit.code} ??? {unit.description}
+                      {unit.code} — {unit.description}
                     </option>
                   ))}
                 </select>

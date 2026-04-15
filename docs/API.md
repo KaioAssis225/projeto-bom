@@ -189,6 +189,74 @@ Atualiza unidade.
 
 Endpoint de compatibilidade. A entidade não usa soft delete real.
 
+## Fornecedores
+
+### `GET /api/v1/fornecedores/`
+
+Lista fornecedores com paginação.
+
+#### Query params
+
+- `skip`
+- `limit`
+- `active_only`
+
+#### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "code": "FORN-001",
+      "name": "Aços Especiais Ltda",
+      "description": "Fornecedor de aços carbono",
+      "active": true,
+      "created_at": "2026-04-01T10:00:00"
+    }
+  ],
+  "total": 1,
+  "skip": 0,
+  "limit": 20
+}
+```
+
+### `POST /api/v1/fornecedores/`
+
+Cria fornecedor.
+
+#### Request
+
+```json
+{
+  "code": "FORN-001",
+  "name": "Aços Especiais Ltda",
+  "description": "Fornecedor de aços carbono"
+}
+```
+
+### `GET /api/v1/fornecedores/{id}`
+
+Busca fornecedor por ID.
+
+### `PUT /api/v1/fornecedores/{id}`
+
+Atualiza fornecedor.
+
+#### Request
+
+```json
+{
+  "name": "Aços Especiais S.A.",
+  "description": "Atualização razão social",
+  "active": true
+}
+```
+
+### `PATCH /api/v1/fornecedores/{id}/inativar`
+
+Inativa fornecedor.
+
 ## Itens
 
 ### `GET /api/v1/itens/`
@@ -217,10 +285,16 @@ Lista itens com filtros.
       "type": "RAW_MATERIAL",
       "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
       "material_group_id": "33333333-3333-3333-3333-333333333333",
+      "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
       "active": true,
       "notes": "Espessura 2mm",
-      "unit_of_measure_code": "KG",
-      "material_group_name": "Aços"
+      "peso_liquido": null,
+      "catalogo": null,
+      "linha": null,
+      "designer": null,
+      "unit_of_measure": { "id": "22222222-2222-2222-2222-222222222222", "code": "KG" },
+      "material_group": { "id": "33333333-3333-3333-3333-333333333333", "name": "Aços" },
+      "supplier": { "id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "code": "FORN-001", "name": "Aços Especiais Ltda" }
     }
   ],
   "total": 1,
@@ -231,9 +305,9 @@ Lista itens com filtros.
 
 ### `POST /api/v1/itens/`
 
-Cria item.
+Cria item. Para `type=FINISHED_PRODUCT`, os campos `catalogo`, `linha`, `designer` e `peso_liquido` são opcionais.
 
-#### Request
+#### Request (matéria-prima)
 
 ```json
 {
@@ -242,7 +316,23 @@ Cria item.
   "type": "RAW_MATERIAL",
   "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
   "material_group_id": "33333333-3333-3333-3333-333333333333",
+  "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
   "notes": "Espessura 2mm"
+}
+```
+
+#### Request (produto acabado)
+
+```json
+{
+  "code": "PA-001",
+  "description": "Produto Acabado Alpha",
+  "type": "FINISHED_PRODUCT",
+  "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
+  "catalogo": "CAT-2026",
+  "linha": "Premium",
+  "designer": "Carlos Silva",
+  "peso_liquido": "1.250"
 }
 ```
 
@@ -512,6 +602,19 @@ Calcula custo consolidado de vários produtos.
 ### `GET /api/v1/calculos/download/{filename}`
 
 Baixa o arquivo Excel gerado pelo cálculo.
+
+### `GET /api/v1/calculos/{item_id}/custo-bom`
+
+Retorna o custo total da BOM do produto para quantidade 1, sem gerar Excel nem gravar log. Usado para exibição rápida na tela de Produtos Acabados.
+
+#### Response
+
+```json
+{
+  "item_id": "55555555-5555-5555-5555-555555555555",
+  "custo_total": "311.250000"
+}
+```
 
 ## Logs
 

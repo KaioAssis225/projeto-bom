@@ -34,6 +34,7 @@ class ItemService:
             unit_of_measure_id=payload.unit_of_measure_id,
             material_group_id=payload.material_group_id,
             supplier_id=payload.supplier_id,
+            unidade_conversao_id=payload.unidade_conversao_id,
         )
 
         data = payload.model_dump()
@@ -65,9 +66,10 @@ class ItemService:
             unit_of_measure_id=existing.unit_of_measure_id,
             material_group_id=payload.material_group_id,
             supplier_id=payload.supplier_id,
+            unidade_conversao_id=payload.unidade_conversao_id,
         )
 
-        updated = self.repository.update(id=id, data=payload.model_dump())
+        updated = self.repository.update(id=id, data=payload.model_dump(exclude_none=True))
         logger.info("Item updated: id=%s code=%s", updated.id, updated.code)
         return updated
 
@@ -86,6 +88,7 @@ class ItemService:
         unit_of_measure_id: UUID,
         material_group_id: UUID | None,
         supplier_id: UUID | None = None,
+        unidade_conversao_id: UUID | None = None,
     ) -> None:
         if self.unit_of_measure_repository.get_by_id(unit_of_measure_id) is None:
             raise HTTPException(
@@ -111,4 +114,11 @@ class ItemService:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Supplier not found",
+                )
+
+        if unidade_conversao_id is not None:
+            if self.unit_of_measure_repository.get_by_id(unidade_conversao_id) is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Conversion unit of measure not found",
                 )

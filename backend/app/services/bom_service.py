@@ -110,7 +110,7 @@ class BomService:
         if existing is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="BOM item not found")
 
-        updated = self.repository.update_item(bom_item_id, payload.model_dump())
+        updated = self.repository.update_item(bom_item_id, payload.model_dump(exclude_none=True))
         logger.info("BOM item updated: id=%s bom_id=%s", updated.id, updated.bom_id)
         return updated
 
