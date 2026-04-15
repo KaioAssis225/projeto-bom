@@ -77,17 +77,22 @@ function ConversionsPanel({ unit }: { unit: UnitOfMeasure }) {
       {conversions.map((c) => (
         <span
           key={c.to_unit_id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700"
+          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs text-slate-700 overflow-hidden"
         >
-          <span className="font-semibold text-slate-900">
-            1 {unit.code}
+          {/* Left: "1 KG =" */}
+          <span className="flex items-center gap-1 px-3 py-1">
+            <span className="font-semibold text-slate-900">1 {unit.code}</span>
+            <span className="text-slate-400">=</span>
+            <span className="font-semibold text-blue-700">{formatFactor(c.factor)}</span>
           </span>
-          <span className="text-slate-400">=</span>
-          <span className="font-semibold text-blue-700">
-            {formatFactor(c.factor)}
+          {/* Divider */}
+          <span className="self-stretch w-px bg-slate-200" aria-hidden />
+          {/* Right: "G — Grama" */}
+          <span className="flex items-center gap-1.5 px-3 py-1">
+            <span className="font-bold text-slate-900">{c.to_unit_code}</span>
+            <span className="text-slate-400">·</span>
+            <span className="text-slate-500">{c.to_unit_description}</span>
           </span>
-          <span className="font-medium text-slate-600">{c.to_unit_code}</span>
-          <span className="text-slate-400">({c.to_unit_description})</span>
         </span>
       ))}
     </div>

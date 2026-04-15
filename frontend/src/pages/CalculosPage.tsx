@@ -199,7 +199,7 @@ function ResultSection({
                   </td>
                   <td className="px-4 py-3 text-slate-600">{line.group_name || "—"}</td>
                   <td className="px-4 py-3 text-slate-600">{line.uom}</td>
-                  <td className="px-4 py-3 text-right text-slate-600">{formatDecimal(line.accumulated_quantity, 6)}</td>
+                  <td className="px-4 py-3 text-right text-slate-600">{formatDecimal(line.accumulated_quantity, 2)}</td>
                   <td className="px-4 py-3 text-right text-slate-600">R$ {formatCurrency(line.price)}</td>
                   <td className="px-4 py-3 text-right font-medium text-slate-900">R$ {formatCurrency(line.line_cost)}</td>
                 </tr>
