@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 import logging
 import time
 
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -27,8 +29,21 @@ configure_logging()
 logger = logging.getLogger("app.request")
 
 
+def _run_migrations() -> None:
+    """Run Alembic migrations programmatically at startup."""
+    try:
+        from pathlib import Path
+        alembic_cfg = AlembicConfig(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+        alembic_command.upgrade(alembic_cfg, "head")
+        logger.info("database_migrations_ok")
+    except Exception as exc:
+        logger.error("database_migrations_failed", extra={"extra_data": {"error": str(exc)}})
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    _run_migrations()
     logger.info(
         "application_start",
         extra={
