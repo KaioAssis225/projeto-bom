@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -7,11 +6,16 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import * as calculosApi from "@/api/calculos";
-import { useGrupos } from "@/hooks/useGrupos";
-import { useCreateItem, useDeactivateItem, useItens, useUpdateItem } from "@/hooks/useItens";
+import {
+  useCreateProdutoAcabado,
+  useDeactivateProdutoAcabado,
+  useProdutoAcabado,
+  useUpdateProdutoAcabado,
+} from "@/hooks/useProdutoAcabado";
 import { useUnidades } from "@/hooks/useUnidades";
 import { cn, extractErrorMessage, formatCurrency, formatDecimal } from "@/lib/utils";
-import type { Item, UnitOfMeasure } from "@/types";
+import type { FinishedProduct, UnitOfMeasure } from "@/types";
+import { useQuery } from "@tanstack/react-query";
 
 // ─── BomCustoCell ─────────────────────────────────────────────────────────────
 
@@ -55,13 +59,13 @@ function ProdutosAcabadosModal({
   onClose,
 }: {
   open: boolean;
-  item: Item | null;
+  item: FinishedProduct | null;
   units: UnitOfMeasure[];
   onClose: () => void;
 }) {
   const isEditing = item !== null;
-  const createItem = useCreateItem();
-  const updateItem = useUpdateItem();
+  const createItem = useCreateProdutoAcabado();
+  const updateItem = useUpdateProdutoAcabado();
   const isSubmitting = createItem.isPending || updateItem.isPending;
 
   const form = useForm<ProdutoFormValues>({
@@ -135,7 +139,6 @@ function ProdutosAcabadosModal({
         await createItem.mutateAsync({
           code: values.code.trim(),
           description: values.description.trim(),
-          type: "FINISHED_PRODUCT",
           unit_of_measure_id: values.unit_of_measure_id,
           notes: values.notes?.trim() || undefined,
           peso_liquido: values.peso_liquido ?? undefined,
@@ -366,7 +369,7 @@ function ActionsDropdown({
   onEdit,
   onDeactivate,
 }: {
-  item: Item;
+  item: FinishedProduct;
   onEdit: () => void;
   onDeactivate: () => void;
 }) {
@@ -451,17 +454,14 @@ export default function ProdutosAcabadosTab() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<FinishedProduct | null>(null);
 
   const unitsQuery = useUnidades({ skip: 0, limit: 100 });
-  // grupos carregado para uso futuro (BOM etc.)
-  useGrupos({ active_only: true, skip: 0, limit: 100 });
 
-  const itemFilters = useMemo(
+  const filters = useMemo(
     () => ({
-      type: "FINISHED_PRODUCT",
-      code_contains: search.trim() || undefined,
-      description_contains: search.trim() || undefined,
+      code: search.trim() || undefined,
+      desc: search.trim() || undefined,
       active_only: statusFilter === "active",
       skip,
       limit: pageSize,
@@ -469,8 +469,8 @@ export default function ProdutosAcabadosTab() {
     [search, skip, statusFilter],
   );
 
-  const itemsQuery = useItens(itemFilters);
-  const deactivateItem = useDeactivateItem();
+  const itemsQuery = useProdutoAcabado(filters);
+  const deactivateItem = useDeactivateProdutoAcabado();
 
   const items = useMemo(() => {
     const all = itemsQuery.data?.items ?? [];
@@ -488,7 +488,7 @@ export default function ProdutosAcabadosTab() {
     setSkip(0);
   }, [search, statusFilter]);
 
-  const handleDeactivate = async (item: Item) => {
+  const handleDeactivate = async (item: FinishedProduct) => {
     if (!window.confirm(`Deseja inativar "${item.code} — ${item.description}"?`)) return;
     try {
       await deactivateItem.mutateAsync(item.id);
@@ -546,10 +546,8 @@ export default function ProdutosAcabadosTab() {
         </div>
       </div>
 
-      {/* Loading */}
       {itemsQuery.isLoading ? <TableSkeleton /> : null}
 
-      {/* Error */}
       {itemsQuery.isError ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
           <div className="flex items-start gap-3">
@@ -569,7 +567,6 @@ export default function ProdutosAcabadosTab() {
         </div>
       ) : null}
 
-      {/* Table */}
       {!itemsQuery.isLoading && !itemsQuery.isError ? (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -646,7 +643,6 @@ export default function ProdutosAcabadosTab() {
             </div>
           </div>
 
-          {/* Pagination */}
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
             <p className="text-sm text-slate-500">
               Mostrando {showingFrom} a {showingTo} de {total} itens
@@ -673,7 +669,6 @@ export default function ProdutosAcabadosTab() {
         </div>
       ) : null}
 
-      {/* Modal */}
       <ProdutosAcabadosModal
         open={modalOpen}
         item={selectedItem}

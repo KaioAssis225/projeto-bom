@@ -11,11 +11,13 @@ from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.api.routers.audit import router as audit_router
 from app.api.routers.bom import router as bom_router
 from app.api.routers.calculations import router as calculations_router
+from app.api.routers.finished_product import router as finished_product_router
 from app.api.routers.health import router as health_router
 from app.api.routers.items import router as items_router
 from app.api.routers.logs import router as logs_router
 from app.api.routers.material_groups import router as material_groups_router
 from app.api.routers.prices import router as prices_router
+from app.api.routers.raw_material import router as raw_material_router
 from app.api.routers.suppliers import router as suppliers_router
 from app.api.routers.unit_of_measures import router as unit_of_measures_router
 from app.core.config import settings
@@ -110,6 +112,8 @@ app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
 app.include_router(bom_router, prefix="/api/v1/bom", tags=["bom"])
 app.include_router(calculations_router, prefix="/api/v1/calculos", tags=["calculos"])
 app.include_router(items_router, prefix="/api/v1/itens", tags=["itens"])
+app.include_router(raw_material_router, prefix="/api/v1/materias-primas", tags=["materias-primas"])
+app.include_router(finished_product_router, prefix="/api/v1/produtos-acabados", tags=["produtos-acabados"])
 app.include_router(logs_router, prefix="/api/v1/logs", tags=["logs"])
 app.include_router(material_groups_router, prefix="/api/v1/grupos", tags=["grupos"])
 app.include_router(prices_router, prefix="/api/v1/precos", tags=["precos"])

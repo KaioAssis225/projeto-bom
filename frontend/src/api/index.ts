@@ -1,6 +1,8 @@
 export * as grupos from "./grupos";
 export * as unidades from "./unidades";
 export * as itens from "./itens";
+export * as materiasPrimas from "./materias-primas";
+export * as produtosAcabados from "./produtos-acabados";
 export * as bom from "./bom";
 export * as precos from "./precos";
 export * as calculos from "./calculos";

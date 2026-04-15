@@ -1,21 +1,10 @@
 from __future__ import annotations
 
-from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import (
-    Boolean,
-    CheckConstraint,
-    Enum as SAEnum,
-    ForeignKey,
-    Numeric,
-    String,
-    Text,
-    UniqueConstraint,
-    text,
-)
+from sqlalchemy import Boolean, Enum as SAEnum, ForeignKey, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -26,9 +15,9 @@ if TYPE_CHECKING:
     from app.models.bom import Bom
     from app.models.bom_item import BomItem
     from app.models.calculation_execution_log import CalculationExecutionLog
+    from app.models.finished_product import FinishedProduct
     from app.models.item_price_history import ItemPriceHistory
-    from app.models.material_group import MaterialGroup
-    from app.models.supplier import Supplier
+    from app.models.raw_material import RawMaterial
     from app.models.unit_of_measure import UnitOfMeasure
 
 
@@ -42,66 +31,36 @@ class ItemType(str, Enum):
 
 class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "item"
-    __table_args__ = (
-        UniqueConstraint("code", name="uq_item_code"),
-        CheckConstraint(
-            "type <> 'RAW_MATERIAL' OR material_group_id IS NOT NULL",
-            name="ck_item_raw_material_requires_group",
-        ),
-    )
+    __table_args__ = (UniqueConstraint("code", name="uq_item_code"),)
 
     code: Mapped[str] = mapped_column(String(60), nullable=False)
     description: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[ItemType] = mapped_column(
-        SAEnum(ItemType, name="item_type_enum"),
-        nullable=False,
+        SAEnum(ItemType, name="item_type_enum"), nullable=False
     )
     unit_of_measure_id: Mapped[UUID] = mapped_column(
-        ForeignKey("unit_of_measure.id"),
-        nullable=False,
-    )
-    unidade_conversao_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("unit_of_measure.id"),
-        nullable=True,
-    )
-    material_group_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("material_group.id"),
-        nullable=True,
+        ForeignKey("unit_of_measure.id"), nullable=False
     )
     active: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        server_default=text("true"),
+        Boolean, nullable=False, server_default=text("true")
     )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    peso_liquido: Mapped[Decimal | None] = mapped_column(Numeric(18, 6), nullable=True)
-    catalogo: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    linha: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    designer: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    supplier_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("supplier.id"),
-        nullable=True,
-    )
 
-    unit_of_measure: Mapped["UnitOfMeasure"] = relationship(
-        foreign_keys=[unit_of_measure_id]
+    unit_of_measure: Mapped["UnitOfMeasure"] = relationship()
+    raw_material: Mapped["RawMaterial | None"] = relationship(
+        back_populates="item", uselist=False
     )
-    unidade_conversao: Mapped["UnitOfMeasure | None"] = relationship(
-        foreign_keys=[unidade_conversao_id]
+    finished_product: Mapped["FinishedProduct | None"] = relationship(
+        back_populates="item", uselist=False
     )
-    material_group: Mapped["MaterialGroup | None"] = relationship()
-    supplier: Mapped["Supplier | None"] = relationship()
     bom_headers: Mapped[list["Bom"]] = relationship(
-        back_populates="parent_item",
-        foreign_keys="Bom.parent_item_id",
+        back_populates="parent_item", foreign_keys="Bom.parent_item_id"
     )
     bom_children: Mapped[list["BomItem"]] = relationship(
-        back_populates="child_item",
-        foreign_keys="BomItem.child_item_id",
+        back_populates="child_item", foreign_keys="BomItem.child_item_id"
     )
     bom_parents: Mapped[list["BomItem"]] = relationship(
-        back_populates="parent_item",
-        foreign_keys="BomItem.parent_item_id",
+        back_populates="parent_item", foreign_keys="BomItem.parent_item_id"
     )
     price_history: Mapped[list["ItemPriceHistory"]] = relationship(back_populates="item")
     price_audits: Mapped[list["AuditPriceChange"]] = relationship(back_populates="item")

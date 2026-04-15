@@ -6,7 +6,6 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.item import Item
-from app.models.supplier import Supplier  # noqa: F401 — ensures mapper is loaded
 from app.schemas.item import ItemListFilter
 
 
@@ -65,9 +64,6 @@ class ItemRepository:
             select(Item)
             .options(
                 selectinload(Item.unit_of_measure),
-                selectinload(Item.unidade_conversao),
-                selectinload(Item.material_group),
-                selectinload(Item.supplier),
             )
             .order_by(Item.code.asc())
         )
@@ -76,8 +72,6 @@ class ItemRepository:
     def _apply_filters(stmt: Select, filters: ItemListFilter) -> Select:
         if filters.type is not None:
             stmt = stmt.where(Item.type == filters.type)
-        if filters.material_group_id is not None:
-            stmt = stmt.where(Item.material_group_id == filters.material_group_id)
         if filters.code_contains:
             stmt = stmt.where(Item.code.ilike(f"%{filters.code_contains}%"))
         if filters.description_contains:

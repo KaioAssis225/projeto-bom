@@ -259,7 +259,8 @@ class BomRepository:
             FROM bom_edges be
             JOIN item i ON i.id = be.item_id
             JOIN unit_of_measure uom ON uom.id = i.unit_of_measure_id
-            LEFT JOIN material_group mg ON mg.id = i.material_group_id
+            LEFT JOIN raw_material rm ON rm.item_id = i.id
+            LEFT JOIN material_group mg ON mg.id = rm.material_group_id
             ORDER BY i.code
             """
         )

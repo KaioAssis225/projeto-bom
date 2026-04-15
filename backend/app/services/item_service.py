@@ -9,39 +9,34 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import DuplicateCodeError, ItemNotFoundError
 from app.models.item import ItemType
 from app.repositories.item_repository import ItemRepository
-from app.repositories.material_group_repository import MaterialGroupRepository
-from app.repositories.supplier_repository import SupplierRepository
 from app.repositories.unit_of_measure_repository import UnitOfMeasureRepository
 from app.schemas.item import ItemCreate, ItemListFilter, ItemPaginatedResponse, ItemUpdate
 
 
 logger = logging.getLogger("app.item")
 
+_DISALLOWED_TYPES = {ItemType.RAW_MATERIAL, ItemType.FINISHED_PRODUCT}
+
 
 class ItemService:
     def __init__(self, db: Session) -> None:
         self.repository = ItemRepository(db)
-        self.material_group_repository = MaterialGroupRepository(db)
-        self.supplier_repository = SupplierRepository(db)
         self.unit_of_measure_repository = UnitOfMeasureRepository(db)
 
     def create(self, payload: ItemCreate):
+        if payload.type in _DISALLOWED_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Use /api/v1/materias-primas or /api/v1/produtos-acabados to create {payload.type} items",
+            )
         if self.repository.get_by_code(payload.code) is not None:
             raise DuplicateCodeError("Item code already exists")
-
-        self._validate_relations(
-            item_type=payload.type,
-            unit_of_measure_id=payload.unit_of_measure_id,
-            material_group_id=payload.material_group_id,
-            supplier_id=payload.supplier_id,
-            unidade_conversao_id=payload.unidade_conversao_id,
-        )
-
-        data = payload.model_dump()
-        if payload.type != ItemType.RAW_MATERIAL and payload.material_group_id is None:
-            data["material_group_id"] = None
-
-        created = self.repository.create(data)
+        if self.unit_of_measure_repository.get_by_id(payload.unit_of_measure_id) is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Unit of measure not found",
+            )
+        created = self.repository.create(payload.model_dump())
         logger.info("Item created: id=%s code=%s", created.id, created.code)
         return created
 
@@ -60,15 +55,6 @@ class ItemService:
         existing = self.repository.get_by_id(id)
         if existing is None:
             raise ItemNotFoundError()
-
-        self._validate_relations(
-            item_type=existing.type,
-            unit_of_measure_id=existing.unit_of_measure_id,
-            material_group_id=payload.material_group_id,
-            supplier_id=payload.supplier_id,
-            unidade_conversao_id=payload.unidade_conversao_id,
-        )
-
         updated = self.repository.update(id=id, data=payload.model_dump(exclude_none=True))
         logger.info("Item updated: id=%s code=%s", updated.id, updated.code)
         return updated
@@ -77,48 +63,6 @@ class ItemService:
         existing = self.repository.get_by_id(id)
         if existing is None:
             raise ItemNotFoundError()
-
         deactivated = self.repository.deactivate(id)
         logger.info("Item deactivated: id=%s code=%s", deactivated.id, deactivated.code)
         return deactivated
-
-    def _validate_relations(
-        self,
-        item_type: ItemType,
-        unit_of_measure_id: UUID,
-        material_group_id: UUID | None,
-        supplier_id: UUID | None = None,
-        unidade_conversao_id: UUID | None = None,
-    ) -> None:
-        if self.unit_of_measure_repository.get_by_id(unit_of_measure_id) is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Unit of measure not found",
-            )
-
-        if item_type == ItemType.RAW_MATERIAL and material_group_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="material_group_id is required for RAW_MATERIAL items",
-            )
-
-        if material_group_id is not None:
-            if self.material_group_repository.get_by_id(material_group_id) is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Material group not found",
-                )
-
-        if supplier_id is not None:
-            if self.supplier_repository.get_by_id(supplier_id) is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Supplier not found",
-                )
-
-        if unidade_conversao_id is not None:
-            if self.unit_of_measure_repository.get_by_id(unidade_conversao_id) is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Conversion unit of measure not found",
-                )

@@ -11,7 +11,6 @@ export async function list(params?: ItemListParams): Promise<PaginatedResponse<I
   const response = await client.get<PaginatedResponse<Item>>("/api/v1/itens/", {
     params: {
       type: params?.type,
-      group_id: params?.material_group_id,
       code: params?.code_contains,
       desc: params?.description_contains,
       active_only: params?.active_only ?? true,

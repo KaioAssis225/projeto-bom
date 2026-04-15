@@ -76,6 +76,8 @@ Exemplo:
 
 ```text
 /api/v1/itens
+/api/v1/materias-primas
+/api/v1/produtos-acabados
 /api/v1/bom
 /api/v1/precos
 /api/v1/calculos
@@ -94,6 +96,8 @@ Responsável por:
 Exemplos:
 
 - `ItemService`
+- `RawMaterialService`
+- `FinishedProductService`
 - `BomService`
 - `PriceService`
 - `CalculationService`
@@ -221,17 +225,35 @@ Foi escolhido para:
 | `MaterialGroup` | `material_group` | Grupos de matéria-prima (ex: Aços, Plásticos) |
 | `UnitOfMeasure` | `unit_of_measure` | Unidades de medida (ex: KG, UN, M) |
 | `Supplier` | `supplier` | Fornecedores vinculados a matérias-primas |
-| `Item` | `item` | Itens do sistema: `RAW_MATERIAL` ou `FINISHED_PRODUCT` |
-| `BomHeader` | `bom_header` | Cabeçalho da estrutura BOM (versão, validade) |
+| `Item` | `item` | Registro base de todos os itens (código, tipo, unidade, ativo) |
+| `RawMaterial` | `raw_material` | Detalhes de matéria-prima: grupo, fornecedor, unidade conversão, peso |
+| `FinishedProduct` | `finished_product` | Detalhes de produto acabado: catálogo, linha, designer, peso |
+| `Bom` | `bom` | Cabeçalho da estrutura BOM (versão, validade) |
 | `BomItem` | `bom_item` | Linha da BOM: pai → filho com quantidade e scrap |
-| `ItemPrice` | `item_price` | Histórico de preços com `valid_from`, `valid_to`, `is_current` |
-| `PriceAudit` | `price_audit` | Auditoria de alterações de preço |
+| `ItemPriceHistory` | `item_price_history` | Histórico de preços com `valid_from`, `valid_to`, `is_current` |
+| `AuditPriceChange` | `audit_price_change` | Auditoria de alterações de preço |
 | `CalculationExecutionLog` | `calculation_execution_log` | Log de cálculos executados |
+
+## Separação de Tabelas (Class Table Inheritance)
+
+`raw_material` e `finished_product` usam class table inheritance em relação ao `item`:
+
+```text
+item (id, code, description, type, unit_of_measure_id, active, notes)
+  ├── raw_material (item_id PK FK→item, material_group_id, supplier_id, unidade_conversao_id, peso_liquido)
+  └── finished_product (item_id PK FK→item, peso_liquido, catalogo, linha, designer)
+```
+
+- Cada tabela de detalhe tem `item_id` como chave primária com `ON DELETE CASCADE`.
+- O join entre `item` e a tabela de detalhe é feito via SQLAlchemy `uselist=False` relationship.
+- Endpoints dedicados: `/api/v1/materias-primas/` e `/api/v1/produtos-acabados/`.
+- O endpoint genérico `/api/v1/itens/` rejeita criação de `RAW_MATERIAL` ou `FINISHED_PRODUCT`.
 
 ## Tipos de Item
 
-- `RAW_MATERIAL` — matéria-prima. Exige `material_group_id`. Pode ter `supplier_id`, `unidade_conversao_id`, `peso_liquido`.
-- `FINISHED_PRODUCT` — produto acabado. Campos adicionais: `catalogo`, `linha`, `designer`, `peso_liquido`. Custo calculado pela BOM.
+- `RAW_MATERIAL` — matéria-prima. Detalhes em tabela `raw_material`. Exige `material_group_id`. Pode ter `supplier_id`, `unidade_conversao_id`, `peso_liquido`. Endpoint: `/api/v1/materias-primas/`.
+- `FINISHED_PRODUCT` — produto acabado. Detalhes em tabela `finished_product`. Campos adicionais: `catalogo`, `linha`, `designer`, `peso_liquido`. Custo calculado pela BOM. Endpoint: `/api/v1/produtos-acabados/`.
+- `SEMI_FINISHED`, `PACKAGING`, `SERVICE` — tipos genéricos sem tabela de detalhe. Endpoint: `/api/v1/itens/`.
 
 ## Migrations Alembic
 
@@ -241,3 +263,5 @@ Foi escolhido para:
 | `20260326_0002` | Tabela de fornecedores + FK em item |
 | `20260326_0003` | Campo `unidade_conversao_id` em item |
 | `20260414_0004` | Campos `catalogo`, `linha`, `designer` em item |
+| `20260415_0005` | Reparo de colunas ausentes por schema drift |
+| `20260415_0006` | Separação: tabelas `raw_material` e `finished_product` + migração de dados |

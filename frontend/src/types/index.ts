@@ -85,31 +85,12 @@ export interface Item {
   description: string;
   type: ItemType;
   unit_of_measure_id: string;
-  unidade_conversao_id?: string | null;
-  material_group_id?: string;
   active: boolean;
   notes?: string;
-  peso_liquido?: number | null;
-  catalogo?: string | null;
-  linha?: string | null;
-  designer?: string | null;
-  supplier_id?: string | null;
   unit_of_measure?: {
     id: string;
     code: string;
   };
-  unidade_conversao?: {
-    id: string;
-    code: string;
-  } | null;
-  material_group?: {
-    id: string;
-    name: string;
-  } | null;
-  supplier?: {
-    id: string;
-    name: string;
-  } | null;
   current_price?: number | null;
 }
 
@@ -118,34 +99,109 @@ export interface ItemCreatePayload {
   description: string;
   type: ItemType;
   unit_of_measure_id: string;
-  unidade_conversao_id?: string | null;
-  material_group_id?: string;
   notes?: string;
-  peso_liquido?: number | null;
-  catalogo?: string | null;
-  linha?: string | null;
-  designer?: string | null;
-  supplier_id?: string | null;
 }
 
 export interface ItemUpdatePayload {
   description: string;
   active: boolean;
   notes?: string;
-  unidade_conversao_id?: string | null;
-  material_group_id?: string;
-  peso_liquido?: number | null;
-  catalogo?: string | null;
-  linha?: string | null;
-  designer?: string | null;
-  supplier_id?: string | null;
 }
 
 export interface ItemListParams extends PaginationParams {
   type?: string;
-  material_group_id?: string;
   code_contains?: string;
   description_contains?: string;
+  active_only?: boolean;
+}
+
+export interface RawMaterial {
+  id: string;
+  code: string;
+  description: string;
+  active: boolean;
+  notes?: string | null;
+  unit_of_measure_id: string;
+  material_group_id: string;
+  supplier_id?: string | null;
+  unidade_conversao_id?: string | null;
+  peso_liquido?: number | null;
+  created_at: string;
+  updated_at: string;
+  unit_of_measure?: { id: string; code: string };
+  material_group?: { id: string; name: string } | null;
+  supplier?: { id: string; name: string } | null;
+  unidade_conversao?: { id: string; code: string } | null;
+}
+
+export interface RawMaterialCreatePayload {
+  code: string;
+  description: string;
+  unit_of_measure_id: string;
+  material_group_id: string;
+  notes?: string | null;
+  supplier_id?: string | null;
+  unidade_conversao_id?: string | null;
+  peso_liquido?: number | null;
+}
+
+export interface RawMaterialUpdatePayload {
+  description: string;
+  active: boolean;
+  material_group_id: string;
+  notes?: string | null;
+  supplier_id?: string | null;
+  unidade_conversao_id?: string | null;
+  peso_liquido?: number | null;
+}
+
+export interface RawMaterialListParams extends PaginationParams {
+  group_id?: string;
+  code?: string;
+  desc?: string;
+  active_only?: boolean;
+}
+
+export interface FinishedProduct {
+  id: string;
+  code: string;
+  description: string;
+  active: boolean;
+  notes?: string | null;
+  unit_of_measure_id: string;
+  peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
+  created_at: string;
+  updated_at: string;
+  unit_of_measure?: { id: string; code: string };
+}
+
+export interface FinishedProductCreatePayload {
+  code: string;
+  description: string;
+  unit_of_measure_id: string;
+  notes?: string | null;
+  peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
+}
+
+export interface FinishedProductUpdatePayload {
+  description: string;
+  active: boolean;
+  notes?: string | null;
+  peso_liquido?: number | null;
+  catalogo?: string | null;
+  linha?: string | null;
+  designer?: string | null;
+}
+
+export interface FinishedProductListParams extends PaginationParams {
+  code?: string;
+  desc?: string;
   active_only?: boolean;
 }
 

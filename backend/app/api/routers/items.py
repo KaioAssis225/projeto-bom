@@ -28,7 +28,6 @@ router = APIRouter(tags=["itens"])
 )
 def list_items(
     type: ItemType | None = Query(default=None),
-    group_id: UUID | None = Query(default=None),
     code: str | None = Query(default=None),
     desc: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
@@ -38,7 +37,6 @@ def list_items(
 ) -> ItemPaginatedResponse:
     filters = ItemListFilter(
         type=type,
-        material_group_id=group_id,
         code_contains=code,
         description_contains=desc,
         active_only=active_only,

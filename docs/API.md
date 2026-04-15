@@ -259,6 +259,8 @@ Inativa fornecedor.
 
 ## Itens
 
+> **Nota:** Os tipos `RAW_MATERIAL` e `FINISHED_PRODUCT` têm endpoints dedicados. O endpoint `/api/v1/itens/` é destinado a tipos genéricos como `SEMI_FINISHED`, `PACKAGING` e `SERVICE`. Tentativas de criar `RAW_MATERIAL` ou `FINISHED_PRODUCT` via `/api/v1/itens/` retornam `422`.
+
 ### `GET /api/v1/itens/`
 
 Lista itens com filtros.
@@ -266,7 +268,6 @@ Lista itens com filtros.
 #### Query params
 
 - `type`
-- `material_group_id`
 - `code_contains`
 - `description_contains`
 - `active_only`
@@ -280,21 +281,13 @@ Lista itens com filtros.
   "items": [
     {
       "id": "11111111-1111-1111-1111-111111111111",
-      "code": "RM-ACO-1020",
-      "description": "Chapa de aço 1020",
-      "type": "RAW_MATERIAL",
+      "code": "SF-ESTRUTURA-01",
+      "description": "Estrutura semiacabada",
+      "type": "SEMI_FINISHED",
       "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
-      "material_group_id": "33333333-3333-3333-3333-333333333333",
-      "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
       "active": true,
-      "notes": "Espessura 2mm",
-      "peso_liquido": null,
-      "catalogo": null,
-      "linha": null,
-      "designer": null,
-      "unit_of_measure": { "id": "22222222-2222-2222-2222-222222222222", "code": "KG" },
-      "material_group": { "id": "33333333-3333-3333-3333-333333333333", "name": "Aços" },
-      "supplier": { "id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "code": "FORN-001", "name": "Aços Especiais Ltda" }
+      "notes": null,
+      "unit_of_measure": { "id": "22222222-2222-2222-2222-222222222222", "code": "UN" }
     }
   ],
   "total": 1,
@@ -305,34 +298,17 @@ Lista itens com filtros.
 
 ### `POST /api/v1/itens/`
 
-Cria item. Para `type=FINISHED_PRODUCT`, os campos `catalogo`, `linha`, `designer` e `peso_liquido` são opcionais.
+Cria item de tipo genérico (`SEMI_FINISHED`, `PACKAGING`, `SERVICE`).
 
-#### Request (matéria-prima)
-
-```json
-{
-  "code": "RM-ACO-1020",
-  "description": "Chapa de aço 1020",
-  "type": "RAW_MATERIAL",
-  "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
-  "material_group_id": "33333333-3333-3333-3333-333333333333",
-  "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
-  "notes": "Espessura 2mm"
-}
-```
-
-#### Request (produto acabado)
+#### Request
 
 ```json
 {
-  "code": "PA-001",
-  "description": "Produto Acabado Alpha",
-  "type": "FINISHED_PRODUCT",
+  "code": "SF-ESTRUTURA-01",
+  "description": "Estrutura semiacabada",
+  "type": "SEMI_FINISHED",
   "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
-  "catalogo": "CAT-2026",
-  "linha": "Premium",
-  "designer": "Carlos Silva",
-  "peso_liquido": "1.250"
+  "notes": "Componente intermediário"
 }
 ```
 
@@ -347,6 +323,151 @@ Atualiza item.
 ### `PATCH /api/v1/itens/{id}/inativar`
 
 Inativa item.
+
+## Matérias-Primas
+
+### `GET /api/v1/materias-primas/`
+
+Lista matérias-primas com filtros.
+
+#### Query params
+
+- `group_id`
+- `code`
+- `desc`
+- `active_only`
+- `skip`
+- `limit`
+
+#### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "code": "RM-ACO-1020",
+      "description": "Chapa de aço 1020",
+      "active": true,
+      "notes": "Espessura 2mm",
+      "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
+      "material_group_id": "33333333-3333-3333-3333-333333333333",
+      "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "unidade_conversao_id": null,
+      "peso_liquido": null,
+      "created_at": "2026-03-30T18:00:00",
+      "updated_at": "2026-03-30T18:00:00",
+      "unit_of_measure": { "id": "22222222-2222-2222-2222-222222222222", "code": "KG" },
+      "material_group": { "id": "33333333-3333-3333-3333-333333333333", "name": "Aços" },
+      "supplier": { "id": "ffffffff-ffff-ffff-ffff-ffffffffffff", "name": "Aços Especiais Ltda" },
+      "unidade_conversao": null
+    }
+  ],
+  "total": 1,
+  "skip": 0,
+  "limit": 20
+}
+```
+
+### `POST /api/v1/materias-primas/`
+
+Cria matéria-prima. `material_group_id` é obrigatório.
+
+#### Request
+
+```json
+{
+  "code": "RM-ACO-1020",
+  "description": "Chapa de aço 1020",
+  "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
+  "material_group_id": "33333333-3333-3333-3333-333333333333",
+  "supplier_id": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+  "notes": "Espessura 2mm"
+}
+```
+
+### `GET /api/v1/materias-primas/{id}`
+
+Busca matéria-prima por ID.
+
+### `PUT /api/v1/materias-primas/{id}`
+
+Atualiza matéria-prima.
+
+### `PATCH /api/v1/materias-primas/{id}/inativar`
+
+Inativa matéria-prima.
+
+## Produtos Acabados
+
+### `GET /api/v1/produtos-acabados/`
+
+Lista produtos acabados com filtros.
+
+#### Query params
+
+- `code`
+- `desc`
+- `active_only`
+- `skip`
+- `limit`
+
+#### Response
+
+```json
+{
+  "items": [
+    {
+      "id": "55555555-5555-5555-5555-555555555555",
+      "code": "PA-001",
+      "description": "Produto Acabado Alpha",
+      "active": true,
+      "notes": null,
+      "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
+      "peso_liquido": "1.250000",
+      "catalogo": "CAT-2026",
+      "linha": "Premium",
+      "designer": "Carlos Silva",
+      "created_at": "2026-03-30T18:00:00",
+      "updated_at": "2026-03-30T18:00:00",
+      "unit_of_measure": { "id": "22222222-2222-2222-2222-222222222222", "code": "UN" }
+    }
+  ],
+  "total": 1,
+  "skip": 0,
+  "limit": 20
+}
+```
+
+### `POST /api/v1/produtos-acabados/`
+
+Cria produto acabado.
+
+#### Request
+
+```json
+{
+  "code": "PA-001",
+  "description": "Produto Acabado Alpha",
+  "unit_of_measure_id": "22222222-2222-2222-2222-222222222222",
+  "catalogo": "CAT-2026",
+  "linha": "Premium",
+  "designer": "Carlos Silva",
+  "peso_liquido": "1.250"
+}
+```
+
+### `GET /api/v1/produtos-acabados/{id}`
+
+Busca produto acabado por ID.
+
+### `PUT /api/v1/produtos-acabados/{id}`
+
+Atualiza produto acabado.
+
+### `PATCH /api/v1/produtos-acabados/{id}/inativar`
+
+Inativa produto acabado.
 
 ## BOM
 
