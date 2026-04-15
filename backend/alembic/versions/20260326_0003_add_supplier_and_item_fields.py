@@ -6,9 +6,7 @@ Create Date: 2026-03-26 00:03:00
 """
 from __future__ import annotations
 
-import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -19,74 +17,50 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # 1. Criar tabela supplier
-    op.create_table(
-        "supplier",
-        sa.Column(
-            "id",
-            postgresql.UUID(as_uuid=True),
-            server_default=sa.text("gen_random_uuid()"),
-            nullable=False,
-        ),
-        sa.Column("code", sa.String(length=50), nullable=False),
-        sa.Column("name", sa.String(length=120), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("active", sa.Boolean(), server_default=sa.text("true"), nullable=False),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("code", name="uq_supplier_code"),
-    )
+    # 1. Criar tabela supplier (idempotente)
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS supplier (
+            id          UUID        NOT NULL DEFAULT gen_random_uuid(),
+            code        VARCHAR(50) NOT NULL,
+            name        VARCHAR(120) NOT NULL,
+            description TEXT,
+            active      BOOLEAN     NOT NULL DEFAULT true,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+            CONSTRAINT pk_supplier        PRIMARY KEY (id),
+            CONSTRAINT uq_supplier_code   UNIQUE (code)
+        )
+    """)
 
-    # 2. Trigger de updated_at para supplier (reutiliza função set_updated_at já existente)
+    # 2. Trigger de updated_at para supplier (idempotente)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_trigger WHERE tgname = 'trg_supplier_updated_at'
+            ) THEN
+                CREATE TRIGGER trg_supplier_updated_at
+                BEFORE UPDATE ON supplier
+                FOR EACH ROW
+                EXECUTE FUNCTION set_updated_at();
+            END IF;
+        END $$
+    """)
+
+    # 3. Adicionar colunas na tabela item (idempotente via ADD COLUMN IF NOT EXISTS)
+    op.execute("ALTER TABLE item ADD COLUMN IF NOT EXISTS peso_liquido NUMERIC(18, 6)")
     op.execute(
-        """
-        CREATE TRIGGER trg_supplier_updated_at
-        BEFORE UPDATE ON supplier
-        FOR EACH ROW
-        EXECUTE FUNCTION set_updated_at();
-        """
+        "ALTER TABLE item ADD COLUMN IF NOT EXISTS"
+        " unidade_conversao_id UUID REFERENCES unit_of_measure(id)"
     )
-
-    # 3. Adicionar colunas na tabela item
-    op.add_column("item", sa.Column("peso_liquido", sa.Numeric(18, 6), nullable=True))
-    op.add_column(
-        "item",
-        sa.Column(
-            "unidade_conversao_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("unit_of_measure.id"),
-            nullable=True,
-        ),
-    )
-    op.add_column(
-        "item",
-        sa.Column(
-            "supplier_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("supplier.id"),
-            nullable=True,
-        ),
+    op.execute(
+        "ALTER TABLE item ADD COLUMN IF NOT EXISTS"
+        " supplier_id UUID REFERENCES supplier(id)"
     )
 
 
 def downgrade() -> None:
-    # Remover FK explicitamente antes de dropar a coluna
-    op.drop_constraint("item_supplier_id_fkey", "item", type_="foreignkey")
-    op.drop_column("item", "supplier_id")
-    op.drop_constraint("item_unidade_conversao_id_fkey", "item", type_="foreignkey")
-    op.drop_column("item", "unidade_conversao_id")
-    op.drop_column("item", "peso_liquido")
-
-    op.execute("DROP TRIGGER IF EXISTS trg_supplier_updated_at ON supplier;")
-    op.drop_table("supplier")
+    op.execute("ALTER TABLE item DROP COLUMN IF EXISTS supplier_id")
+    op.execute("ALTER TABLE item DROP COLUMN IF EXISTS unidade_conversao_id")
+    op.execute("ALTER TABLE item DROP COLUMN IF EXISTS peso_liquido")
+    op.execute("DROP TRIGGER IF EXISTS trg_supplier_updated_at ON supplier")
+    op.execute("DROP TABLE IF EXISTS supplier")

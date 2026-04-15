@@ -38,7 +38,7 @@ def _run_migrations() -> None:
         alembic_command.upgrade(alembic_cfg, "head")
         logger.info("database_migrations_ok")
     except Exception as exc:
-        logger.error("database_migrations_failed", extra={"extra_data": {"error": str(exc)}})
+        logger.exception("database_migrations_failed: %s", exc)
 
 
 @asynccontextmanager
