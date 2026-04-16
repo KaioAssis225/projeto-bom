@@ -12,9 +12,8 @@ import {
   useProdutoAcabado,
   useUpdateProdutoAcabado,
 } from "@/hooks/useProdutoAcabado";
-import { useUnidades } from "@/hooks/useUnidades";
 import { cn, extractErrorMessage, formatCurrency, formatDecimal } from "@/lib/utils";
-import type { FinishedProduct, UnitOfMeasure } from "@/types";
+import type { FinishedProduct } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 
 // ─── BomCustoCell ─────────────────────────────────────────────────────────────
@@ -37,10 +36,11 @@ function BomCustoCell({ itemId }: { itemId: string }) {
 
 // ─── Modal schema ─────────────────────────────────────────────────────────────
 
+const UN_ID = "10000000-0000-0000-0000-000000000001";
+
 const produtoSchema = z.object({
   code: z.string().trim().min(1, "Informe o código").max(60, "Máximo de 60 caracteres"),
   description: z.string().trim().min(1, "Informe a descrição").max(255, "Máximo de 255 caracteres"),
-  unit_of_measure_id: z.string().min(1, "Selecione uma unidade válida"),
   active: z.boolean(),
   peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
   catalogo: z.string().max(120).optional().nullable(),
@@ -55,12 +55,10 @@ type ProdutoFormValues = z.infer<typeof produtoSchema>;
 function ProdutosAcabadosModal({
   open,
   item,
-  units,
   onClose,
 }: {
   open: boolean;
   item: FinishedProduct | null;
-  units: UnitOfMeasure[];
   onClose: () => void;
 }) {
   const isEditing = item !== null;
@@ -73,7 +71,6 @@ function ProdutosAcabadosModal({
     defaultValues: {
       code: "",
       description: "",
-      unit_of_measure_id: "",
       active: true,
       peso_liquido: null,
       catalogo: null,
@@ -87,7 +84,6 @@ function ProdutosAcabadosModal({
       form.reset({
         code: "",
         description: "",
-        unit_of_measure_id: "",
         active: true,
         peso_liquido: null,
         catalogo: null,
@@ -100,7 +96,6 @@ function ProdutosAcabadosModal({
     form.reset({
       code: item?.code ?? "",
       description: item?.description ?? "",
-      unit_of_measure_id: item?.unit_of_measure_id ?? "",
       active: item?.active ?? true,
       peso_liquido: item?.peso_liquido ?? null,
       catalogo: item?.catalogo ?? null,
@@ -108,17 +103,6 @@ function ProdutosAcabadosModal({
       designer: item?.designer ?? null,
     });
   }, [form, item, open]);
-
-  useEffect(() => {
-    if (!open || isEditing) {
-      return;
-    }
-
-    const currentUnit = form.getValues("unit_of_measure_id");
-    if (!currentUnit && units.length > 0) {
-      form.setValue("unit_of_measure_id", units[0].id, { shouldValidate: true });
-    }
-  }, [form, isEditing, open, units]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -138,7 +122,7 @@ function ProdutosAcabadosModal({
         await createItem.mutateAsync({
           code: values.code.trim(),
           description: values.description.trim(),
-          unit_of_measure_id: values.unit_of_measure_id,
+          unit_of_measure_id: UN_ID,
           peso_liquido: values.peso_liquido ?? undefined,
           catalogo: values.catalogo ?? undefined,
           linha: values.linha ?? undefined,
@@ -178,53 +162,27 @@ function ProdutosAcabadosModal({
 
         <form onSubmit={onSubmit} className="max-h-[80vh] overflow-y-auto">
           <div className="space-y-4 px-6 py-5">
-            {/* Código + Unidade */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="pa-code" className="text-sm font-medium text-slate-700">
-                  Código
-                </label>
-                <input
-                  id="pa-code"
-                  type="text"
-                  maxLength={60}
-                  readOnly={isEditing}
-                  disabled={isSubmitting}
-                  className={cn(
-                    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition",
-                    "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
-                    isEditing && "cursor-not-allowed bg-slate-100 text-slate-500",
-                  )}
-                  {...form.register("code")}
-                />
-                {form.formState.errors.code ? (
-                  <p className="text-sm text-red-600">{form.formState.errors.code.message}</p>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="pa-uom" className="text-sm font-medium text-slate-700">
-                  Unidade
-                </label>
-                <select
-                  id="pa-uom"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("unit_of_measure_id")}
-                >
-                  <option value="">Selecione</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.code} — {unit.description}
-                    </option>
-                  ))}
-                </select>
-                {form.formState.errors.unit_of_measure_id ? (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.unit_of_measure_id.message}
-                  </p>
-                ) : null}
-              </div>
+            {/* Código */}
+            <div className="space-y-2">
+              <label htmlFor="pa-code" className="text-sm font-medium text-slate-700">
+                Código
+              </label>
+              <input
+                id="pa-code"
+                type="text"
+                maxLength={60}
+                readOnly={isEditing}
+                disabled={isSubmitting}
+                className={cn(
+                  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition",
+                  "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
+                  isEditing && "cursor-not-allowed bg-slate-100 text-slate-500",
+                )}
+                {...form.register("code")}
+              />
+              {form.formState.errors.code ? (
+                <p className="text-sm text-red-600">{form.formState.errors.code.message}</p>
+              ) : null}
             </div>
 
             {/* Descrição */}
@@ -487,8 +445,6 @@ export default function ProdutosAcabadosTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FinishedProduct | null>(null);
 
-  const unitsQuery = useUnidades({ skip: 0, limit: 100 });
-
   const filters = useMemo(
     () => ({
       code: search.trim() || undefined,
@@ -529,7 +485,6 @@ export default function ProdutosAcabadosTab() {
   };
 
   const isMutating = deactivateItem.isPending;
-  const units = unitsQuery.data?.items ?? [];
 
   return (
     <>
@@ -703,7 +658,6 @@ export default function ProdutosAcabadosTab() {
       <ProdutosAcabadosModal
         open={modalOpen}
         item={selectedItem}
-        units={units}
         onClose={() => setModalOpen(false)}
       />
     </>
