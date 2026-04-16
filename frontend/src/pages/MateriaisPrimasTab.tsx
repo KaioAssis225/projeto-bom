@@ -172,9 +172,15 @@ const materiaisSchema = z
       .transform((v) => v.toUpperCase()),
     unit_of_measure_id: z.string().uuid("Selecione uma unidade válida"),
     material_group_id: z.string().uuid("Selecione um grupo válido"),
-    supplier_id: z.string().uuid().optional().nullable(),
+    supplier_id: z.preprocess(
+      (v) => (v === "" ? null : v),
+      z.string().uuid().nullable().optional(),
+    ),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
-    unidade_conversao_id: z.string().uuid("Selecione uma unidade válida").optional().nullable(),
+    unidade_conversao_id: z.preprocess(
+      (v) => (v === "" ? null : v),
+      z.string().uuid("Selecione uma unidade válida").nullable().optional(),
+    ),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
