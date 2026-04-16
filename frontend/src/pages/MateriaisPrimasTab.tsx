@@ -42,13 +42,22 @@ function CustoCell({ itemId }: { itemId: string }) {
   return <span className="text-slate-700">R$ {formatCurrency(data.price_value)}</span>;
 }
 
-function fatorConversaoLabel(item: RawMaterial): string {
+function FatorConversaoCell({ item }: { item: RawMaterial }) {
   if (item.peso_liquido == null) {
-    return "—";
+    return <span className="text-slate-400">—</span>;
   }
-
-  const fator = formatDecimal(item.peso_liquido, 3);
-  return item.unidade_conversao?.code ? `${fator} ${item.unidade_conversao.code}` : fator;
+  return (
+    <div className="flex items-center justify-end gap-2">
+      <span className="tabular-nums text-slate-700">
+        {formatDecimal(item.peso_liquido, 6)}
+      </span>
+      {item.unidade_conversao?.code ? (
+        <span className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+          {item.unidade_conversao.code}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 // ─── CustoHistoricoModal ──────────────────────────────────────────────────────
@@ -917,8 +926,8 @@ export default function MateriaisPrimasTab() {
                         <td className="px-4 py-3 text-slate-600">
                           {item.unit_of_measure?.code ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-right text-slate-600">
-                          {fatorConversaoLabel(item)}
+                        <td className="px-4 py-3 text-right">
+                          <FatorConversaoCell item={item} />
                         </td>
                         <td className="px-4 py-3 text-right">
                           <CustoCell itemId={item.id} />

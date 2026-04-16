@@ -5,15 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDecimal(value: number, places: number = 2): string {
-  return value.toLocaleString('pt-BR', {
+export function formatDecimal(value: number | string, places: number = 2): string {
+  return Number(value).toLocaleString('pt-BR', {
     minimumFractionDigits: places,
     maximumFractionDigits: places,
   })
 }
 
-export function formatCurrency(value: number): string {
-  return value.toLocaleString('pt-BR', {
+export function formatCurrency(value: number | string): string {
+  return Number(value).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
