@@ -41,11 +41,11 @@ const produtoSchema = z.object({
   code: z.string().trim().min(1, "Informe o código").max(60, "Máximo de 60 caracteres"),
   description: z.string().trim().min(1, "Informe a descrição").max(255, "Máximo de 255 caracteres"),
   unit_of_measure_id: z.string().uuid("Selecione uma unidade válida"),
+  active: z.boolean(),
   peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
   catalogo: z.string().max(120).optional().nullable(),
   linha: z.string().max(120).optional().nullable(),
   designer: z.string().max(120).optional().nullable(),
-  notes: z.string().optional(),
 });
 
 type ProdutoFormValues = z.infer<typeof produtoSchema>;
@@ -74,11 +74,11 @@ function ProdutosAcabadosModal({
       code: "",
       description: "",
       unit_of_measure_id: "",
+      active: true,
       peso_liquido: null,
       catalogo: null,
       linha: null,
       designer: null,
-      notes: "",
     },
   });
 
@@ -88,11 +88,11 @@ function ProdutosAcabadosModal({
         code: "",
         description: "",
         unit_of_measure_id: "",
+        active: true,
         peso_liquido: null,
         catalogo: null,
         linha: null,
         designer: null,
-        notes: "",
       });
       return;
     }
@@ -101,11 +101,11 @@ function ProdutosAcabadosModal({
       code: item?.code ?? "",
       description: item?.description ?? "",
       unit_of_measure_id: item?.unit_of_measure_id ?? "",
+      active: item?.active ?? true,
       peso_liquido: item?.peso_liquido ?? null,
       catalogo: item?.catalogo ?? null,
       linha: item?.linha ?? null,
       designer: item?.designer ?? null,
-      notes: item?.notes ?? "",
     });
   }, [form, item, open]);
 
@@ -127,8 +127,7 @@ function ProdutosAcabadosModal({
           id: item.id,
           data: {
             description: values.description.trim(),
-            active: item.active,
-            notes: values.notes?.trim() || undefined,
+            active: values.active,
             peso_liquido: values.peso_liquido ?? undefined,
             catalogo: values.catalogo ?? undefined,
             linha: values.linha ?? undefined,
@@ -140,7 +139,6 @@ function ProdutosAcabadosModal({
           code: values.code.trim(),
           description: values.description.trim(),
           unit_of_measure_id: values.unit_of_measure_id,
-          notes: values.notes?.trim() || undefined,
           peso_liquido: values.peso_liquido ?? undefined,
           catalogo: values.catalogo ?? undefined,
           linha: values.linha ?? undefined,
@@ -323,19 +321,54 @@ function ProdutosAcabadosModal({
               </div>
             </div>
 
-            {/* Observações */}
-            <div className="space-y-2">
-              <label htmlFor="pa-notes" className="text-sm font-medium text-slate-700">
-                Observações
-              </label>
-              <textarea
-                id="pa-notes"
-                rows={3}
-                disabled={isSubmitting}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                {...form.register("notes")}
-              />
-            </div>
+            {/* Status — visível apenas na edição */}
+            {isEditing ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Status</label>
+                <div className="flex gap-3">
+                  {(
+                    [
+                      { value: true, label: "Ativo" },
+                      { value: false, label: "Inativo" },
+                    ] as const
+                  ).map(({ value, label }) => {
+                    const checked = form.watch("active") === value;
+                    return (
+                      <label
+                        key={String(value)}
+                        className={cn(
+                          "flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition",
+                          checked
+                            ? value
+                              ? "border-green-500 bg-green-50 text-green-800"
+                              : "border-red-300 bg-red-50 text-red-700"
+                            : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          className="sr-only"
+                          checked={checked}
+                          disabled={isSubmitting}
+                          onChange={() => form.setValue("active", value)}
+                        />
+                        <span
+                          className={cn(
+                            "inline-block h-2 w-2 rounded-full",
+                            checked
+                              ? value
+                                ? "bg-green-500"
+                                : "bg-red-400"
+                              : "bg-slate-300",
+                          )}
+                        />
+                        {label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">

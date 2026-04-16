@@ -16,7 +16,6 @@ import type { Supplier } from "@/types";
 const supplierSchema = z.object({
   code: z.string().trim().min(1, "Informe o código").max(50, "Máximo de 50 caracteres"),
   name: z.string().trim().min(1, "Informe o nome").max(120, "Máximo de 120 caracteres"),
-  description: z.string().max(500, "Máximo de 500 caracteres").optional(),
 });
 
 type SupplierFormValues = z.infer<typeof supplierSchema>;
@@ -53,34 +52,27 @@ function SupplierModal({
 
   const form = useForm<SupplierFormValues>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: { code: "", name: "", description: "" },
+    defaultValues: { code: "", name: "" },
   });
 
   useEffect(() => {
     if (!open) {
-      form.reset({ code: "", name: "", description: "" });
+      form.reset({ code: "", name: "" });
       return;
     }
-    form.reset({
-      code: item?.code ?? "",
-      name: item?.name ?? "",
-      description: item?.description ?? "",
-    });
+    form.reset({ code: item?.code ?? "", name: item?.name ?? "" });
   }, [form, item, open]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const description = values.description?.trim() || undefined;
-
     if (isEditing && item) {
       await updateFornecedor.mutateAsync({
         id: item.id,
-        data: { name: values.name.trim(), description, active: item.active },
+        data: { name: values.name.trim(), active: item.active },
       });
     } else {
       await createFornecedor.mutateAsync({
         code: values.code.trim(),
         name: values.name.trim(),
-        description,
       });
     }
 
@@ -147,22 +139,6 @@ function SupplierModal({
             />
             {form.formState.errors.name ? (
               <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="sup-description" className="text-sm font-medium text-slate-700">
-              Descrição
-            </label>
-            <textarea
-              id="sup-description"
-              rows={3}
-              disabled={isSubmitting}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-              {...form.register("description")}
-            />
-            {form.formState.errors.description ? (
-              <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
             ) : null}
           </div>
 
@@ -274,7 +250,6 @@ export default function FornecedoresPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Nome</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Descrição</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-600">Ações</th>
                 </tr>
@@ -287,7 +262,6 @@ export default function FornecedoresPage() {
                         {supplier.code}
                       </td>
                       <td className="px-4 py-3 font-medium text-slate-700">{supplier.name}</td>
-                      <td className="px-4 py-3 text-slate-500">{supplier.description || "—"}</td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(
@@ -325,7 +299,7 @@ export default function FornecedoresPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
                       Nenhum fornecedor cadastrado
                     </td>
                   </tr>

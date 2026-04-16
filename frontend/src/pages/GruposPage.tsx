@@ -11,7 +11,6 @@ import type { MaterialGroup } from "@/types";
 const groupSchema = z.object({
   code: z.string().trim().min(1, "Informe o codigo").max(50, "Maximo de 50 caracteres"),
   name: z.string().trim().min(1, "Informe o nome").max(120, "Maximo de 120 caracteres"),
-  description: z.string().max(500, "Maximo de 500 caracteres").optional(),
 });
 
 type GroupFormValues = z.infer<typeof groupSchema>;
@@ -50,45 +49,24 @@ function GroupModal({
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-    defaultValues: {
-      code: "",
-      name: "",
-      description: "",
-    },
+    defaultValues: { code: "", name: "" },
   });
 
   useEffect(() => {
     if (!open) {
-      form.reset({
-        code: "",
-        name: "",
-        description: "",
-      });
+      form.reset({ code: "", name: "" });
       return;
     }
-
-    form.reset({
-      code: item?.code ?? "",
-      name: item?.name ?? "",
-      description: item?.description ?? "",
-    });
+    form.reset({ code: item?.code ?? "", name: item?.name ?? "" });
   }, [form, item, open]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const payload = {
-      code: values.code.trim(),
-      name: values.name.trim(),
-      description: values.description?.trim() ? values.description.trim() : undefined,
-    };
+    const payload = { code: values.code.trim(), name: values.name.trim() };
 
     if (isEditing && item) {
       await updateGrupo.mutateAsync({
         id: item.id,
-        data: {
-          name: payload.name,
-          description: payload.description,
-          active: item.active,
-        },
+        data: { name: payload.name, active: item.active },
       });
     } else {
       await createGrupo.mutateAsync(payload);
@@ -160,25 +138,6 @@ function GroupModal({
             />
             {form.formState.errors.name ? (
               <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
-            ) : null}
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="group-description" className="text-sm font-medium text-slate-700">
-              Descricao
-            </label>
-            <textarea
-              id="group-description"
-              rows={4}
-              disabled={isSubmitting}
-              className={cn(
-                "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition",
-                "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
-              )}
-              {...form.register("description")}
-            />
-            {form.formState.errors.description ? (
-              <p className="text-sm text-red-600">{form.formState.errors.description.message}</p>
             ) : null}
           </div>
 
@@ -297,7 +256,6 @@ export default function GruposPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Nome</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Descrição</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-600">Ações</th>
                 </tr>
@@ -308,7 +266,6 @@ export default function GruposPage() {
                     <tr key={group.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{group.code}</td>
                       <td className="px-4 py-3 text-slate-700">{group.name}</td>
-                      <td className="px-4 py-3 text-slate-500">{group.description || "—"}</td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(
@@ -347,7 +304,7 @@ export default function GruposPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
                       Nenhum grupo cadastrado
                     </td>
                   </tr>
