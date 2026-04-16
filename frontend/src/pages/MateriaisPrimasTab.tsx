@@ -415,19 +415,27 @@ function MateriaisPrimasModal({
                 <label htmlFor="mp-uom" className="text-sm font-medium text-slate-700">
                   Unidade
                 </label>
-                <select
-                  id="mp-uom"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("unit_of_measure_id")}
-                >
-                  <option value="">Selecione</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.code} — {unit.description}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="unit_of_measure_id"
+                  control={form.control}
+                  render={({ field }) => (
+                    <select
+                      id="mp-uom"
+                      disabled={isSubmitting}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {units.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.code} — {unit.description}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {form.formState.errors.unit_of_measure_id ? (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.unit_of_measure_id.message}
@@ -439,20 +447,27 @@ function MateriaisPrimasModal({
                 <label htmlFor="mp-group" className="text-sm font-medium text-slate-700">
                   Grupo <span className="text-red-600">*</span>
                 </label>
-                <select
-                  id="mp-group"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("material_group_id")}
-                  value={form.watch("material_group_id") ?? ""}
-                >
-                  <option value="">Selecione</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.code} — {g.name}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="material_group_id"
+                  control={form.control}
+                  render={({ field }) => (
+                    <select
+                      id="mp-group"
+                      disabled={isSubmitting}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.code} — {g.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {form.formState.errors.material_group_id ? (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.material_group_id.message}
