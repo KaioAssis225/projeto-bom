@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Loader2, MoreVertical, Plus, RefreshCw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -466,22 +466,27 @@ function MateriaisPrimasModal({
               <label htmlFor="mp-supplier" className="text-sm font-medium text-slate-700">
                 Fornecedor
               </label>
-              <select
-                id="mp-supplier"
-                disabled={isSubmitting}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                value={form.watch("supplier_id") ?? ""}
-                onChange={(e) =>
-                  form.setValue("supplier_id", e.target.value || null, { shouldValidate: true })
-                }
-              >
-                <option value="">Selecione</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} — {s.name}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                name="supplier_id"
+                control={form.control}
+                render={({ field }) => (
+                  <select
+                    id="mp-supplier"
+                    disabled={isSubmitting}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={(e) => field.onChange(e.target.value || null)}
+                  >
+                    <option value="">Selecione</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.code} — {s.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
             </div>
 
             {/* Unidade de Conversão + Fator de Conversão */}
@@ -493,24 +498,27 @@ function MateriaisPrimasModal({
                 >
                   Unidade de Conversão
                 </label>
-                <select
-                  id="mp-unidade-conversao"
-                  disabled={isSubmitting}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  value={form.watch("unidade_conversao_id") ?? ""}
-                  onChange={(e) =>
-                    form.setValue("unidade_conversao_id", e.target.value || null, {
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <option value="">Selecione</option>
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.code} — {unit.description}
-                    </option>
-                  ))}
-                </select>
+                <Controller
+                  name="unidade_conversao_id"
+                  control={form.control}
+                  render={({ field }) => (
+                    <select
+                      id="mp-unidade-conversao"
+                      disabled={isSubmitting}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                      value={field.value ?? ""}
+                      onBlur={field.onBlur}
+                      onChange={(e) => field.onChange(e.target.value || null)}
+                    >
+                      <option value="">Selecione</option>
+                      {units.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.code} — {unit.description}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
                 {form.formState.errors.unidade_conversao_id ? (
                   <p className="text-sm text-red-600">
                     {form.formState.errors.unidade_conversao_id.message}
