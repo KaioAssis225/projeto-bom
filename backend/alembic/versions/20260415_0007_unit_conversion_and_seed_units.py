@@ -5,7 +5,6 @@ Revises: 20260415_0006
 Create Date: 2026-04-15
 """
 from alembic import op
-import sqlalchemy as sa
 
 revision = "20260415_0007"
 down_revision = "20260415_0006"
@@ -27,14 +26,20 @@ def upgrade() -> None:
         )
     """)
 
-    # ── 2. Clear existing data (cascade clears dependent FKs) ─────────────────
-    # Sets unit_of_measure_id to NULL on item / raw_material before truncation
-    op.execute("UPDATE item        SET unit_of_measure_id = NULL WHERE unit_of_measure_id IS NOT NULL")
-    op.execute("UPDATE raw_material SET unidade_conversao_id = NULL WHERE unidade_conversao_id IS NOT NULL")
+    # ── 2. Clear all data that depends on unit_of_measure (bottom-up) ─────────
+    # Deepest dependencies first to avoid FK violations.
     op.execute("DELETE FROM unit_conversion")
+    op.execute("DELETE FROM audit_price_change")
+    op.execute("DELETE FROM calculation_execution_log")
+    op.execute("DELETE FROM item_price_history")
+    op.execute("DELETE FROM bom_item")
+    op.execute("DELETE FROM bom")
+    op.execute("DELETE FROM raw_material")
+    op.execute("DELETE FROM finished_product")
+    op.execute("DELETE FROM item")
     op.execute("DELETE FROM unit_of_measure")
 
-    # ── 3. Seed standard units with fixed UUIDs ────────────────────────────────
+    # ── 3. Seed 18 standard units with fixed UUIDs ────────────────────────────
     op.execute("""
         INSERT INTO unit_of_measure (id, code, description, decimal_places, created_at, updated_at) VALUES
         -- Contagem
@@ -63,7 +68,7 @@ def upgrade() -> None:
         ('10000000-0000-0000-0000-000000000018', 'MIN', 'Minuto',                0, now(), now())
     """)
 
-    # ── 4. Seed conversion rules ───────────────────────────────────────────────
+    # ── 4. Seed bidirectional conversion rules ────────────────────────────────
     op.execute("""
         INSERT INTO unit_conversion (from_unit_id, to_unit_id, factor) VALUES
 
