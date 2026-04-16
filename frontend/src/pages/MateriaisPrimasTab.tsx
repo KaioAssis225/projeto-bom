@@ -172,15 +172,9 @@ const materiaisSchema = z
       .transform((v) => v.toUpperCase()),
     unit_of_measure_id: z.string().uuid("Selecione uma unidade válida"),
     material_group_id: z.string().uuid("Selecione um grupo válido"),
-    supplier_id: z.preprocess(
-      (v) => (v === "" ? null : v),
-      z.string().uuid().nullable().optional(),
-    ),
+    supplier_id: z.string().uuid().optional().nullable(),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
-    unidade_conversao_id: z.preprocess(
-      (v) => (v === "" ? null : v),
-      z.string().uuid("Selecione uma unidade válida").nullable().optional(),
-    ),
+    unidade_conversao_id: z.string().uuid("Selecione uma unidade válida").optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
@@ -476,8 +470,10 @@ function MateriaisPrimasModal({
                 id="mp-supplier"
                 disabled={isSubmitting}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                {...form.register("supplier_id")}
                 value={form.watch("supplier_id") ?? ""}
+                onChange={(e) =>
+                  form.setValue("supplier_id", e.target.value || null, { shouldValidate: true })
+                }
               >
                 <option value="">Selecione</option>
                 {suppliers.map((s) => (
@@ -501,8 +497,12 @@ function MateriaisPrimasModal({
                   id="mp-unidade-conversao"
                   disabled={isSubmitting}
                   className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                  {...form.register("unidade_conversao_id")}
                   value={form.watch("unidade_conversao_id") ?? ""}
+                  onChange={(e) =>
+                    form.setValue("unidade_conversao_id", e.target.value || null, {
+                      shouldValidate: true,
+                    })
+                  }
                 >
                   <option value="">Selecione</option>
                   {units.map((unit) => (
