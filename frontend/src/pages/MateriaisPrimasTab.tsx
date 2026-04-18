@@ -340,7 +340,7 @@ function MateriaisPrimasModal({
             item_id: itemId,
             price_value: values.custo!,
             valid_from: new Date().toISOString(),
-            created_by: values.created_by.trim(),
+            created_by: values.created_by!.trim(),
             changed_reason: "Cadastro de custo",
           },
         });
