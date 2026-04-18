@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.api.routers.audit import router as audit_router
+from app.api.routers.claude import router as claude_router
 from app.api.routers.bom import router as bom_router
 from app.api.routers.calculations import router as calculations_router
 from app.api.routers.finished_product import router as finished_product_router
@@ -120,3 +121,4 @@ app.include_router(prices_router, prefix="/api/v1/precos", tags=["precos"])
 app.include_router(audit_router, prefix="/api/v1/auditoria", tags=["auditoria"])
 app.include_router(suppliers_router, prefix="/api/v1/fornecedores", tags=["fornecedores"])
 app.include_router(unit_of_measures_router, prefix="/api/v1/unidades", tags=["unidades"])
+app.include_router(claude_router, prefix="/api/v1/claude", tags=["claude"])
