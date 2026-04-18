@@ -187,7 +187,7 @@ const materiaisSchema = z
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
-    atualizar_custo: z.boolean().default(false),
+    atualizar_custo: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.custo && !data.created_by && data.atualizar_custo) {
