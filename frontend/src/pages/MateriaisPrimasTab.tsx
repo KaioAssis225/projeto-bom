@@ -187,9 +187,10 @@ const materiaisSchema = z
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
     created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
+    atualizar_custo: z.boolean().default(false),
   })
   .superRefine((data, ctx) => {
-    if (data.custo && !data.created_by) {
+    if (data.custo && !data.created_by && data.atualizar_custo) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Registrado por é obrigatório quando o custo é informado",
@@ -243,10 +244,13 @@ function MateriaisPrimasModal({
       custo: null,
       created_by: null,
       notes: "",
+      atualizar_custo: false,
     },
   });
 
   const selectedConversionUnitId = form.watch("unidade_conversao_id");
+  const atualizarCusto = form.watch("atualizar_custo");
+  const custoLocked = isEditing && !atualizarCusto;
 
   useEffect(() => {
     if (!open) {
@@ -261,6 +265,7 @@ function MateriaisPrimasModal({
         custo: null,
         created_by: null,
         notes: "",
+        atualizar_custo: false,
       });
       return;
     }
@@ -276,6 +281,7 @@ function MateriaisPrimasModal({
       custo: null,
       created_by: null,
       notes: item?.notes ?? "",
+      atualizar_custo: false,
     });
   }, [form, item, open]);
 
@@ -323,11 +329,11 @@ function MateriaisPrimasModal({
         itemId = created.id;
       }
 
-      const currentPrice = currentPriceQuery.data?.price_value;
       const shouldSavePrice =
-        values.custo != null && (!isEditing || values.custo !== currentPrice);
+        values.custo != null && values.created_by != null &&
+        (!isEditing || values.atualizar_custo);
 
-      if (shouldSavePrice && values.created_by) {
+      if (shouldSavePrice) {
         await setPreco.mutateAsync({
           item_id: itemId,
           data: {
@@ -576,9 +582,29 @@ function MateriaisPrimasModal({
 
             {/* Custo */}
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Custo
-              </p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Custo
+                </p>
+                {isEditing && (
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                    <Controller
+                      name="atualizar_custo"
+                      control={form.control}
+                      render={({ field }) => (
+                        <input
+                          type="checkbox"
+                          disabled={isSubmitting}
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+                        />
+                      )}
+                    />
+                    Atualizar valor de custo e salvar no histórico?
+                  </label>
+                )}
+              </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label htmlFor="mp-custo" className="text-sm font-medium text-slate-700">
@@ -589,7 +615,7 @@ function MateriaisPrimasModal({
                     type="number"
                     step="0.01"
                     min="0"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || custoLocked}
                     placeholder="0,00"
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
                     {...form.register("custo", {
@@ -609,7 +635,7 @@ function MateriaisPrimasModal({
                     id="mp-createdby"
                     type="text"
                     maxLength={100}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || custoLocked}
                     placeholder="Obrigatório se custo informado"
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
                     {...form.register("created_by")}
