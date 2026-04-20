@@ -26,6 +26,7 @@ export function useCreateBomHeader() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bom"] });
       queryClient.invalidateQueries({ queryKey: ["bom", "tree", variables.parent_item_id] });
+      queryClient.invalidateQueries({ queryKey: ["calculos"] });
       toast.success("BOM criada com sucesso");
     },
     onError: (error: unknown) => {
@@ -41,6 +42,7 @@ export function useAddBomChild() {
     mutationFn: ({ bom_id, data }: { bom_id: string; data: BomItemPayload }) => bomApi.addChild(bom_id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bom"] });
+      queryClient.invalidateQueries({ queryKey: ["calculos"] });
       toast.success("Filho adicionado com sucesso");
     },
     onError: (error: unknown) => {
@@ -57,6 +59,7 @@ export function useUpdateBomItem() {
       bomApi.updateItem(bom_item_id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bom"] });
+      queryClient.invalidateQueries({ queryKey: ["calculos"] });
       toast.success("Item da BOM atualizado com sucesso");
     },
     onError: (error: unknown) => {
@@ -72,6 +75,7 @@ export function useDeleteBomItem() {
     mutationFn: (bom_item_id: string) => bomApi.deleteItem(bom_item_id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bom"] });
+      queryClient.invalidateQueries({ queryKey: ["calculos"] });
       toast.success("Item removido com sucesso");
     },
     onError: (error: unknown) => {
