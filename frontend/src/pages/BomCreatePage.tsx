@@ -130,7 +130,7 @@ export default function BomCreatePage() {
           <BomCreateContent
             product={selectedProduct}
             bomId={tree.bom_id!}
-            children={tree.children}
+            items={tree.children}
             onRefresh={refresh}
           />
         ) : null}
@@ -142,12 +142,12 @@ export default function BomCreatePage() {
 function BomCreateContent({
   product,
   bomId,
-  children,
+  items,
   onRefresh,
 }: {
   product: FinishedProduct;
   bomId: string;
-  children: { bom_item_id?: string | null; item_id?: string; code: string; description: string; quantity?: number | null }[];
+  items: { bom_item_id?: string | null; item_id?: string; code: string; description: string; quantity?: number | null }[];
   onRefresh: () => void;
 }) {
   const materiasQuery = useMateriaPrima({ active_only: true, limit: 500 });
@@ -185,7 +185,7 @@ function BomCreateContent({
       toast.error("Informe uma quantidade válida");
       return;
     }
-    const nextLineNumber = (children.length || 0) + 1;
+    const nextLineNumber = (items.length || 0) + 1;
     try {
       await addChild.mutateAsync({
         bom_id: bomId,
@@ -308,13 +308,13 @@ function BomCreateContent({
 
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Itens da BOM ({children.length})
+          Itens da BOM ({items.length})
         </h3>
-        {children.length === 0 ? (
+        {items.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">Nenhum item adicionado ainda.</p>
         ) : (
           <ul className="mt-4 divide-y divide-slate-100">
-            {children.map((child) => {
+            {items.map((child) => {
               const mp = child.item_id ? rawMaterialsById.get(child.item_id) : null;
               const uomCode = mp?.unit_of_measure?.code ?? "";
               return (
