@@ -5,10 +5,11 @@ import * as materiasApi from "@/api/materias-primas";
 import { extractErrorMessage } from "@/lib/utils";
 import type { RawMaterialCreatePayload, RawMaterialListParams, RawMaterialUpdatePayload } from "@/types";
 
-export function useMateriaPrima(filters?: RawMaterialListParams) {
+export function useMateriaPrima(filters?: RawMaterialListParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["materias-primas", filters],
     queryFn: () => materiasApi.list(filters),
+    enabled: options?.enabled ?? true,
   });
 }
 

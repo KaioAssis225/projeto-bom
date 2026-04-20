@@ -155,7 +155,7 @@ function BomCreateContent({
   items: { bom_item_id?: string | null; item_id?: string; code: string; description: string; quantity?: number | null }[];
   onRefresh: () => void;
 }) {
-  const materiasQuery = useMateriaPrima({ active_only: true, limit: 500 });
+  const materiasQuery = useMateriaPrima({ active_only: true, limit: 2000 });
   const addChild = useAddBomChild();
   const deleteItem = useDeleteBomItem();
 
@@ -164,14 +164,20 @@ function BomCreateContent({
   const [useConversion, setUseConversion] = useState(false);
   const debouncedCode = useDebouncedValue(codeInput.trim().toUpperCase(), 250);
 
-  const rawMaterialsByCode = useMemo(() => {
-    const map = new Map<string, RawMaterial>();
-    (materiasQuery.data?.items ?? []).forEach((mp) => map.set(mp.code.toUpperCase(), mp));
-    return map;
-  }, [materiasQuery.data]);
+  const lookupEnabled = debouncedCode.length > 0;
+  const codeLookupQuery = useMateriaPrima(
+    { code: debouncedCode, active_only: true, limit: 5 },
+    { enabled: lookupEnabled },
+  );
 
-  const selectedMP = debouncedCode ? rawMaterialsByCode.get(debouncedCode) ?? null : null;
-  const mpNotFound = debouncedCode.length > 0 && !selectedMP && !materiasQuery.isLoading;
+  const selectedMP = useMemo(() => {
+    if (!lookupEnabled) return null;
+    const items = codeLookupQuery.data?.items ?? [];
+    return items.find((mp) => mp.code.toUpperCase() === debouncedCode) ?? null;
+  }, [codeLookupQuery.data, debouncedCode, lookupEnabled]);
+
+  const mpNotFound =
+    lookupEnabled && !selectedMP && !codeLookupQuery.isLoading && !codeLookupQuery.isFetching;
 
   const hasConversion = !!selectedMP?.unidade_conversao_id && !!selectedMP?.peso_liquido;
   useEffect(() => {
