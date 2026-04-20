@@ -67,8 +67,23 @@ export function supplierLabel(supplier: { name: string } | null | undefined): st
 
 export function extractErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'response' in err) {
-    const response = (err as { response?: { data?: { detail?: string; message?: string } } }).response
-    return response?.data?.detail ?? response?.data?.message ?? 'Erro inesperado'
+    const response = (err as { response?: { data?: { detail?: unknown; message?: string } } }).response
+    const detail = response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) => {
+          if (typeof item === 'string') return item
+          if (item && typeof item === 'object' && 'msg' in item) {
+            const obj = item as { msg: string; loc?: unknown[] }
+            const loc = Array.isArray(obj.loc) ? obj.loc.filter((p) => p !== 'body').join('.') : ''
+            return loc ? `${loc}: ${obj.msg}` : obj.msg
+          }
+          return JSON.stringify(item)
+        })
+        .join('; ')
+    }
+    return response?.data?.message ?? 'Erro inesperado'
   }
   if (err instanceof Error) return err.message
   return 'Erro inesperado'

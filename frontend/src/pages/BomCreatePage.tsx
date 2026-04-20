@@ -41,12 +41,17 @@ export default function BomCreatePage() {
 
   const handleCreateBom = async () => {
     if (!selectedProduct) return;
-    await createHeader.mutateAsync({
-      parent_item_id: selectedProduct.id,
-      version_code: "1.0",
-      valid_from: new Date().toISOString().slice(0, 10),
-    });
-    refresh();
+    try {
+      await createHeader.mutateAsync({
+        parent_item_id: selectedProduct.id,
+        version_code: "1.0",
+        description: `BOM ${selectedProduct.code}`,
+        valid_from: new Date().toISOString().slice(0, 10),
+      });
+      refresh();
+    } catch (error) {
+      toast.error(extractErrorMessage(error));
+    }
   };
 
   return (
