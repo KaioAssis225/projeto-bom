@@ -20,7 +20,7 @@ router = APIRouter(tags=["materias-primas"])
 @router.get("/", response_model=RawMaterialPaginatedResponse)
 def list_raw_materials(
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=5000),
     active_only: bool = Query(default=True),
     group_id: UUID | None = Query(default=None),
     code: str | None = Query(default=None),

@@ -40,7 +40,7 @@ export default function BomAnalyzePage() {
   });
 
   const bomTreeQuery = useBomTree(selectedProduct?.id ?? null);
-  const materiasQuery = useMateriaPrima({ active_only: false, limit: 500 });
+  const materiasQuery = useMateriaPrima({ active_only: false, limit: 2000 });
 
   const hasNoBom = axios.isAxiosError(bomTreeQuery.error) && bomTreeQuery.error.response?.status === 404;
   const tree = bomTreeQuery.data;
