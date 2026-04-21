@@ -1,5 +1,6 @@
 import { client } from "@/api/client";
 import type {
+  BomCostAnalysis,
   BomCostPreview,
   CalculationBatchPayload,
   CalculationProductPayload,
@@ -8,6 +9,11 @@ import type {
 
 export async function getCustoBom(item_id: string): Promise<BomCostPreview> {
   const response = await client.get<BomCostPreview>(`/api/v1/calculos/${item_id}/custo-bom`);
+  return response.data;
+}
+
+export async function getCustoBomAnalise(item_id: string): Promise<BomCostAnalysis> {
+  const response = await client.get<BomCostAnalysis>(`/api/v1/calculos/${item_id}/custo-bom-analise`);
   return response.data;
 }
 

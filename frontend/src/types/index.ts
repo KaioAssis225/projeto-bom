@@ -326,6 +326,26 @@ export interface BomCostPreview {
   custo_total: number;
 }
 
+export interface BomAnalysisLine {
+  item_id: string;
+  code: string;
+  description: string;
+  group_id: string | null;
+  group_name: string | null;
+  uom: string;
+  quantity: number;
+  price: number;
+  line_cost: number;
+  missing_price: boolean;
+}
+
+export interface BomCostAnalysis {
+  item_id: string;
+  custo_total: number;
+  lines: BomAnalysisLine[];
+  missing_prices: string[];
+}
+
 export interface CalculationLine {
   item_id: string;
   code: string;

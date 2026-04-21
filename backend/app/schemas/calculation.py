@@ -66,6 +66,26 @@ class BomCostPreview(BaseSchema):
     custo_total: Decimal
 
 
+class BomAnalysisLine(BaseSchema):
+    item_id: UUID
+    code: str
+    description: str
+    group_id: UUID | None
+    group_name: str | None
+    uom: str
+    quantity: Decimal
+    price: Decimal
+    line_cost: Decimal
+    missing_price: bool
+
+
+class BomCostAnalysis(BaseSchema):
+    item_id: UUID
+    custo_total: Decimal
+    lines: list[BomAnalysisLine]
+    missing_prices: list[str]
+
+
 class CalculationLineResponse(BaseSchema):
     item_id: UUID
     code: str

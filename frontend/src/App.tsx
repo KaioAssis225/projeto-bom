@@ -3,8 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import { AppLayout } from "@/components/layout/AppLayout";
-import BomAnalyzePage from "@/pages/BomAnalyzePage";
-import BomCreatePage from "@/pages/BomCreatePage";
 import BomPage from "@/pages/BomPage";
 import CalculosPage from "@/pages/CalculosPage";
 import FornecedoresPage from "@/pages/FornecedoresPage";
@@ -37,8 +35,8 @@ export default function App() {
             <Route path="/" element={<Navigate to="/itens" replace />} />
             <Route path="/itens" element={<ItensPage />} />
             <Route path="/bom" element={<BomPage />} />
-            <Route path="/bom/criar" element={<BomCreatePage />} />
-            <Route path="/bom/analisar" element={<BomAnalyzePage />} />
+            <Route path="/bom/criar" element={<Navigate to="/bom" replace />} />
+            <Route path="/bom/analisar" element={<Navigate to="/bom" replace />} />
             <Route path="/precos" element={<PrecosPage />} />
             <Route path="/calculos" element={<CalculosPage />} />
             <Route path="/grupos" element={<GruposPage />} />

@@ -1,12 +1,12 @@
-import { Loader2, Search } from "lucide-react";
+import { AlertTriangle, Loader2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-import { useBomTree } from "@/hooks/useBom";
-import { useMateriaPrima } from "@/hooks/useMateriaPrima";
+import * as calculosApi from "@/api/calculos";
 import { useProdutoAcabado } from "@/hooks/useProdutoAcabado";
-import { cn, formatDecimal } from "@/lib/utils";
-import type { BomTreeNode, FinishedProduct, RawMaterial } from "@/types";
+import { cn, formatCurrency, formatDecimal } from "@/lib/utils";
+import type { BomAnalysisLine, FinishedProduct } from "@/types";
 
 function useDebouncedValue<T>(value: T, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -15,16 +15,6 @@ function useDebouncedValue<T>(value: T, delay = 300) {
     return () => window.clearTimeout(timer);
   }, [delay, value]);
   return debouncedValue;
-}
-
-interface EnrichedChild {
-  node: BomTreeNode;
-  mp: RawMaterial | null;
-  uomCode: string;
-  groupId: string;
-  groupName: string;
-  convertedQty: number | null;
-  convertedUomCode: string | null;
 }
 
 export default function BomAnalyzePage() {
@@ -39,64 +29,38 @@ export default function BomAnalyzePage() {
     limit: 20,
   });
 
-  const bomTreeQuery = useBomTree(selectedProduct?.id ?? null);
-  const materiasQuery = useMateriaPrima({ active_only: false, limit: 2000 });
+  const analysisQuery = useQuery({
+    queryKey: ["calculos", "custo-bom-analise", selectedProduct?.id ?? ""],
+    queryFn: () => calculosApi.getCustoBomAnalise(selectedProduct!.id),
+    enabled: !!selectedProduct,
+    retry: false,
+  });
 
-  const hasNoBom = axios.isAxiosError(bomTreeQuery.error) && bomTreeQuery.error.response?.status === 404;
-  const tree = bomTreeQuery.data;
+  const hasNoBom =
+    axios.isAxiosError(analysisQuery.error) && analysisQuery.error.response?.status === 404;
 
-  const rawMaterialsById = useMemo(() => {
-    const map = new Map<string, RawMaterial>();
-    (materiasQuery.data?.items ?? []).forEach((mp) => map.set(mp.id, mp));
-    return map;
-  }, [materiasQuery.data]);
-
-  const groupedItems = useMemo(() => {
-    if (!tree) return [];
-    const enriched: EnrichedChild[] = tree.children.map((node) => {
-      const mp = node.item_id ? rawMaterialsById.get(node.item_id) ?? null : null;
-      const qty = Number(node.quantity ?? 0);
-      const hasConv = !!mp?.unidade_conversao_id && !!mp?.peso_liquido;
-      return {
-        node,
-        mp,
-        uomCode: mp?.unit_of_measure?.code ?? "—",
-        groupId: mp?.material_group_id ?? "__sem_grupo__",
-        groupName: mp?.material_group?.name ?? "Sem grupo",
-        convertedQty: hasConv ? qty * Number(mp!.peso_liquido) : null,
-        convertedUomCode: mp?.unidade_conversao?.code ?? null,
-      };
-    });
-
-    const byGroup = new Map<string, { groupName: string; items: EnrichedChild[] }>();
-    enriched.forEach((item) => {
-      const existing = byGroup.get(item.groupId);
+  const groupedLines = useMemo(() => {
+    const data = analysisQuery.data;
+    if (!data) return [];
+    const byGroup = new Map<string, { groupName: string; lines: BomAnalysisLine[] }>();
+    data.lines.forEach((line) => {
+      const key = line.group_id ?? "__sem_grupo__";
+      const existing = byGroup.get(key);
       if (existing) {
-        existing.items.push(item);
+        existing.lines.push(line);
       } else {
-        byGroup.set(item.groupId, { groupName: item.groupName, items: [item] });
+        byGroup.set(key, { groupName: line.group_name ?? "Sem grupo", lines: [line] });
       }
     });
-
     return Array.from(byGroup.entries())
-      .map(([groupId, { groupName, items }]) => ({
+      .map(([groupId, { groupName, lines }]) => ({
         groupId,
         groupName,
-        items,
-        subtotals: sumByUom(items.map((i) => ({ qty: Number(i.node.quantity ?? 0), uom: i.uomCode }))),
+        lines,
+        subtotal: lines.reduce((sum, l) => sum + Number(l.line_cost), 0),
       }))
       .sort((a, b) => a.groupName.localeCompare(b.groupName, "pt-BR"));
-  }, [tree, rawMaterialsById]);
-
-  const grandTotals = useMemo(() => {
-    if (!tree) return [];
-    return sumByUom(
-      tree.children.map((node) => {
-        const mp = node.item_id ? rawMaterialsById.get(node.item_id) : null;
-        return { qty: Number(node.quantity ?? 0), uom: mp?.unit_of_measure?.code ?? "—" };
-      }),
-    );
-  }, [tree, rawMaterialsById]);
+  }, [analysisQuery.data]);
 
   return (
     <div className="flex min-h-[calc(100vh-9rem)] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -153,7 +117,7 @@ export default function BomAnalyzePage() {
           <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-slate-500">
             Selecione um Produto Acabado na lateral para visualizar a análise.
           </div>
-        ) : bomTreeQuery.isLoading || materiasQuery.isLoading ? (
+        ) : analysisQuery.isLoading ? (
           <div className="flex flex-1 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
           </div>
@@ -166,69 +130,85 @@ export default function BomAnalyzePage() {
               </p>
             </div>
           </div>
-        ) : tree ? (
+        ) : analysisQuery.data ? (
           <div className="flex-1 overflow-y-auto p-6">
             <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-slate-500">Produto Acabado</p>
               <h2 className="mt-1 text-2xl font-semibold text-slate-900">
-                {tree.code} — {tree.description}
+                {selectedProduct.code} — {selectedProduct.description}
               </h2>
-              <span className="mt-3 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                Versão {tree.version_code ?? "—"}
-              </span>
             </div>
 
-            {groupedItems.length === 0 ? (
+            {analysisQuery.data.missing_prices.length > 0 ? (
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-medium">
+                    {analysisQuery.data.missing_prices.length === 1
+                      ? "1 matéria-prima sem preço vigente"
+                      : `${analysisQuery.data.missing_prices.length} matérias-primas sem preço vigente`}
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    Custos listados com R$ 0,00 para: {analysisQuery.data.missing_prices.join(", ")}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            {groupedLines.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
                 BOM vazia. Nenhum componente cadastrado.
               </div>
             ) : (
               <div className="space-y-4">
-                {groupedItems.map((group) => (
+                {groupedLines.map((group) => (
                   <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white shadow-sm">
                     <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/60 px-6 py-3">
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
                         {group.groupName}
                       </h3>
-                      <span className="text-xs text-slate-500">{group.items.length} {group.items.length === 1 ? "item" : "itens"}</span>
+                      <span className="text-xs text-slate-500">
+                        {group.lines.length} {group.lines.length === 1 ? "item" : "itens"}
+                      </span>
                     </div>
                     <ul className="divide-y divide-slate-100">
-                      {group.items.map((ec) => (
-                        <li key={ec.node.bom_item_id ?? ec.node.item_id} className="flex items-start justify-between px-6 py-3">
+                      {group.lines.map((line) => (
+                        <li key={line.item_id} className="flex items-start justify-between px-6 py-3">
                           <div>
                             <p className="text-sm font-medium text-slate-900">
-                              {ec.node.code} — {ec.node.description}
+                              {line.code} — {line.description}
                             </p>
                             <p className="mt-0.5 text-xs text-slate-500">
-                              {formatDecimal(Number(ec.node.quantity ?? 0), 3)} {ec.uomCode}
-                              {ec.convertedQty != null && ec.convertedUomCode ? (
-                                <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
-                                  ≈ {formatDecimal(ec.convertedQty, 3)} {ec.convertedUomCode}
+                              {formatDecimal(Number(line.quantity), 3)} {line.uom}
+                              {line.missing_price ? (
+                                <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
+                                  sem preço
                                 </span>
                               ) : null}
                             </p>
                           </div>
+                          <span className="text-sm font-semibold text-slate-800">
+                            R$ {formatCurrency(Number(line.line_cost))}
+                          </span>
                         </li>
                       ))}
                     </ul>
                     <div className="flex items-center justify-end gap-4 border-t border-slate-100 bg-slate-50/40 px-6 py-2 text-sm">
                       <span className="text-xs font-medium text-slate-500">Subtotal:</span>
-                      {group.subtotals.map((s) => (
-                        <span key={s.uom} className="font-semibold text-slate-800">
-                          {formatDecimal(s.total, 3)} {s.uom}
-                        </span>
-                      ))}
+                      <span className="font-semibold text-slate-800">
+                        R$ {formatCurrency(group.subtotal)}
+                      </span>
                     </div>
                   </div>
                 ))}
 
                 <div className="flex items-center justify-end gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
-                  <span className="text-sm font-semibold uppercase tracking-wide text-slate-700">Total geral:</span>
-                  {grandTotals.map((t) => (
-                    <span key={t.uom} className="text-base font-bold text-slate-900">
-                      {formatDecimal(t.total, 3)} {t.uom}
-                    </span>
-                  ))}
+                  <span className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                    Total geral:
+                  </span>
+                  <span className="text-base font-bold text-slate-900">
+                    R$ {formatCurrency(Number(analysisQuery.data.custo_total))}
+                  </span>
                 </div>
               </div>
             )}
@@ -237,12 +217,4 @@ export default function BomAnalyzePage() {
       </section>
     </div>
   );
-}
-
-function sumByUom(rows: { qty: number; uom: string }[]): { uom: string; total: number }[] {
-  const map = new Map<string, number>();
-  rows.forEach((r) => {
-    map.set(r.uom, (map.get(r.uom) ?? 0) + r.qty);
-  });
-  return Array.from(map.entries()).map(([uom, total]) => ({ uom, total }));
 }

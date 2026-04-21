@@ -8,7 +8,13 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
-from app.schemas.calculation import BomBatchRequest, BomCalculationRequest, BomCostPreview, CalculationResponse
+from app.schemas.calculation import (
+    BomBatchRequest,
+    BomCalculationRequest,
+    BomCostAnalysis,
+    BomCostPreview,
+    CalculationResponse,
+)
 from app.services.calculation_service import CalculationService
 
 
@@ -27,6 +33,20 @@ def get_bom_cost_preview(
 ) -> BomCostPreview:
     service = CalculationService(db)
     return service.get_bom_cost_preview(item_id)
+
+
+@router.get(
+    "/{item_id}/custo-bom-analise",
+    response_model=BomCostAnalysis,
+    summary="Análise detalhada do custo BOM",
+    description="Retorna linhas da BOM com custo por item e por grupo. Tolerante a MPs sem preço vigente (price=0 + lista missing_prices).",
+)
+def get_bom_cost_analysis(
+    item_id: UUID,
+    db: Session = Depends(get_db_session),
+) -> BomCostAnalysis:
+    service = CalculationService(db)
+    return service.get_bom_cost_analysis(item_id)
 
 
 @router.post(

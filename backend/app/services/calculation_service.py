@@ -19,8 +19,10 @@ from app.repositories.item_repository import ItemRepository
 from app.repositories.material_group_repository import MaterialGroupRepository
 from app.repositories.price_repository import PriceRepository
 from app.schemas.calculation import (
+    BomAnalysisLine,
     BomBatchRequest,
     BomCalculationRequest,
+    BomCostAnalysis,
     BomCostPreview,
     CalculationLineResponse,
     CalculationResponse,
@@ -42,6 +44,65 @@ class CalculationService:
         self.price_repository = PriceRepository(db)
         self.export_service = ExportService()
         self.log_service = ExecutionLogService(db)
+
+    def get_bom_cost_analysis(self, item_id: UUID) -> BomCostAnalysis:
+        """Retorna o custo detalhado da BOM (qty=1), tolerante a MPs sem preço."""
+        item = self.item_repository.get_by_id(item_id)
+        if item is None:
+            raise ItemNotFoundError()
+
+        reference_date = now_sp().replace(tzinfo=None)
+        structure_rows = self.bom_repository.get_calculation_structure(
+            root_item_id=item_id,
+            reference_date=reference_date.date(),
+        )
+        if not structure_rows:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="BOM vazia ou não encontrada",
+            )
+
+        nodes = self._build_nodes(structure_rows)
+        calculator = BomCalculator(nodes=nodes, price_map={})
+        accumulated = calculator.explode(root_id=item_id, quantity=Decimal("1"))
+
+        ids = list(accumulated.keys())
+        price_map = self.price_repository.get_prices_for_items_at_date(ids, reference_date)
+
+        nodes_by_id = {node.item_id: node for node in nodes}
+        lines: list[BomAnalysisLine] = []
+        missing_codes: list[str] = []
+        total = Decimal("0")
+        for child_id, qty in accumulated.items():
+            node = nodes_by_id[child_id]
+            has_price = child_id in price_map
+            price = price_map.get(child_id, Decimal("0"))
+            line_cost = qty * price
+            total += line_cost
+            if not has_price:
+                missing_codes.append(node.code)
+            lines.append(
+                BomAnalysisLine(
+                    item_id=node.item_id,
+                    code=node.code,
+                    description=node.description,
+                    group_id=node.group_id,
+                    group_name=node.group_name,
+                    uom=node.uom,
+                    quantity=qty,
+                    price=price,
+                    line_cost=line_cost,
+                    missing_price=not has_price,
+                )
+            )
+
+        lines.sort(key=lambda line: (line.group_name or "\uffff", line.code))
+        return BomCostAnalysis(
+            item_id=item_id,
+            custo_total=total,
+            lines=lines,
+            missing_prices=missing_codes,
+        )
 
     def get_bom_cost_preview(self, item_id: UUID) -> BomCostPreview:
         """Retorna o custo total da BOM para qty=1 sem gerar Excel nem gravar log."""
