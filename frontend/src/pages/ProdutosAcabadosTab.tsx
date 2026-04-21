@@ -15,11 +15,12 @@ import {
 import { cn, extractErrorMessage, formatCurrency, formatDecimal } from "@/lib/utils";
 import type { FinishedProduct } from "@/types";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 // ─── BomCustoCell ─────────────────────────────────────────────────────────────
 
 function BomCustoCell({ itemId }: { itemId: string }) {
-  const { data, isError, isPending } = useQuery({
+  const { data, error, isError, isPending } = useQuery({
     queryKey: ["calculos", "custo-bom", itemId],
     queryFn: () => calculosApi.getCustoBom(itemId),
     retry: false,
@@ -28,7 +29,22 @@ function BomCustoCell({ itemId }: { itemId: string }) {
   if (isPending) {
     return <span className="inline-block h-3 w-20 animate-pulse rounded bg-slate-200" />;
   }
-  if (isError || !data) {
+  if (isError) {
+    const status = axios.isAxiosError(error) ? error.response?.status : null;
+    const detail =
+      axios.isAxiosError(error) && typeof error.response?.data?.detail === "string"
+        ? (error.response.data.detail as string)
+        : null;
+    if (status === 422 && detail) {
+      return (
+        <span className="text-amber-600" title={detail}>
+          Sem preço
+        </span>
+      );
+    }
+    return <span className="text-slate-400">Sem BOM</span>;
+  }
+  if (!data) {
     return <span className="text-slate-400">Sem BOM</span>;
   }
   return <span className="font-medium text-slate-700">R$ {formatCurrency(data.custo_total)}</span>;
