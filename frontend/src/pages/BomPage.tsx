@@ -3,11 +3,23 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import BomAnalyzePage from "@/pages/BomAnalyzePage";
 import BomCreatePage from "@/pages/BomCreatePage";
+import type { FinishedProduct } from "@/types";
 
 type TabKey = "criar" | "analisar";
 
 export default function BomPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("criar");
+  const [editingProduct, setEditingProduct] = useState<FinishedProduct | null>(null);
+
+  const handleEdit = (product: FinishedProduct) => {
+    setEditingProduct(product);
+    setActiveTab("criar");
+  };
+
+  const handleTabChange = (tab: TabKey) => {
+    if (tab !== "criar") setEditingProduct(null);
+    setActiveTab(tab);
+  };
 
   return (
     <div className="space-y-6">
@@ -15,7 +27,7 @@ export default function BomPage() {
         <div className="inline-flex rounded-xl bg-slate-100 p-1">
           <button
             type="button"
-            onClick={() => setActiveTab("criar")}
+            onClick={() => handleTabChange("criar")}
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-medium transition",
               activeTab === "criar"
@@ -27,7 +39,7 @@ export default function BomPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("analisar")}
+            onClick={() => handleTabChange("analisar")}
             className={cn(
               "rounded-lg px-4 py-2 text-sm font-medium transition",
               activeTab === "analisar"
@@ -40,7 +52,11 @@ export default function BomPage() {
         </div>
       </div>
 
-      {activeTab === "criar" ? <BomCreatePage /> : <BomAnalyzePage />}
+      {activeTab === "criar" ? (
+        <BomCreatePage initialProduct={editingProduct} />
+      ) : (
+        <BomAnalyzePage onEdit={handleEdit} />
+      )}
     </div>
   );
 }

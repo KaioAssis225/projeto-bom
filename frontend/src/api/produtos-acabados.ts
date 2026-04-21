@@ -13,6 +13,7 @@ export async function list(params?: FinishedProductListParams): Promise<Paginate
       code: params?.code,
       desc: params?.desc,
       active_only: params?.active_only ?? true,
+      without_bom: params?.without_bom,
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 50,
     },

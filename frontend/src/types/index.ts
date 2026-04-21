@@ -211,6 +211,7 @@ export interface FinishedProductListParams extends PaginationParams {
   code?: string;
   desc?: string;
   active_only?: boolean;
+  without_bom?: boolean;
 }
 
 export interface BomHeader {

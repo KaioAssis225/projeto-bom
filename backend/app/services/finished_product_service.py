@@ -73,14 +73,17 @@ class FinishedProductService:
         active_only: bool = True,
         code_contains: str | None = None,
         description_contains: str | None = None,
+        without_bom: bool = False,
     ) -> FinishedProductPaginatedResponse:
         items = self.repository.list_filtered(
             skip=skip, limit=limit, active_only=active_only,
             code_contains=code_contains, description_contains=description_contains,
+            without_bom=without_bom,
         )
         total = self.repository.count_filtered(
             active_only=active_only,
             code_contains=code_contains, description_contains=description_contains,
+            without_bom=without_bom,
         )
         return FinishedProductPaginatedResponse(
             items=[_to_response(i) for i in items],

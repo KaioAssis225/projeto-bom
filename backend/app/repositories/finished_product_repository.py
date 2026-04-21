@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.bom import Bom
 from app.models.finished_product import FinishedProduct
 from app.models.item import Item, ItemType
 
@@ -48,9 +49,10 @@ class FinishedProductRepository:
         active_only: bool = True,
         code_contains: str | None = None,
         description_contains: str | None = None,
+        without_bom: bool = False,
     ) -> list[Item]:
         stmt = self._apply_filters(
-            self._base_query(), active_only, code_contains, description_contains
+            self._base_query(), active_only, code_contains, description_contains, without_bom,
         ).offset(skip).limit(limit)
         return list(self.db.scalars(stmt).all())
 
@@ -59,6 +61,7 @@ class FinishedProductRepository:
         active_only: bool = True,
         code_contains: str | None = None,
         description_contains: str | None = None,
+        without_bom: bool = False,
     ) -> int:
         stmt = (
             select(func.count())
@@ -66,7 +69,7 @@ class FinishedProductRepository:
             .join(FinishedProduct, FinishedProduct.item_id == Item.id)
             .where(Item.type == ItemType.FINISHED_PRODUCT)
         )
-        stmt = self._apply_filters(stmt, active_only, code_contains, description_contains)
+        stmt = self._apply_filters(stmt, active_only, code_contains, description_contains, without_bom)
         return int(self.db.scalar(stmt) or 0)
 
     def create(self, item_data: dict, fp_data: dict) -> Item:
@@ -97,11 +100,14 @@ class FinishedProductRepository:
     # ── filters ───────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _apply_filters(stmt, active_only, code_contains, description_contains):
+    def _apply_filters(stmt, active_only, code_contains, description_contains, without_bom=False):
         if active_only:
             stmt = stmt.where(Item.active.is_(True))
         if code_contains:
             stmt = stmt.where(Item.code.ilike(f"%{code_contains}%"))
         if description_contains:
             stmt = stmt.where(Item.description.ilike(f"%{description_contains}%"))
+        if without_bom:
+            bom_exists = select(Bom.id).where(Bom.parent_item_id == Item.id).exists()
+            stmt = stmt.where(~bom_exists)
         return stmt

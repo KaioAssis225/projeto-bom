@@ -24,11 +24,13 @@ def list_finished_products(
     active_only: bool = Query(default=True),
     code: str | None = Query(default=None),
     desc: str | None = Query(default=None),
+    without_bom: bool = Query(default=False),
     db: Session = Depends(get_db_session),
 ) -> FinishedProductPaginatedResponse:
     return FinishedProductService(db).list(
         skip=skip, limit=limit, active_only=active_only,
         code_contains=code, description_contains=desc,
+        without_bom=without_bom,
     )
 
 

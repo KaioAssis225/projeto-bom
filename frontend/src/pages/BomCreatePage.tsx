@@ -18,14 +18,19 @@ function useDebouncedValue<T>(value: T, delay = 300) {
   return debouncedValue;
 }
 
-export default function BomCreatePage() {
+export default function BomCreatePage({ initialProduct }: { initialProduct?: FinishedProduct | null } = {}) {
   const [search, setSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<FinishedProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<FinishedProduct | null>(initialProduct ?? null);
   const debouncedSearch = useDebouncedValue(search, 300);
+
+  useEffect(() => {
+    if (initialProduct) setSelectedProduct(initialProduct);
+  }, [initialProduct]);
 
   const productsQuery = useProdutoAcabado({
     desc: debouncedSearch || undefined,
     active_only: true,
+    without_bom: true,
     skip: 0,
     limit: 20,
   });
