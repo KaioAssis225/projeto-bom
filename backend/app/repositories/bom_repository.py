@@ -255,12 +255,15 @@ class BomRepository:
                 i.type::text AS type,
                 mg.id AS group_id,
                 mg.name AS group_name,
-                uom.code AS uom
+                uom.code AS uom,
+                uom2.code AS uom2,
+                rm.peso_liquido AS peso_liquido
             FROM bom_edges be
             JOIN item i ON i.id = be.item_id
             JOIN unit_of_measure uom ON uom.id = i.unit_of_measure_id
             LEFT JOIN raw_material rm ON rm.item_id = i.id
             LEFT JOIN material_group mg ON mg.id = rm.material_group_id
+            LEFT JOIN unit_of_measure uom2 ON uom2.id = rm.unidade_conversao_id
             ORDER BY i.code
             """
         )

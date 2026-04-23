@@ -1,11 +1,11 @@
-import { AlertTriangle, Loader2, Pencil, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, Loader2, Pencil, Search } from "lucide-react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 import * as calculosApi from "@/api/calculos";
 import { useProdutoAcabado } from "@/hooks/useProdutoAcabado";
-import { cn, formatCurrency, formatDecimal } from "@/lib/utils";
+import { cn, formatDecimal } from "@/lib/utils";
 import type { BomAnalysisLine, FinishedProduct } from "@/types";
 
 function useDebouncedValue<T>(value: T, delay = 300) {
@@ -17,9 +17,53 @@ function useDebouncedValue<T>(value: T, delay = 300) {
   return debouncedValue;
 }
 
+type GroupRow = {
+  groupId: string;
+  groupName: string;
+  lines: BomAnalysisLine[];
+  uom1: string;
+  uom2: string;
+  qty1: number;
+  qty2: number;
+  uom1Mixed: boolean;
+  uom2Mixed: boolean;
+};
+
+function aggregateGroups(lines: BomAnalysisLine[]): GroupRow[] {
+  const map = new Map<string, BomAnalysisLine[]>();
+  lines.forEach((line) => {
+    const key = line.group_id ?? "__sem_grupo__";
+    const arr = map.get(key);
+    if (arr) arr.push(line);
+    else map.set(key, [line]);
+  });
+  return Array.from(map.entries())
+    .map(([groupId, groupLines]) => {
+      const uoms1 = new Set(groupLines.map((l) => l.uom));
+      const uoms2 = new Set(
+        groupLines.map((l) => l.uom2 ?? "").filter((v) => v !== ""),
+      );
+      const qty1 = groupLines.reduce((s, l) => s + Number(l.quantity), 0);
+      const qty2 = groupLines.reduce((s, l) => s + Number(l.quantity2 ?? 0), 0);
+      return {
+        groupId,
+        groupName: groupLines[0].group_name ?? "Sem grupo",
+        lines: groupLines.slice().sort((a, b) => a.code.localeCompare(b.code, "pt-BR")),
+        uom1: uoms1.size === 1 ? [...uoms1][0] : [...uoms1].join(" / "),
+        uom2: uoms2.size === 0 ? "—" : uoms2.size === 1 ? [...uoms2][0] : [...uoms2].join(" / "),
+        qty1,
+        qty2,
+        uom1Mixed: uoms1.size > 1,
+        uom2Mixed: uoms2.size > 1,
+      };
+    })
+    .sort((a, b) => a.groupName.localeCompare(b.groupName, "pt-BR"));
+}
+
 export default function BomAnalyzePage({ onEdit }: { onEdit?: (product: FinishedProduct) => void } = {}) {
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<FinishedProduct | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const debouncedSearch = useDebouncedValue(search, 300);
 
   const productsQuery = useProdutoAcabado({
@@ -39,28 +83,19 @@ export default function BomAnalyzePage({ onEdit }: { onEdit?: (product: Finished
   const hasNoBom =
     axios.isAxiosError(analysisQuery.error) && analysisQuery.error.response?.status === 404;
 
-  const groupedLines = useMemo(() => {
-    const data = analysisQuery.data;
-    if (!data) return [];
-    const byGroup = new Map<string, { groupName: string; lines: BomAnalysisLine[] }>();
-    data.lines.forEach((line) => {
-      const key = line.group_id ?? "__sem_grupo__";
-      const existing = byGroup.get(key);
-      if (existing) {
-        existing.lines.push(line);
-      } else {
-        byGroup.set(key, { groupName: line.group_name ?? "Sem grupo", lines: [line] });
-      }
+  const groups = useMemo(
+    () => (analysisQuery.data ? aggregateGroups(analysisQuery.data.lines) : []),
+    [analysisQuery.data],
+  );
+
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    return Array.from(byGroup.entries())
-      .map(([groupId, { groupName, lines }]) => ({
-        groupId,
-        groupName,
-        lines,
-        subtotal: lines.reduce((sum, l) => sum + Number(l.line_cost), 0),
-      }))
-      .sort((a, b) => a.groupName.localeCompare(b.groupName, "pt-BR"));
-  }, [analysisQuery.data]);
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-9rem)] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -93,7 +128,10 @@ export default function BomAnalyzePage({ onEdit }: { onEdit?: (product: Finished
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setSelectedProduct(item)}
+                  onClick={() => {
+                    setSelectedProduct(item);
+                    setExpanded(new Set());
+                  }}
                   className={cn(
                     "flex w-full flex-col border-b border-slate-100 px-4 py-3 text-left last:border-b-0",
                     selectedProduct?.id === item.id
@@ -151,77 +189,89 @@ export default function BomAnalyzePage({ onEdit }: { onEdit?: (product: Finished
               ) : null}
             </div>
 
-            {analysisQuery.data.missing_prices.length > 0 ? (
-              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="font-medium">
-                    {analysisQuery.data.missing_prices.length === 1
-                      ? "1 matéria-prima sem preço vigente"
-                      : `${analysisQuery.data.missing_prices.length} matérias-primas sem preço vigente`}
-                  </p>
-                  <p className="text-xs text-amber-700">
-                    Custos listados com R$ 0,00 para: {analysisQuery.data.missing_prices.join(", ")}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
-            {groupedLines.length === 0 ? (
+            {groups.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
                 BOM vazia. Nenhum componente cadastrado.
               </div>
             ) : (
-              <div className="space-y-4">
-                {groupedLines.map((group) => (
-                  <div key={group.groupId} className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/60 px-6 py-3">
-                      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                        {group.groupName}
-                      </h3>
-                      <span className="text-xs text-slate-500">
-                        {group.lines.length} {group.lines.length === 1 ? "item" : "itens"}
-                      </span>
-                    </div>
-                    <ul className="divide-y divide-slate-100">
-                      {group.lines.map((line) => (
-                        <li key={line.item_id} className="flex items-start justify-between px-6 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">
-                              {line.code} — {line.description}
-                            </p>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              {formatDecimal(Number(line.quantity), 3)} {line.uom}
-                              {line.missing_price ? (
-                                <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
-                                  sem preço
-                                </span>
-                              ) : null}
-                            </p>
-                          </div>
-                          <span className="text-sm font-semibold text-slate-800">
-                            R$ {formatCurrency(Number(line.line_cost))}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="flex items-center justify-end gap-4 border-t border-slate-100 bg-slate-50/40 px-6 py-2 text-sm">
-                      <span className="text-xs font-medium text-slate-500">Subtotal:</span>
-                      <span className="font-semibold text-slate-800">
-                        R$ {formatCurrency(group.subtotal)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="flex items-center justify-end gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
-                  <span className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                    Total geral:
-                  </span>
-                  <span className="text-base font-bold text-slate-900">
-                    R$ {formatCurrency(Number(analysisQuery.data.custo_total))}
-                  </span>
-                </div>
+              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <tr>
+                      <th className="w-10 px-3 py-3" />
+                      <th className="px-4 py-3 text-left">Grupo</th>
+                      <th className="px-4 py-3 text-left">UN 1</th>
+                      <th className="px-4 py-3 text-right">QTD</th>
+                      <th className="px-4 py-3 text-left">UN 2</th>
+                      <th className="px-4 py-3 text-right">QTD</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {groups.map((group) => {
+                      const isOpen = expanded.has(group.groupId);
+                      return (
+                        <Fragment key={group.groupId}>
+                          <tr
+                            className="cursor-pointer bg-white transition hover:bg-slate-50"
+                            onClick={() => toggle(group.groupId)}
+                          >
+                            <td className="px-3 py-3 text-slate-500">
+                              {isOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">{group.groupName}</td>
+                            <td
+                              className={cn(
+                                "px-4 py-3 text-slate-700",
+                                group.uom1Mixed && "text-amber-700",
+                              )}
+                            >
+                              {group.uom1}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium text-slate-800">
+                              {formatDecimal(group.qty1, 3)}
+                            </td>
+                            <td
+                              className={cn(
+                                "px-4 py-3 text-slate-700",
+                                group.uom2Mixed && "text-amber-700",
+                              )}
+                            >
+                              {group.uom2}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium text-slate-800">
+                              {group.qty2 > 0 ? formatDecimal(group.qty2, 3) : "—"}
+                            </td>
+                          </tr>
+                          {isOpen
+                            ? group.lines.map((line) => (
+                                <tr key={line.item_id} className="bg-slate-50/40">
+                                  <td className="px-3 py-2" />
+                                  <td className="px-4 py-2 pl-8 text-slate-700">
+                                    <span className="text-xs font-medium text-slate-500">{line.code}</span>
+                                    <span className="ml-2 text-slate-700">{line.description}</span>
+                                  </td>
+                                  <td className="px-4 py-2 text-slate-600">{line.uom}</td>
+                                  <td className="px-4 py-2 text-right text-slate-700">
+                                    {formatDecimal(Number(line.quantity), 3)}
+                                  </td>
+                                  <td className="px-4 py-2 text-slate-600">{line.uom2 ?? "—"}</td>
+                                  <td className="px-4 py-2 text-right text-slate-700">
+                                    {line.quantity2 != null
+                                      ? formatDecimal(Number(line.quantity2), 3)
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              ))
+                            : null}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -77,6 +77,8 @@ class BomAnalysisLine(BaseSchema):
     price: Decimal
     line_cost: Decimal
     missing_price: bool
+    uom2: str | None = None
+    quantity2: Decimal | None = None
 
 
 class BomCostAnalysis(BaseSchema):

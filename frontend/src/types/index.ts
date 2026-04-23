@@ -338,6 +338,8 @@ export interface BomAnalysisLine {
   price: number;
   line_cost: number;
   missing_price: boolean;
+  uom2?: string | null;
+  quantity2?: number | null;
 }
 
 export interface BomCostAnalysis {

@@ -81,6 +81,7 @@ class CalculationService:
             total += line_cost
             if not has_price:
                 missing_codes.append(node.code)
+            quantity2 = qty * node.peso_liquido if node.peso_liquido is not None else None
             lines.append(
                 BomAnalysisLine(
                     item_id=node.item_id,
@@ -93,6 +94,8 @@ class CalculationService:
                     price=price,
                     line_cost=line_cost,
                     missing_price=not has_price,
+                    uom2=node.uom2,
+                    quantity2=quantity2,
                 )
             )
 
@@ -268,6 +271,8 @@ class CalculationService:
                     uom=row["uom"],
                     unit_quantity=row["unit_quantity"],
                     children=children_map.get(row["item_id"], []),
+                    uom2=row.get("uom2"),
+                    peso_liquido=row.get("peso_liquido"),
                 )
             )
         return nodes

@@ -18,6 +18,8 @@ class BomNode:
     uom: str
     unit_quantity: Decimal
     children: list[UUID]
+    uom2: str | None = None
+    peso_liquido: Decimal | None = None
 
 
 @dataclass(slots=True)
