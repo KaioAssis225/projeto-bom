@@ -52,6 +52,21 @@ export function useUpdateFornecedor() {
   });
 }
 
+export function useDeleteFornecedor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => fornecedoresApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fornecedores"] });
+      toast.success("Fornecedor excluído com sucesso");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
 export function useDeactivateFornecedor() {
   const queryClient = useQueryClient();
 

@@ -52,6 +52,21 @@ export function useUpdateGrupo() {
   });
 }
 
+export function useDeleteGrupo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => gruposApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grupos"] });
+      toast.success("Grupo excluído com sucesso");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
 export function useDeactivateGrupo() {
   const queryClient = useQueryClient();
 

@@ -4,6 +4,7 @@ import logging
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import DuplicateCodeError
@@ -102,3 +103,19 @@ class UnitOfMeasureService:
             status_code=status.HTTP_409_CONFLICT,
             detail="Unit of measure does not support deactivation",
         )
+
+    def delete(self, id: UUID) -> None:
+        existing = self.repository.get_by_id(id)
+        if existing is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Unidade não encontrada",
+            )
+        try:
+            self.repository.delete(id=id)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Unidade está vinculada a itens ou conversões e não pode ser excluída.",
+            )
+        logger.info("Unit of measure deleted: id=%s code=%s", existing.id, existing.code)

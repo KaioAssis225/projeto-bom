@@ -40,3 +40,7 @@ export async function deactivate(id: string): Promise<MaterialGroup> {
   const response = await client.patch<MaterialGroup>(`/api/v1/grupos/${id}/inativar`);
   return response.data;
 }
+
+export async function remove(id: string): Promise<void> {
+  await client.delete(`/api/v1/grupos/${id}`);
+}

@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Pencil, Plus, Search, X } from "lucide-react";
+import { Ban, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { useCreateGrupo, useDeactivateGrupo, useGrupos, useUpdateGrupo } from "@/hooks/useGrupos";
+import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
+import { useCreateGrupo, useDeactivateGrupo, useDeleteGrupo, useGrupos, useUpdateGrupo } from "@/hooks/useGrupos";
 import { cn } from "@/lib/utils";
 import type { MaterialGroup } from "@/types";
 
@@ -172,7 +173,8 @@ export default function GruposPage() {
 
   const gruposQuery = useGrupos({ skip: 0, limit: 100, active_only: false });
   const deactivateGrupo = useDeactivateGrupo();
-  const isMutating = deactivateGrupo.isPending;
+  const deleteGrupo = useDeleteGrupo();
+  const isMutating = deactivateGrupo.isPending || deleteGrupo.isPending;
 
   const filteredItems = useMemo(() => {
     const allItems = gruposQuery.data?.items ?? [];
@@ -191,6 +193,40 @@ export default function GruposPage() {
     }
 
     await deactivateGrupo.mutateAsync(group.id);
+  };
+
+  const handleDelete = async (group: MaterialGroup) => {
+    if (!window.confirm(`Excluir definitivamente o grupo "${group.code} — ${group.name}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    await deleteGrupo.mutateAsync(group.id);
+  };
+
+  const buildActions = (group: MaterialGroup): RowAction[] => {
+    const actions: RowAction[] = [
+      {
+        label: "Editar",
+        icon: Pencil,
+        onClick: () => {
+          setSelectedGroup(group);
+          setModalOpen(true);
+        },
+      },
+    ];
+    if (group.active) {
+      actions.push({
+        label: "Inativar",
+        icon: Ban,
+        onClick: () => void handleDeactivate(group),
+      });
+    }
+    actions.push({
+      label: "Excluir",
+      icon: Trash2,
+      variant: "danger",
+      onClick: () => void handleDelete(group),
+    });
+    return actions;
   };
 
   return (
@@ -277,27 +313,8 @@ export default function GruposPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedGroup(group);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                            Editar
-                          </button>
-                          {group.active ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleDeactivate(group)}
-                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50"
-                            >
-                              Inativar
-                            </button>
-                          ) : null}
+                        <div className="flex justify-end">
+                          <RowActionsMenu actions={buildActions(group)} />
                         </div>
                       </td>
                     </tr>

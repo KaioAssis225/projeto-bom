@@ -1,10 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, ChevronRight, Loader2, Pencil, Plus, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { useCreateUnidade, useUnidades, useUpdateUnidade } from "@/hooks/useUnidades";
+import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
+import { useCreateUnidade, useDeleteUnidade, useUnidades, useUpdateUnidade } from "@/hooks/useUnidades";
 import { cn } from "@/lib/utils";
 import type { UnitOfMeasure } from "@/types";
 
@@ -104,9 +105,11 @@ function ConversionsPanel({ unit }: { unit: UnitOfMeasure }) {
 function UnitRow({
   unit,
   onEdit,
+  onDelete,
 }: {
   unit: UnitOfMeasure;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const category = UNIT_CATEGORIES[unit.code] ?? "Outro";
@@ -146,16 +149,14 @@ function UnitRow({
             {hasConversions ? `${unit.conversions!.length} conversão(ões)` : "—"}
           </span>
         </td>
-        <td className="px-4 py-3">
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-            >
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Editar
-            </button>
+            <RowActionsMenu
+              actions={[
+                { label: "Editar", icon: Pencil, onClick: onEdit },
+                { label: "Excluir", icon: Trash2, variant: "danger", onClick: onDelete },
+              ]}
+            />
           </div>
         </td>
       </tr>
@@ -354,6 +355,12 @@ export default function UnidadesPage() {
   const [selectedUnit, setSelectedUnit] = useState<UnitOfMeasure | null>(null);
 
   const unidadesQuery = useUnidades({ skip: 0, limit: 100 });
+  const deleteUnidade = useDeleteUnidade();
+
+  const handleDelete = async (unit: UnitOfMeasure) => {
+    if (!window.confirm(`Excluir definitivamente a unidade "${unit.code} — ${unit.description}"? Esta ação não pode ser desfeita.`)) return;
+    await deleteUnidade.mutateAsync(unit.id);
+  };
 
   const filteredItems = useMemo(() => {
     const allItems = unidadesQuery.data?.items ?? [];
@@ -438,6 +445,7 @@ export default function UnidadesPage() {
                       key={unit.id}
                       unit={unit}
                       onEdit={() => { setSelectedUnit(unit); setModalOpen(true); }}
+                      onDelete={() => void handleDelete(unit)}
                     />
                   ))
                 ) : (

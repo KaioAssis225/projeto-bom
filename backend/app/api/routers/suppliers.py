@@ -90,3 +90,16 @@ def deactivate_supplier(
 ) -> SupplierResponse:
     service = SupplierService(db)
     return service.deactivate(id)
+
+
+@router.delete(
+    "/{id}",
+    status_code=204,
+    summary="Excluir fornecedor",
+    description="Remove definitivamente o fornecedor. Falha com 409 se houver matérias-primas vinculadas.",
+)
+def delete_supplier(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+) -> None:
+    SupplierService(db).delete(id)

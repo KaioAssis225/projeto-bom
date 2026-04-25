@@ -51,6 +51,13 @@ class MaterialGroupRepository:
     def deactivate(self, id: UUID) -> MaterialGroup:
         return self.update(id=id, data={"active": False})
 
+    def delete(self, id: UUID) -> None:
+        material_group = self.db.get(MaterialGroup, id)
+        if material_group is None:
+            raise ValueError("Material group not found")
+        self.db.delete(material_group)
+        self.db.commit()
+
     @staticmethod
     def _base_list_query(active_only: bool) -> Select[tuple[MaterialGroup]]:
         stmt = select(MaterialGroup).order_by(MaterialGroup.code.asc())

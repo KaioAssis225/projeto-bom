@@ -90,3 +90,16 @@ def deactivate_material_group(
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.deactivate(id)
+
+
+@router.delete(
+    "/{id}",
+    status_code=204,
+    summary="Excluir grupo de matéria-prima",
+    description="Remove definitivamente o grupo. Falha com 409 se houver matérias-primas vinculadas.",
+)
+def delete_material_group(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+) -> None:
+    MaterialGroupService(db).delete(id)

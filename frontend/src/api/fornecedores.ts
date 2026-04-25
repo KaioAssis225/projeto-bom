@@ -40,3 +40,7 @@ export async function deactivate(id: string): Promise<Supplier> {
   const response = await client.patch<Supplier>(`/api/v1/fornecedores/${id}/inativar`);
   return response.data;
 }
+
+export async function remove(id: string): Promise<void> {
+  await client.delete(`/api/v1/fornecedores/${id}`);
+}

@@ -40,3 +40,7 @@ export async function deactivate(id: string): Promise<UnitOfMeasure> {
   const response = await client.patch<UnitOfMeasure>(`/api/v1/unidades/${id}/inativar`);
   return response.data;
 }
+
+export async function remove(id: string): Promise<void> {
+  await client.delete(`/api/v1/unidades/${id}`);
+}

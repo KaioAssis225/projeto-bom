@@ -1,12 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Pencil, Plus, Search, X } from "lucide-react";
+import { Ban, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
 import {
   useCreateFornecedor,
   useDeactivateFornecedor,
+  useDeleteFornecedor,
   useFornecedores,
   useUpdateFornecedor,
 } from "@/hooks/useFornecedores";
@@ -173,7 +175,8 @@ export default function FornecedoresPage() {
 
   const fornecedoresQuery = useFornecedores({ skip: 0, limit: 100, active_only: false });
   const deactivateFornecedor = useDeactivateFornecedor();
-  const isMutating = deactivateFornecedor.isPending;
+  const deleteFornecedor = useDeleteFornecedor();
+  const isMutating = deactivateFornecedor.isPending || deleteFornecedor.isPending;
 
   const filteredItems = useMemo(() => {
     const all = fornecedoresQuery.data?.items ?? [];
@@ -185,6 +188,35 @@ export default function FornecedoresPage() {
   const handleDeactivate = async (supplier: Supplier) => {
     if (!window.confirm(`Deseja inativar o fornecedor "${supplier.code} — ${supplier.name}"?`)) return;
     await deactivateFornecedor.mutateAsync(supplier.id);
+  };
+
+  const handleDelete = async (supplier: Supplier) => {
+    if (!window.confirm(`Excluir definitivamente o fornecedor "${supplier.code} — ${supplier.name}"? Esta ação não pode ser desfeita.`)) return;
+    await deleteFornecedor.mutateAsync(supplier.id);
+  };
+
+  const buildActions = (supplier: Supplier): RowAction[] => {
+    const actions: RowAction[] = [
+      {
+        label: "Editar",
+        icon: Pencil,
+        onClick: () => { setSelectedSupplier(supplier); setModalOpen(true); },
+      },
+    ];
+    if (supplier.active) {
+      actions.push({
+        label: "Inativar",
+        icon: Ban,
+        onClick: () => void handleDeactivate(supplier),
+      });
+    }
+    actions.push({
+      label: "Excluir",
+      icon: Trash2,
+      variant: "danger",
+      onClick: () => void handleDelete(supplier),
+    });
+    return actions;
   };
 
   return (
@@ -275,24 +307,8 @@ export default function FornecedoresPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedSupplier(supplier); setModalOpen(true); }}
-                            className="inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                            Editar
-                          </button>
-                          {supplier.active ? (
-                            <button
-                              type="button"
-                              onClick={() => void handleDeactivate(supplier)}
-                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50"
-                            >
-                              Inativar
-                            </button>
-                          ) : null}
+                        <div className="flex justify-end">
+                          <RowActionsMenu actions={buildActions(supplier)} />
                         </div>
                       </td>
                     </tr>

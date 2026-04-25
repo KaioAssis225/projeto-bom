@@ -53,6 +53,13 @@ class UnitOfMeasureRepository:
     def deactivate(self, id: UUID) -> UnitOfMeasure:
         return self.update(id=id, data={})
 
+    def delete(self, id: UUID) -> None:
+        unit = self.db.get(UnitOfMeasure, id)
+        if unit is None:
+            raise ValueError("Unit of measure not found")
+        self.db.delete(unit)
+        self.db.commit()
+
     def _load(self, id: UUID) -> UnitOfMeasure:
         unit = self.get_by_id(id)
         if unit is None:

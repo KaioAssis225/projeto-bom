@@ -51,6 +51,13 @@ class SupplierRepository:
     def deactivate(self, id: UUID) -> Supplier:
         return self.update(id=id, data={"active": False})
 
+    def delete(self, id: UUID) -> None:
+        supplier = self.db.get(Supplier, id)
+        if supplier is None:
+            raise ValueError("Supplier not found")
+        self.db.delete(supplier)
+        self.db.commit()
+
     @staticmethod
     def _base_list_query(active_only: bool) -> Select[tuple[Supplier]]:
         stmt = select(Supplier).order_by(Supplier.code.asc())

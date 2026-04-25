@@ -4,6 +4,7 @@ import logging
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import DuplicateCodeError
@@ -69,3 +70,19 @@ class SupplierService:
         deactivated = self.repository.deactivate(id=id)
         logger.info("Supplier deactivated: id=%s code=%s", deactivated.id, deactivated.code)
         return deactivated
+
+    def delete(self, id: UUID) -> None:
+        existing = self.repository.get_by_id(id)
+        if existing is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Fornecedor não encontrado",
+            )
+        try:
+            self.repository.delete(id=id)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Fornecedor está vinculado a matérias-primas e não pode ser excluído. Inative-o.",
+            )
+        logger.info("Supplier deleted: id=%s code=%s", existing.id, existing.code)

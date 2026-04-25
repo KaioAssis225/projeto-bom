@@ -52,6 +52,21 @@ export function useUpdateUnidade() {
   });
 }
 
+export function useDeleteUnidade() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => unidadesApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unidades"] });
+      toast.success("Unidade excluída com sucesso");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
 export function useDeactivateUnidade() {
   const queryClient = useQueryClient();
 

@@ -90,3 +90,16 @@ def deactivate_unit_of_measure(
 ) -> UnitOfMeasureResponse:
     service = UnitOfMeasureService(db)
     return service.deactivate(id)
+
+
+@router.delete(
+    "/{id}",
+    status_code=204,
+    summary="Excluir unidade de medida",
+    description="Remove definitivamente a unidade. Falha com 409 se estiver vinculada a itens ou conversões.",
+)
+def delete_unit_of_measure(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+) -> None:
+    UnitOfMeasureService(db).delete(id)
