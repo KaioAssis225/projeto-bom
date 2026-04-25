@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import CalculoPorMateriaPrima from "@/pages/CalculoPorMateriaPrima";
 import { useCalcularLote, useCalcularProduto, useDownloadExcel } from "@/hooks/useCalculos";
 import { useGrupos } from "@/hooks/useGrupos";
 import { useItens } from "@/hooks/useItens";
@@ -37,7 +38,7 @@ const batchCalculationSchema = z.object({
 
 type ProductCalculationFormValues = z.infer<typeof productCalculationSchema>;
 type BatchCalculationFormValues = z.infer<typeof batchCalculationSchema>;
-type TabKey = "product" | "batch";
+type TabKey = "product" | "batch" | "materia-prima";
 
 function useDebouncedValue<T>(value: T, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -338,8 +339,22 @@ export default function CalculosPage() {
           >
             Por Lote
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("materia-prima")}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium transition",
+              activeTab === "materia-prima"
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Por Matéria-Prima
+          </button>
         </div>
       </div>
+
+      {activeTab === "materia-prima" ? <CalculoPorMateriaPrima /> : null}
 
       {activeTab === "product" ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -452,7 +467,7 @@ export default function CalculosPage() {
             </div>
           </form>
         </div>
-      ) : (
+      ) : activeTab === "batch" ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <form onSubmit={handleCalculateBatch} className="space-y-5">
             <div className={cn("space-y-5", batchCalculationPending && "pointer-events-none opacity-70")}>
@@ -583,9 +598,9 @@ export default function CalculosPage() {
             </div>
           </form>
         </div>
-      )}
+      ) : null}
 
-      {result ? (
+      {result && activeTab !== "materia-prima" ? (
         <div ref={resultRef}>
           <ResultSection result={result} onDownload={handleDownload} isDownloading={downloadExcel.isPending} />
         </div>
