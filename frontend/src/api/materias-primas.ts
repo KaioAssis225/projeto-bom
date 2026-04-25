@@ -1,11 +1,15 @@
 import { client } from "@/api/client";
 import type {
+  ImportResult,
   PaginatedResponse,
   RawMaterial,
   RawMaterialCreatePayload,
   RawMaterialListParams,
   RawMaterialUpdatePayload,
 } from "@/types";
+
+export const TEMPLATE_CSV_URL = "/api/v1/materias-primas/template-csv";
+export const TEMPLATE_XLSX_URL = "/api/v1/materias-primas/template-xlsx";
 
 export async function list(params?: RawMaterialListParams): Promise<PaginatedResponse<RawMaterial>> {
   const response = await client.get<PaginatedResponse<RawMaterial>>("/api/v1/materias-primas/", {
@@ -38,5 +42,16 @@ export async function update(id: string, data: Partial<RawMaterialUpdatePayload>
 
 export async function deactivate(id: string): Promise<RawMaterial> {
   const response = await client.patch<RawMaterial>(`/api/v1/materias-primas/${id}/inativar`);
+  return response.data;
+}
+
+export async function importCsv(file: File): Promise<ImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await client.post<ImportResult>(
+    "/api/v1/materias-primas/import-csv",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
   return response.data;
 }

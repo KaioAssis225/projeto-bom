@@ -1,14 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Loader2, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlertCircle, Loader2, Plus, RefreshCw, Search, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import * as calculosApi from "@/api/calculos";
+import { TEMPLATE_CSV_URL } from "@/api/produtos-acabados";
+import CsvImportDialog from "@/components/CsvImportDialog";
 import {
   useCreateProdutoAcabado,
   useDeactivateProdutoAcabado,
+  useImportProdutosAcabadosCsv,
   useProdutoAcabado,
   useUpdateProdutoAcabado,
 } from "@/hooks/useProdutoAcabado";
@@ -459,7 +462,9 @@ export default function ProdutosAcabadosTab() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FinishedProduct | null>(null);
+  const importMutation = useImportProdutosAcabadosCsv();
 
   const filters = useMemo(
     () => ({
@@ -513,14 +518,24 @@ export default function ProdutosAcabadosTab() {
               Gerencie produtos acabados. O preço é calculado automaticamente a partir da BOM.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => { setSelectedItem(null); setModalOpen(true); }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Produto
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importar CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSelectedItem(null); setModalOpen(true); }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Produto
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -675,6 +690,15 @@ export default function ProdutosAcabadosTab() {
         open={modalOpen}
         item={selectedItem}
         onClose={() => setModalOpen(false)}
+      />
+
+      <CsvImportDialog
+        open={importOpen}
+        title="Importar Produtos Acabados via CSV"
+        templatePath={TEMPLATE_CSV_URL}
+        templateFilename="produtos-acabados-template.csv"
+        onImport={(file) => importMutation.mutateAsync(file)}
+        onClose={() => setImportOpen(false)}
       />
     </>
   );

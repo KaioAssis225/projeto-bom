@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
@@ -12,9 +13,22 @@ from app.schemas.finished_product import (
     FinishedProductResponse,
     FinishedProductUpdate,
 )
+from app.schemas.import_result import ImportResult
+from app.services.finished_product_import_service import FinishedProductImportService
 from app.services.finished_product_service import FinishedProductService
+from app.services.templates import build_template_xlsx
 
 router = APIRouter(tags=["produtos-acabados"])
+
+_HEADERS = [
+    "code", "description", "unit_of_measure_code",
+    "peso_liquido", "catalogo", "linha", "designer", "notes",
+]
+_EXAMPLE = [
+    "PA001", "EXEMPLO PRODUTO ACABADO", "UN",
+    "0,500", "CAT-2026", "Premium", "Designer X", "observacao opcional",
+]
+_TEMPLATE_CSV = ";".join(_HEADERS) + "\r\n" + ";".join(_EXAMPLE) + "\r\n"
 
 
 @router.get("/", response_model=FinishedProductPaginatedResponse)
@@ -32,6 +46,37 @@ def list_finished_products(
         code_contains=code, description_contains=desc,
         without_bom=without_bom,
     )
+
+
+@router.get("/template-csv", include_in_schema=False)
+def finished_product_template_csv() -> Response:
+    return Response(
+        content="\ufeff" + _TEMPLATE_CSV,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="produtos-acabados-template.csv"'},
+    )
+
+
+@router.get("/template-xlsx", include_in_schema=False)
+def finished_product_template_xlsx() -> Response:
+    content = build_template_xlsx(
+        sheet_name="Produtos-Acabados",
+        headers=_HEADERS,
+        example_row=_EXAMPLE,
+    )
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="produtos-acabados-template.xlsx"'},
+    )
+
+
+@router.post("/import-csv", response_model=ImportResult)
+def import_finished_products_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db_session),
+) -> ImportResult:
+    return FinishedProductImportService(db).import_csv(file)
 
 
 @router.get("/{id}", response_model=FinishedProductResponse)

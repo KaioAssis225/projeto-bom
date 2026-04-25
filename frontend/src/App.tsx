@@ -7,6 +7,7 @@ import BomPage from "@/pages/BomPage";
 import CalculosPage from "@/pages/CalculosPage";
 import FornecedoresPage from "@/pages/FornecedoresPage";
 import GruposPage from "@/pages/GruposPage";
+import ImportacoesPage from "@/pages/ImportacoesPage";
 import ItensPage from "@/pages/ItensPage";
 import LogsPage from "@/pages/LogsPage";
 import PrecosPage from "@/pages/PrecosPage";
@@ -34,6 +35,7 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Navigate to="/itens" replace />} />
             <Route path="/itens" element={<ItensPage />} />
+            <Route path="/importacoes" element={<ImportacoesPage />} />
             <Route path="/bom" element={<BomPage />} />
             <Route path="/bom/criar" element={<Navigate to="/bom" replace />} />
             <Route path="/bom/analisar" element={<Navigate to="/bom" replace />} />

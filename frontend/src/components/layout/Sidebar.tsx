@@ -1,4 +1,4 @@
-import { Factory, FolderTree, Boxes, Package2, Ruler, Calculator, ScrollText, Coins, Truck } from "lucide-react";
+import { Factory, FolderTree, Boxes, Package2, Ruler, Calculator, ScrollText, Coins, Truck, Upload } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const secondaryItems: NavItem[] = [
   { label: "Grupos", to: "/grupos", icon: Boxes },
   { label: "Unidades", to: "/unidades", icon: Ruler },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
+  { label: "Importações", to: "/importacoes", icon: Upload },
 ];
 
 const tertiaryItems: NavItem[] = [

@@ -1,17 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Loader2, MoreVertical, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AlertCircle, Loader2, MoreVertical, Plus, RefreshCw, Search, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import * as precosApi from "@/api/precos";
+import { TEMPLATE_CSV_URL } from "@/api/materias-primas";
+import CsvImportDialog from "@/components/CsvImportDialog";
 import { useFornecedores } from "@/hooks/useFornecedores";
 import { useGrupos } from "@/hooks/useGrupos";
 import {
   useCreateMateriaPrima,
   useDeactivateMateriaPrima,
+  useImportMateriasPrimasCsv,
   useMateriaPrima,
   useUpdateMateriaPrima,
 } from "@/hooks/useMateriaPrima";
@@ -800,8 +803,10 @@ export default function MateriaisPrimasTab() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<RawMaterial | null>(null);
   const [historyItem, setHistoryItem] = useState<RawMaterial | null>(null);
+  const importMutation = useImportMateriasPrimasCsv();
 
   const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 100 });
   const unitsQuery = useUnidades({ skip: 0, limit: 100 });
@@ -855,17 +860,27 @@ export default function MateriaisPrimasTab() {
               Gerencie matérias-primas com custo, grupo e fornecedor.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedItem(null);
-              setModalOpen(true);
-            }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Matéria-Prima
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importar CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedItem(null);
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Matéria-Prima
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -1050,6 +1065,15 @@ export default function MateriaisPrimasTab() {
           onClose={() => setHistoryItem(null)}
         />
       ) : null}
+
+      <CsvImportDialog
+        open={importOpen}
+        title="Importar Matérias-Primas via CSV"
+        templatePath={TEMPLATE_CSV_URL}
+        templateFilename="materias-primas-template.csv"
+        onImport={(file) => importMutation.mutateAsync(file)}
+        onClose={() => setImportOpen(false)}
+      />
     </>
   );
 }

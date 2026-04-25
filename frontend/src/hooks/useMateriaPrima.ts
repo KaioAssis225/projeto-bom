@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import * as materiasApi from "@/api/materias-primas";
 import { extractErrorMessage } from "@/lib/utils";
-import type { RawMaterialCreatePayload, RawMaterialListParams, RawMaterialUpdatePayload } from "@/types";
+import type { ImportResult, RawMaterialCreatePayload, RawMaterialListParams, RawMaterialUpdatePayload } from "@/types";
 
 export function useMateriaPrima(filters?: RawMaterialListParams, options?: { enabled?: boolean }) {
   return useQuery({
@@ -47,6 +47,24 @@ export function useUpdateMateriaPrima() {
       queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
       queryClient.invalidateQueries({ queryKey: ["materias-primas", "detail", variables.id] });
       toast.success("Matéria-prima atualizada com sucesso");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
+export function useImportMateriasPrimasCsv() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ImportResult, unknown, File>({
+    mutationFn: (file: File) => materiasApi.importCsv(file),
+    onSuccess: (result) => {
+      if (result.imported > 0 && result.errors.length === 0) {
+        queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
+        queryClient.invalidateQueries({ queryKey: ["itens"] });
+        toast.success(`${result.imported} matéria(s)-prima(s) importada(s)`);
+      }
     },
     onError: (error: unknown) => {
       toast.error(extractErrorMessage(error));

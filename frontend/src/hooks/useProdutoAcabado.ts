@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import * as produtosApi from "@/api/produtos-acabados";
 import { extractErrorMessage } from "@/lib/utils";
-import type { FinishedProductCreatePayload, FinishedProductListParams, FinishedProductUpdatePayload } from "@/types";
+import type { FinishedProductCreatePayload, FinishedProductListParams, FinishedProductUpdatePayload, ImportResult } from "@/types";
 
 export function useProdutoAcabado(filters?: FinishedProductListParams) {
   return useQuery({
@@ -46,6 +46,24 @@ export function useUpdateProdutoAcabado() {
       queryClient.invalidateQueries({ queryKey: ["produtos-acabados"] });
       queryClient.invalidateQueries({ queryKey: ["produtos-acabados", "detail", variables.id] });
       toast.success("Produto acabado atualizado com sucesso");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
+export function useImportProdutosAcabadosCsv() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ImportResult, unknown, File>({
+    mutationFn: (file: File) => produtosApi.importCsv(file),
+    onSuccess: (result) => {
+      if (result.imported > 0 && result.errors.length === 0) {
+        queryClient.invalidateQueries({ queryKey: ["produtos-acabados"] });
+        queryClient.invalidateQueries({ queryKey: ["itens"] });
+        toast.success(`${result.imported} produto(s) acabado(s) importado(s)`);
+      }
     },
     onError: (error: unknown) => {
       toast.error(extractErrorMessage(error));

@@ -413,3 +413,15 @@ export interface LogListParams extends PaginationParams {
   status?: string;
   item_id?: string;
 }
+
+export interface ImportRowError {
+  line: number;
+  code?: string | null;
+  field?: string | null;
+  message: string;
+}
+
+export interface ImportResult {
+  imported: number;
+  errors: ImportRowError[];
+}

@@ -4,8 +4,12 @@ import type {
   FinishedProductCreatePayload,
   FinishedProductListParams,
   FinishedProductUpdatePayload,
+  ImportResult,
   PaginatedResponse,
 } from "@/types";
+
+export const TEMPLATE_CSV_URL = "/api/v1/produtos-acabados/template-csv";
+export const TEMPLATE_XLSX_URL = "/api/v1/produtos-acabados/template-xlsx";
 
 export async function list(params?: FinishedProductListParams): Promise<PaginatedResponse<FinishedProduct>> {
   const response = await client.get<PaginatedResponse<FinishedProduct>>("/api/v1/produtos-acabados/", {
@@ -38,5 +42,16 @@ export async function update(id: string, data: Partial<FinishedProductUpdatePayl
 
 export async function deactivate(id: string): Promise<FinishedProduct> {
   const response = await client.patch<FinishedProduct>(`/api/v1/produtos-acabados/${id}/inativar`);
+  return response.data;
+}
+
+export async function importCsv(file: File): Promise<ImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await client.post<ImportResult>(
+    "/api/v1/produtos-acabados/import-csv",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
   return response.data;
 }
