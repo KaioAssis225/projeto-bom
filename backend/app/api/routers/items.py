@@ -31,7 +31,7 @@ def list_items(
     code: str | None = Query(default=None),
     desc: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=5000),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
 ) -> ItemPaginatedResponse:

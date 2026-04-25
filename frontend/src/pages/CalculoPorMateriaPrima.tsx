@@ -191,17 +191,24 @@ export default function CalculoPorMateriaPrima() {
 
   const calcularLote = useCalcularLote();
   const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 200 });
+  // Sem filtro de type: aceita FINISHED_PRODUCT e SEMI_FINISHED (qualquer
+  // item com BOM pode ser raiz do calculo). active_only=false para nao
+  // esconder itens que o usuario inativou recentemente.
   const productsQuery = useItens({
-    type: "FINISHED_PRODUCT",
-    active_only: true,
+    active_only: false,
     skip: 0,
     limit: 5000,
   });
 
   const productsByCode = useMemo(() => {
-    const map = new Map<string, { id: string; description: string }>();
+    const map = new Map<string, { id: string; description: string; type: string; active: boolean }>();
     for (const item of productsQuery.data?.items ?? []) {
-      map.set(item.code.toUpperCase(), { id: item.id, description: item.description });
+      map.set(item.code.toUpperCase(), {
+        id: item.id,
+        description: item.description,
+        type: item.type,
+        active: item.active,
+      });
     }
     return map;
   }, [productsQuery.data?.items]);
@@ -212,15 +219,18 @@ export default function CalculoPorMateriaPrima() {
       const qty = Number((r.quantity || "").replace(",", "."));
       const isEmpty = !code && !r.quantity;
       const product = code ? productsByCode.get(code) : undefined;
+      const inactive = !!product && !product.active;
       return {
         ...r,
         normalizedCode: code,
         qty,
         isEmpty,
         product,
-        valid: !!product && Number.isFinite(qty) && qty > 0,
-        codeError: code && !product ? "Não encontrado" : null,
-        qtyError: r.quantity && (!Number.isFinite(qty) || qty <= 0) ? "Inválida" : null,
+        inactive,
+        valid: !!product && product.active && Number.isFinite(qty) && qty > 0,
+        codeError:
+          code && !product ? "Código não cadastrado" : inactive ? "Item inativo" : null,
+        qtyError: r.quantity && (!Number.isFinite(qty) || qty <= 0) ? "Quantidade inválida" : null,
       };
     });
   }, [rows, productsByCode]);
@@ -378,20 +388,28 @@ export default function CalculoPorMateriaPrima() {
                     />
                   </td>
                   <td className="px-3 py-2">
-                    {r.product ? (
+                    {r.product && r.product.active ? (
                       <span className="inline-flex items-center gap-2 text-slate-700">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         {r.product.description}
+                        <span className="ml-1 inline-flex rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
+                          {r.product.type === "FINISHED_PRODUCT" ? "PA" : r.product.type === "SEMI_FINISHED" ? "SF" : r.product.type}
+                        </span>
+                      </span>
+                    ) : r.inactive ? (
+                      <span className="inline-flex items-center gap-2 text-amber-700">
+                        <AlertCircle className="h-4 w-4" />
+                        Item inativo — reative para usar
                       </span>
                     ) : r.codeError ? (
                       <span className="inline-flex items-center gap-2 text-red-600">
                         <AlertCircle className="h-4 w-4" />
-                        Código não cadastrado
+                        {r.codeError}
                       </span>
                     ) : r.qtyError ? (
                       <span className="inline-flex items-center gap-2 text-red-600">
                         <AlertCircle className="h-4 w-4" />
-                        Quantidade inválida
+                        {r.qtyError}
                       </span>
                     ) : (
                       <span className="text-slate-400">—</span>
