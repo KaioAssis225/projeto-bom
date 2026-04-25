@@ -1,7 +1,9 @@
 import { Download, FileSpreadsheet, Loader2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { client } from "@/api/client";
+import { extractErrorMessage } from "@/lib/utils";
 import {
   TEMPLATE_CSV_URL as MP_TEMPLATE_CSV,
   TEMPLATE_XLSX_URL as MP_TEMPLATE_XLSX,
@@ -91,6 +93,23 @@ type ImportPanelProps = {
   onImport: (file: File) => Promise<ImportResult>;
 };
 
+async function downloadTemplate(path: string, filename: string) {
+  try {
+    const response = await client.get<Blob>(path, { responseType: "blob" });
+    const blob = response.data;
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    toast.error(`Falha ao baixar template: ${extractErrorMessage(error)}`);
+  }
+}
+
 function ImportPanel({
   title,
   fields,
@@ -101,12 +120,20 @@ function ImportPanel({
 }: ImportPanelProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [downloadingKind, setDownloadingKind] = useState<"xlsx" | "csv" | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const baseUrl = client.defaults.baseURL ?? "";
-  const xlsxUrl = `${baseUrl}${templateXlsxPath}`;
-  const csvUrl = `${baseUrl}${templateCsvPath}`;
+  const handleDownload = async (kind: "xlsx" | "csv") => {
+    setDownloadingKind(kind);
+    try {
+      const path = kind === "xlsx" ? templateXlsxPath : templateCsvPath;
+      const ext = kind === "xlsx" ? "xlsx" : "csv";
+      await downloadTemplate(path, `${templateBaseFilename}.${ext}`);
+    } finally {
+      setDownloadingKind(null);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!file) return;
@@ -136,22 +163,32 @@ function ImportPanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a
-              href={xlsxUrl}
-              download={`${templateBaseFilename}.xlsx`}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            <button
+              type="button"
+              onClick={() => handleDownload("xlsx")}
+              disabled={downloadingKind !== null}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
-              <FileSpreadsheet className="h-4 w-4" />
+              {downloadingKind === "xlsx" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
               Template Excel (.xlsx)
-            </a>
-            <a
-              href={csvUrl}
-              download={`${templateBaseFilename}.csv`}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDownload("csv")}
+              disabled={downloadingKind !== null}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
-              <Download className="h-4 w-4" />
+              {downloadingKind === "csv" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Template CSV
-            </a>
+            </button>
           </div>
         </div>
       </div>

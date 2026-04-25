@@ -1,8 +1,9 @@
 import { Download, FileSpreadsheet, Loader2, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { client } from "@/api/client";
-import { cn } from "@/lib/utils";
+import { cn, extractErrorMessage } from "@/lib/utils";
 import type { ImportResult } from "@/types";
 
 type Props = {
@@ -37,7 +38,21 @@ export default function CsvImportDialog({
 
   if (!open) return null;
 
-  const templateUrl = `${client.defaults.baseURL ?? ""}${templatePath}`;
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await client.get<Blob>(templatePath, { responseType: "blob" });
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = templateFilename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(`Falha ao baixar template: ${extractErrorMessage(error)}`);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!file) return;
@@ -86,14 +101,14 @@ export default function CsvImportDialog({
             </ul>
           </div>
 
-          <a
-            href={templateUrl}
-            download={templateFilename}
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
             <Download className="h-4 w-4" />
             Baixar template
-          </a>
+          </button>
 
           <div
             className={cn(
