@@ -13,13 +13,13 @@ class MaterialGroupCreate(BaseSchema):
         from_attributes=True,
         json_schema_extra={
             "example": {
-                "code": "METAIS",
+                "code": "MET",
                 "name": "Metais",
                 "description": "Grupo de matérias-primas metálicas",
             }
         },
     )
-    code: str = Field(min_length=1, max_length=50)
+    code: str = Field(min_length=1, max_length=3)
     name: str = Field(min_length=1, max_length=120)
     description: str | None = None
 
@@ -46,7 +46,7 @@ class MaterialGroupResponse(BaseSchema):
         json_schema_extra={
             "example": {
                 "id": "f19a91c0-7d39-4f3e-9954-34f5d92abfd2",
-                "code": "METAIS",
+                "code": "MET",
                 "name": "Metais",
                 "description": "Grupo de matérias-primas metálicas",
                 "active": True,

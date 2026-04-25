@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { MaterialGroup } from "@/types";
 
 const groupSchema = z.object({
-  code: z.string().trim().min(1, "Informe o codigo").max(50, "Maximo de 50 caracteres"),
+  code: z.string().trim().min(1, "Informe o codigo").max(3, "Maximo de 3 caracteres"),
   name: z.string().trim().min(1, "Informe o nome").max(120, "Maximo de 120 caracteres"),
 });
 
@@ -108,7 +108,7 @@ function GroupModal({
             <input
               id="group-code"
               type="text"
-              maxLength={50}
+              maxLength={3}
               disabled={isSubmitting}
               className={cn(
                 "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition",

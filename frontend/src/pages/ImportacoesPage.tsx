@@ -30,7 +30,7 @@ const MP_FIELDS: FieldDef[] = [
   { name: "code", required: true, description: "Código único do item (até 60 caracteres).", example: "MP001" },
   { name: "description", required: true, description: "Descrição da matéria-prima (até 255 caracteres).", example: "TINTA AZUL" },
   { name: "unit_of_measure_code", required: true, description: "Código da Unidade de Medida principal já cadastrada.", example: "KG" },
-  { name: "material_group_code", required: true, description: "Código do Grupo de Materiais já cadastrado.", example: "GRP01" },
+  { name: "material_group_code", required: true, description: "Código do Grupo de Materiais já cadastrado (até 3 caracteres).", example: "MET" },
   { name: "supplier_code", required: false, description: "Código do Fornecedor já cadastrado.", example: "FOR01" },
   { name: "unidade_conversao_code", required: false, description: "Código da Unidade de Conversão (UoM secundária).", example: "G" },
   { name: "peso_liquido", required: false, description: "Fator de conversão para a unidade secundária. Use vírgula como separador decimal.", example: "1,250" },

@@ -25,7 +25,7 @@ _HEADERS = [
     "supplier_code", "unidade_conversao_code", "peso_liquido", "notes",
 ]
 _EXAMPLE = [
-    "MP001", "EXEMPLO MATERIA PRIMA", "KG", "GRP01",
+    "MP001", "EXEMPLO MATERIA PRIMA", "KG", "MET",
     "FOR01", "G", "1,250", "observacao opcional",
 ]
 _TEMPLATE_CSV = ";".join(_HEADERS) + "\r\n" + ";".join(_EXAMPLE) + "\r\n"
