@@ -100,6 +100,8 @@ class CalculationLineResponse(BaseSchema):
     accumulated_quantity: Decimal
     price: Decimal
     line_cost: Decimal
+    uom2: str | None = None
+    quantity2: Decimal | None = None
 
 
 class CalculationTotals(BaseSchema):

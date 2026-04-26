@@ -361,6 +361,8 @@ export interface CalculationLine {
   accumulated_quantity: number;
   price: number;
   line_cost: number;
+  uom2?: string | null;
+  quantity2?: number | null;
 }
 
 export interface CalculationResponse {

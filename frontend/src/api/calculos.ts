@@ -27,6 +27,20 @@ export async function calcularLote(data: CalculationBatchPayload): Promise<Calcu
   return response.data;
 }
 
+export async function baixarConsumoMpXlsx(data: CalculationBatchPayload): Promise<void> {
+  const response = await client.post<Blob>("/api/v1/calculos/lote/consumo-mp-xlsx", data, {
+    responseType: "blob",
+  });
+  const blobUrl = window.URL.createObjectURL(response.data);
+  const anchor = document.createElement("a");
+  anchor.href = blobUrl;
+  anchor.download = "consumo-materia-prima.xlsx";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(blobUrl);
+}
+
 export async function downloadExcel(filename: string): Promise<void> {
   const safeFilename = filename.split("/").pop() ?? filename;
   const response = await client.get<Blob>(`/api/v1/calculos/download/${safeFilename}`, {

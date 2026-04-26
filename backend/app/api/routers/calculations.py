@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
@@ -16,6 +16,7 @@ from app.schemas.calculation import (
     CalculationResponse,
 )
 from app.services.calculation_service import CalculationService
+from app.services.templates import build_consumption_xlsx
 
 
 router = APIRouter(tags=["calculos"])
@@ -75,6 +76,27 @@ def calculate_batch(
 ) -> CalculationResponse:
     service = CalculationService(db)
     return service.calculate_batch(payload)
+
+
+@router.post(
+    "/lote/consumo-mp-xlsx",
+    summary="Excel de consumo de matéria-prima",
+    description="Roda o cálculo em lote e devolve um .xlsx agrupado por grupo, sem custos, com colunas UN1/QTD UN1 e UN2/QTD UN2 (esta última quando a MP tem unidade de conversão e peso_liquido).",
+)
+def calculate_batch_consumo_xlsx(
+    payload: BomBatchRequest,
+    db: Session = Depends(get_db_session),
+) -> Response:
+    service = CalculationService(db)
+    response = service.calculate_batch(payload)
+    content = build_consumption_xlsx(response.linhas)
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": 'attachment; filename="consumo-materia-prima.xlsx"'
+        },
+    )
 
 
 @router.get(

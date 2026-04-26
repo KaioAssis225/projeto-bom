@@ -35,6 +35,8 @@ class CalculationLine:
     accumulated_quantity: Decimal
     price: Decimal
     line_cost: Decimal
+    uom2: str | None = None
+    quantity2: Decimal | None = None
 
 
 class BomCalculator:
@@ -99,6 +101,11 @@ class BomCalculator:
                 continue
 
             price = effective_price_map[item_id]
+            quantity2 = (
+                accumulated_quantity * node.peso_liquido
+                if node.peso_liquido is not None
+                else None
+            )
             lines.append(
                 CalculationLine(
                     item_id=node.item_id,
@@ -112,6 +119,8 @@ class BomCalculator:
                     accumulated_quantity=accumulated_quantity,
                     price=price,
                     line_cost=accumulated_quantity * price,
+                    uom2=node.uom2,
+                    quantity2=quantity2,
                 )
             )
 

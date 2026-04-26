@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ClipboardPaste,
   Eraser,
+  FileSpreadsheet,
   Loader2,
   Plus,
   Sigma,
@@ -11,11 +12,12 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
+import * as calculosApi from "@/api/calculos";
 import { useCalcularLote } from "@/hooks/useCalculos";
-import { useGrupos } from "@/hooks/useGrupos";
 import { useItens } from "@/hooks/useItens";
-import { cn, formatCurrency, formatDecimal } from "@/lib/utils";
+import { cn, extractErrorMessage, formatDecimal } from "@/lib/utils";
 import type { CalculationLine, CalculationResponse } from "@/types";
 
 type Row = { id: string; code: string; quantity: string };
@@ -26,13 +28,15 @@ const newRow = (): Row => ({
   quantity: "",
 });
 
+type UomTotal = { uom: string; quantity: number };
+
 type GroupAggregate = {
   groupId: string;
   groupName: string;
   lines: CalculationLine[];
   itemCount: number;
-  totalCost: number;
-  uomTotals: { uom: string; quantity: number }[];
+  uomTotals: UomTotal[];
+  uom2Totals: UomTotal[];
 };
 
 function aggregateByGroup(lines: CalculationLine[]): GroupAggregate[] {
@@ -46,21 +50,26 @@ function aggregateByGroup(lines: CalculationLine[]): GroupAggregate[] {
         groupName: line.group_name ?? "Sem grupo",
         lines: [],
         itemCount: 0,
-        totalCost: 0,
         uomTotals: [],
+        uom2Totals: [],
       };
       map.set(key, agg);
     }
     agg.lines.push(line);
     agg.itemCount += 1;
-    agg.totalCost += Number(line.line_cost);
     const u = agg.uomTotals.find((x) => x.uom === line.uom);
     if (u) u.quantity += Number(line.accumulated_quantity);
     else agg.uomTotals.push({ uom: line.uom, quantity: Number(line.accumulated_quantity) });
+    if (line.uom2 && line.quantity2 != null) {
+      const u2 = agg.uom2Totals.find((x) => x.uom === line.uom2);
+      if (u2) u2.quantity += Number(line.quantity2);
+      else agg.uom2Totals.push({ uom: line.uom2, quantity: Number(line.quantity2) });
+    }
   }
   for (const g of map.values()) {
     g.lines.sort((a, b) => a.code.localeCompare(b.code, "pt-BR"));
     g.uomTotals.sort((a, b) => a.uom.localeCompare(b.uom));
+    g.uom2Totals.sort((a, b) => a.uom.localeCompare(b.uom));
   }
   return Array.from(map.values()).sort((a, b) => a.groupName.localeCompare(b.groupName, "pt-BR"));
 }
@@ -190,7 +199,7 @@ export default function CalculoPorMateriaPrima() {
   const resultRef = useRef<HTMLDivElement | null>(null);
 
   const calcularLote = useCalcularLote();
-  const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 200 });
+  const [exporting, setExporting] = useState(false);
   // Sem filtro de type: aceita FINISHED_PRODUCT e SEMI_FINISHED (qualquer
   // item com BOM pode ser raiz do calculo). active_only=false para nao
   // esconder itens que o usuario inativou recentemente.
@@ -282,13 +291,28 @@ export default function CalculoPorMateriaPrima() {
       visibleGroups.reduce(
         (acc, g) => {
           acc.itemCount += g.itemCount;
-          acc.totalCost += g.totalCost;
           return acc;
         },
-        { itemCount: 0, totalCost: 0 },
+        { itemCount: 0 },
       ),
     [visibleGroups],
   );
+
+  const handleExportXlsx = async () => {
+    if (validRows.length === 0 || !requestedBy.trim()) return;
+    setExporting(true);
+    try {
+      await calculosApi.baixarConsumoMpXlsx({
+        itens: validRows.map((r) => ({ produto_id: r.product!.id, quantidade: r.qty })),
+        requested_by: requestedBy.trim(),
+      });
+      toast.success("Excel exportado");
+    } catch (error) {
+      toast.error(`Falha ao exportar: ${extractErrorMessage(error)}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const toggleCard = (id: string) =>
     setOpenCards((prev) => {
@@ -491,7 +515,7 @@ export default function CalculoPorMateriaPrima() {
       {/* Resultado */}
       {result ? (
         <div ref={resultRef} className="mt-6 space-y-5">
-          {/* Strip de totais inline (sem cards de 3xl) */}
+          {/* Strip de totais inline */}
           <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
             <div>
               <p className="text-xs uppercase tracking-wide text-slate-500">Grupos</p>
@@ -501,11 +525,20 @@ export default function CalculoPorMateriaPrima() {
               <p className="text-xs uppercase tracking-wide text-slate-500">Itens (MP)</p>
               <p className="mt-1 text-2xl font-semibold text-slate-900">{totals.itemCount}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Custo total</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">R$ {formatCurrency(totals.totalCost)}</p>
-            </div>
-            <div className="ml-auto flex gap-2">
+            <div className="ml-auto flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleExportXlsx()}
+                disabled={exporting}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {exporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                )}
+                Salvar Excel
+              </button>
               <button
                 type="button"
                 onClick={expandAll}
@@ -596,19 +629,21 @@ export default function CalculoPorMateriaPrima() {
 
                       <div className="flex flex-1 flex-wrap items-center justify-end gap-x-6 gap-y-1">
                         {g.uomTotals.map((u) => (
-                          <div key={u.uom} className="text-right">
+                          <div key={`u1-${u.uom}`} className="text-right">
                             <p className="text-xs uppercase tracking-wide text-slate-400">Total {u.uom}</p>
                             <p className="text-sm font-semibold tabular-nums text-slate-800">
                               {formatDecimal(u.quantity, 3)}
                             </p>
                           </div>
                         ))}
-                        <div className="ml-4 text-right">
-                          <p className="text-xs uppercase tracking-wide text-slate-400">Custo</p>
-                          <p className="text-sm font-semibold tabular-nums text-slate-900">
-                            R$ {formatCurrency(g.totalCost)}
-                          </p>
-                        </div>
+                        {g.uom2Totals.map((u) => (
+                          <div key={`u2-${u.uom}`} className="text-right">
+                            <p className="text-xs uppercase tracking-wide text-blue-400">Total {u.uom}</p>
+                            <p className="text-sm font-semibold tabular-nums text-blue-700">
+                              {formatDecimal(u.quantity, 3)}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     </button>
 
@@ -619,10 +654,10 @@ export default function CalculoPorMateriaPrima() {
                             <tr>
                               <th className="px-2 py-2 text-left">Código</th>
                               <th className="px-2 py-2 text-left">Descrição</th>
-                              <th className="px-2 py-2 text-left">UN</th>
-                              <th className="px-2 py-2 text-right">Qtd necessária</th>
-                              <th className="px-2 py-2 text-right">Preço</th>
-                              <th className="px-2 py-2 text-right">Custo</th>
+                              <th className="px-2 py-2 text-left">UN1</th>
+                              <th className="px-2 py-2 text-right">Qtd UN1</th>
+                              <th className="px-2 py-2 text-left">UN2</th>
+                              <th className="px-2 py-2 text-right">Qtd UN2</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-200/60">
@@ -636,11 +671,11 @@ export default function CalculoPorMateriaPrima() {
                                 <td className="px-2 py-2 text-right tabular-nums text-slate-700">
                                   {formatDecimal(Number(line.accumulated_quantity), 3)}
                                 </td>
-                                <td className="px-2 py-2 text-right tabular-nums text-slate-600">
-                                  R$ {formatCurrency(line.price)}
-                                </td>
-                                <td className="px-2 py-2 text-right font-medium tabular-nums text-slate-900">
-                                  R$ {formatCurrency(line.line_cost)}
+                                <td className="px-2 py-2 text-slate-600">{line.uom2 ?? "—"}</td>
+                                <td className="px-2 py-2 text-right tabular-nums text-slate-700">
+                                  {line.quantity2 != null
+                                    ? formatDecimal(Number(line.quantity2), 3)
+                                    : "—"}
                                 </td>
                               </tr>
                             ))}
