@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import InactiveItemError, ItemNotFoundError, PriceNotFoundError
+from app.models.item import ItemType
 from app.repositories.item_repository import ItemRepository
 from app.repositories.price_repository import PriceRepository
 from app.schemas.price import (
@@ -15,6 +16,7 @@ from app.schemas.price import (
     PriceCreate,
     PriceHistoryPaginatedResponse,
 )
+from app.services.bom_cost_impact_service import BomCostImpactService
 
 
 logger = logging.getLogger("app.price")
@@ -31,6 +33,11 @@ class PriceService:
             raise ItemNotFoundError()
         if not item.active:
             raise InactiveItemError("Price can only be set for active items")
+
+        # Captura o preço atual antes de sobrescrever, para registrar o
+        # impacto nos PAs que dependem desta MP.
+        previous = self.repository.get_current_price(payload.item_id)
+        old_unit_price = previous.price_value if previous is not None else None
 
         price = self.repository.set_price(
             item_id=payload.item_id,
@@ -50,6 +57,23 @@ class PriceService:
                 }
             },
         )
+
+        # Calcula impacto nos PAs (best-effort: nunca quebra o save de preço).
+        if item.type == ItemType.RAW_MATERIAL:
+            try:
+                impact_count = BomCostImpactService(self.repository.db).compute_and_store(
+                    mp_item_id=payload.item_id,
+                    old_unit_price=old_unit_price,
+                    new_unit_price=payload.price_value,
+                    reference_date=payload.valid_from,
+                    changed_by=payload.created_by,
+                    changed_reason=payload.changed_reason,
+                    price_history_id=price.id,
+                )
+                logger.info("price_impact_computed count=%s", impact_count)
+            except Exception:
+                logger.exception("price_impact_failed item_id=%s", payload.item_id)
+
         return price
 
     def get_current(self, item_id: UUID) -> CurrentPriceResponse:

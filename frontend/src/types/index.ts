@@ -427,3 +427,21 @@ export interface ImportResult {
   imported: number;
   errors: ImportRowError[];
 }
+
+export interface BomCostImpact {
+  id: string;
+  finished_product_item_id: string;
+  raw_material_item_id: string;
+  raw_material_code: string;
+  raw_material_description: string;
+  old_unit_price: number | null;
+  new_unit_price: number;
+  old_pa_cost: number | null;
+  new_pa_cost: number;
+  delta_cost: number;
+  delta_percent: number | null;
+  reference_date: string;
+  changed_by: string;
+  changed_reason: string | null;
+  created_at: string;
+}

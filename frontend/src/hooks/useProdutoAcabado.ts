@@ -71,6 +71,14 @@ export function useImportProdutosAcabadosCsv() {
   });
 }
 
+export function useVariacoesCustoPA(id: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["produtos-acabados", "variacoes-custo", id],
+    queryFn: () => produtosApi.listVariacoesCusto(id as string, { skip: 0, limit: 100 }),
+    enabled: id !== null && enabled,
+  });
+}
+
 export function useDeactivateProdutoAcabado() {
   const queryClient = useQueryClient();
 

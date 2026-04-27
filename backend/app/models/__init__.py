@@ -1,5 +1,6 @@
 from app.models.audit_price_change import AuditPriceChange
 from app.models.bom import Bom
+from app.models.bom_cost_impact import BomCostImpact
 from app.models.bom_item import BomItem
 from app.models.calculation_execution_log import CalculationExecutionLog, CalculationStatus
 from app.models.finished_product import FinishedProduct
@@ -14,6 +15,7 @@ from app.models.unit_of_measure import UnitOfMeasure
 __all__ = [
     "AuditPriceChange",
     "Bom",
+    "BomCostImpact",
     "BomItem",
     "CalculationExecutionLog",
     "CalculationStatus",

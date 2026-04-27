@@ -8,6 +8,7 @@ import { z } from "zod";
 import * as calculosApi from "@/api/calculos";
 import { TEMPLATE_CSV_URL } from "@/api/produtos-acabados";
 import CsvImportDialog from "@/components/CsvImportDialog";
+import VariacoesCustoModal from "@/components/VariacoesCustoModal";
 import {
   useCreateProdutoAcabado,
   useDeactivateProdutoAcabado,
@@ -376,10 +377,12 @@ function ActionsDropdown({
   item,
   onEdit,
   onDeactivate,
+  onHistory,
 }: {
   item: FinishedProduct;
   onEdit: () => void;
   onDeactivate: () => void;
+  onHistory: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -418,6 +421,13 @@ function ActionsDropdown({
             className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
           >
             ✏️ Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsOpen(false); onHistory(); }}
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+          >
+            📈 Histórico de custo
           </button>
           {item.active ? (
             <button
@@ -463,6 +473,7 @@ export default function ProdutosAcabadosTab() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [historyItem, setHistoryItem] = useState<FinishedProduct | null>(null);
   const [selectedItem, setSelectedItem] = useState<FinishedProduct | null>(null);
   const importMutation = useImportProdutosAcabadosCsv();
 
@@ -643,6 +654,7 @@ export default function ProdutosAcabadosTab() {
                               item={item}
                               onEdit={() => { setSelectedItem(item); setModalOpen(true); }}
                               onDeactivate={() => void handleDeactivate(item)}
+                              onHistory={() => setHistoryItem(item)}
                             />
                           </div>
                         </td>
@@ -699,6 +711,14 @@ export default function ProdutosAcabadosTab() {
         templateFilename="produtos-acabados-template.csv"
         onImport={(file) => importMutation.mutateAsync(file)}
         onClose={() => setImportOpen(false)}
+      />
+
+      <VariacoesCustoModal
+        open={historyItem !== null}
+        onClose={() => setHistoryItem(null)}
+        paId={historyItem?.id ?? null}
+        paCode={historyItem?.code}
+        paDescription={historyItem?.description}
       />
     </>
   );

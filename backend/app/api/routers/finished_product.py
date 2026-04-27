@@ -7,6 +7,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.schemas.bom_cost_impact import BomCostImpactPaginatedResponse
 from app.schemas.finished_product import (
     FinishedProductCreate,
     FinishedProductPaginatedResponse,
@@ -14,6 +15,7 @@ from app.schemas.finished_product import (
     FinishedProductUpdate,
 )
 from app.schemas.import_result import ImportResult
+from app.services.bom_cost_impact_service import BomCostImpactService
 from app.services.finished_product_import_service import FinishedProductImportService
 from app.services.finished_product_service import FinishedProductService
 from app.services.templates import build_template_xlsx
@@ -77,6 +79,23 @@ def import_finished_products_csv(
     db: Session = Depends(get_db_session),
 ) -> ImportResult:
     return FinishedProductImportService(db).import_csv(file)
+
+
+@router.get(
+    "/{id}/variacoes-custo",
+    response_model=BomCostImpactPaginatedResponse,
+    summary="Histórico de variações de custo do PA",
+    description="Lista impactos no custo BOM deste PA gerados por alterações de preço de matérias-primas que ele consome.",
+)
+def list_pa_cost_variations(
+    id: UUID,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=200),
+    db: Session = Depends(get_db_session),
+) -> BomCostImpactPaginatedResponse:
+    return BomCostImpactService(db).list_for_pa(
+        finished_product_item_id=id, skip=skip, limit=limit
+    )
 
 
 @router.get("/{id}", response_model=FinishedProductResponse)

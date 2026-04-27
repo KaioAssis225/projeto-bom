@@ -1,5 +1,6 @@
 import { client } from "@/api/client";
 import type {
+  BomCostImpact,
   FinishedProduct,
   FinishedProductCreatePayload,
   FinishedProductListParams,
@@ -42,6 +43,17 @@ export async function update(id: string, data: Partial<FinishedProductUpdatePayl
 
 export async function deactivate(id: string): Promise<FinishedProduct> {
   const response = await client.patch<FinishedProduct>(`/api/v1/produtos-acabados/${id}/inativar`);
+  return response.data;
+}
+
+export async function listVariacoesCusto(
+  id: string,
+  params?: { skip?: number; limit?: number },
+): Promise<PaginatedResponse<BomCostImpact>> {
+  const response = await client.get<PaginatedResponse<BomCostImpact>>(
+    `/api/v1/produtos-acabados/${id}/variacoes-custo`,
+    { params: { skip: params?.skip ?? 0, limit: params?.limit ?? 50 } },
+  );
   return response.data;
 }
 
