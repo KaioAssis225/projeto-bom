@@ -501,6 +501,11 @@ function PainelProdutoAcabado({
     queryFn: () => calculosApi.getCustoBom(selectedItem!.id),
     enabled: !!selectedItem,
     retry: false,
+    // Custo BOM eh recalculado on-demand pelo backend — nunca ficar stale,
+    // sempre buscar fresh ao montar e ao trocar de item.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
   const status = axios.isAxiosError(bomCostQuery.error) ? bomCostQuery.error.response?.status : null;
   const detail =
@@ -528,32 +533,57 @@ function PainelProdutoAcabado({
               bomCostQuery.isError && status !== 422 ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
             )}
           >
-            <p className="text-sm font-medium text-slate-500">Custo Vigente (BOM)</p>
-            <h2 className="mt-1 text-xl font-semibold text-slate-900">
-              {selectedItem.code} — {selectedItem.description}
-            </h2>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Custo Vigente (BOM)</p>
+                <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                  {selectedItem.code} — {selectedItem.description}
+                </h2>
 
-            {bomCostQuery.isLoading ? (
-              <div className="mt-4 flex items-center text-sm text-slate-500">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Calculando custo da BOM...
+                {bomCostQuery.isLoading ? (
+                  <div className="mt-4 flex items-center text-sm text-slate-500">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Calculando custo da BOM...
+                  </div>
+                ) : bomCostQuery.data ? (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-4xl font-bold tracking-tight text-slate-900">
+                      R$ {formatCurrency(bomCostQuery.data.custo_total)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Soma do custo das matérias-primas que compõem este produto.
+                    </p>
+                    {bomCostQuery.isFetching ? (
+                      <p className="inline-flex items-center text-xs text-slate-400">
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        Atualizando...
+                      </p>
+                    ) : null}
+                  </div>
+                ) : status === 422 && detail ? (
+                  <p className="mt-4 text-sm font-semibold text-yellow-800">{detail}</p>
+                ) : (
+                  <p className="mt-4 text-sm font-semibold text-yellow-800">
+                    Não foi possível calcular o custo da BOM.
+                  </p>
+                )}
               </div>
-            ) : bomCostQuery.data ? (
-              <div className="mt-4 space-y-2">
-                <p className="text-4xl font-bold tracking-tight text-slate-900">
-                  R$ {formatCurrency(bomCostQuery.data.custo_total)}
-                </p>
-                <p className="text-sm text-slate-600">
-                  Soma do custo das matérias-primas que compõem este produto.
-                </p>
-              </div>
-            ) : status === 422 && detail ? (
-              <p className="mt-4 text-sm font-semibold text-yellow-800">{detail}</p>
-            ) : (
-              <p className="mt-4 text-sm font-semibold text-yellow-800">
-                Não foi possível calcular o custo da BOM.
-              </p>
-            )}
+
+              <button
+                type="button"
+                onClick={() => void bomCostQuery.refetch()}
+                disabled={bomCostQuery.isFetching}
+                title="Forçar recálculo do custo BOM com os preços vigentes agora"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {bomCostQuery.isFetching ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                )}
+                Recalcular
+              </button>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -586,10 +616,12 @@ export default function PrecosPage() {
   const handleRefreshCosts = async () => {
     setRefreshing(true);
     try {
+      // refetchQueries forca o refetch imediato (mesmo que a query nao esteja
+      // sendo observada no momento). invalidateQueries apenas marca como stale.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["calculos"] }),
-        queryClient.invalidateQueries({ queryKey: ["produtos-acabados"] }),
-        queryClient.invalidateQueries({ queryKey: ["precos"] }),
+        queryClient.refetchQueries({ queryKey: ["calculos"], type: "all" }),
+        queryClient.refetchQueries({ queryKey: ["produtos-acabados"], type: "all" }),
+        queryClient.refetchQueries({ queryKey: ["precos"], type: "all" }),
       ]);
       toast.success("Custos e preços atualizados");
     } finally {
