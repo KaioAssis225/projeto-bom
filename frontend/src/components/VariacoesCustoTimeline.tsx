@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Loader2, Minus } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
 import { cn, formatCurrency, formatDecimal } from "@/lib/utils";
@@ -95,11 +96,20 @@ function TimelineItem({ impact }: { impact: BomCostImpact }) {
 type Props = {
   paId: string | null;
   enabled?: boolean;
+  pageSize?: number;
 };
 
-export default function VariacoesCustoTimeline({ paId, enabled = true }: Props) {
-  const query = useVariacoesCustoPA(paId, enabled);
+export default function VariacoesCustoTimeline({ paId, enabled = true, pageSize = 20 }: Props) {
+  const [skip, setSkip] = useState(0);
+
+  // Reset paginação quando o PA muda.
+  useEffect(() => {
+    setSkip(0);
+  }, [paId]);
+
+  const query = useVariacoesCustoPA(paId, { skip, limit: pageSize }, enabled);
   const items = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
 
   if (query.isLoading) {
     return (
@@ -118,7 +128,7 @@ export default function VariacoesCustoTimeline({ paId, enabled = true }: Props) 
     );
   }
 
-  if (items.length === 0) {
+  if (total === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
         Nenhuma variação registrada ainda. Aparecerão aqui após você alterar o preço de uma matéria-prima que este PA consome.
@@ -126,11 +136,44 @@ export default function VariacoesCustoTimeline({ paId, enabled = true }: Props) 
     );
   }
 
+  const showingFrom = total === 0 ? 0 : skip + 1;
+  const showingTo = Math.min(skip + pageSize, total);
+  const canPrev = skip > 0;
+  const canNext = skip + pageSize < total;
+
   return (
-    <ul className="relative">
-      {items.map((impact) => (
-        <TimelineItem key={impact.id} impact={impact} />
-      ))}
-    </ul>
+    <div>
+      <ul className="relative">
+        {items.map((impact) => (
+          <TimelineItem key={impact.id} impact={impact} />
+        ))}
+      </ul>
+
+      {total > pageSize ? (
+        <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3 text-sm">
+          <p className="text-slate-500">
+            Mostrando {showingFrom}–{showingTo} de {total}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!canPrev}
+              onClick={() => setSkip((s) => Math.max(0, s - pageSize))}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              disabled={!canNext}
+              onClick={() => setSkip((s) => s + pageSize)}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Próximo
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -1,17 +1,21 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { Coins, Loader2, Search, X } from "lucide-react";
+import { Coins, Loader2, RefreshCcw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
 import * as calculosApi from "@/api/calculos";
 import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
-import { cn, formatCurrency, formatDate, itemTypeBadgeColor, itemTypeLabel } from "@/lib/utils";
-import type { Item, ItemType } from "@/types";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import type { Item } from "@/types";
+
+type TabKey = "mp" | "pa";
+const HISTORY_PAGE_SIZE = 20;
 
 const priceSchema = z.object({
   price_value: z.number().min(0.000001, "Informe um valor maior que zero"),
@@ -24,31 +28,27 @@ type PriceFormValues = z.infer<typeof priceSchema>;
 
 function useDebouncedValue<T>(value: T, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value);
-
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedValue(value), delay);
     return () => window.clearTimeout(timer);
   }, [delay, value]);
-
   return debouncedValue;
 }
 
 function nowLocalDateTime() {
   const date = new Date();
-  const timezoneOffset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - timezoneOffset * 60_000);
-  return localDate.toISOString().slice(0, 16);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
-function mergeItems(items: Item[][]) {
+function mergeItems(lists: Item[][]): Item[] {
   const map = new Map<string, Item>();
-  for (const list of items) {
-    for (const item of list) {
-      map.set(item.id, item);
-    }
-  }
+  for (const list of lists) for (const item of list) map.set(item.id, item);
   return Array.from(map.values());
 }
+
+// ─── Modal de cadastro de preço ─────────────────────────────────────────────
 
 function PriceModal({
   open,
@@ -82,10 +82,7 @@ function PriceModal({
   }, [form, open]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    if (!selectedItem) {
-      return;
-    }
-
+    if (!selectedItem) return;
     await setPreco.mutateAsync({
       item_id: selectedItem.id,
       data: {
@@ -96,13 +93,10 @@ function PriceModal({
         created_by: values.created_by.trim(),
       },
     });
-
     onClose();
   });
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4">
@@ -111,7 +105,7 @@ function PriceModal({
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Registrar novo preço</h2>
             <p className="text-sm text-slate-500">
-              {selectedItem ? `${selectedItem.code} — ${selectedItem.description}` : "Selecione um item antes de registrar o preço."}
+              {selectedItem ? `${selectedItem.code} — ${selectedItem.description}` : "Selecione um item antes de registrar."}
             </p>
           </div>
           <button
@@ -126,16 +120,14 @@ function PriceModal({
         <form onSubmit={onSubmit} className="space-y-4 px-6 py-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="price-value" className="text-sm font-medium text-slate-700">
-                Valor
-              </label>
+              <label htmlFor="price-value" className="text-sm font-medium text-slate-700">Valor</label>
               <input
                 id="price-value"
                 type="number"
                 min="0"
                 step="0.01"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...form.register("price_value", { valueAsNumber: true })}
+                {...form.register("price_value", { valueAsNumber: true })}
               />
               {form.formState.errors.price_value ? (
                 <p className="text-sm text-red-600">{form.formState.errors.price_value.message}</p>
@@ -143,9 +135,7 @@ function PriceModal({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="price-valid-from" className="text-sm font-medium text-slate-700">
-                Válido desde
-              </label>
+              <label htmlFor="price-valid-from" className="text-sm font-medium text-slate-700">Válido desde</label>
               <input
                 id="price-valid-from"
                 type="datetime-local"
@@ -159,9 +149,7 @@ function PriceModal({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="price-reason" className="text-sm font-medium text-slate-700">
-              Motivo
-            </label>
+            <label htmlFor="price-reason" className="text-sm font-medium text-slate-700">Motivo</label>
             <input
               id="price-reason"
               type="text"
@@ -169,15 +157,10 @@ function PriceModal({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               {...form.register("changed_reason")}
             />
-            {form.formState.errors.changed_reason ? (
-              <p className="text-sm text-red-600">{form.formState.errors.changed_reason.message}</p>
-            ) : null}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="price-created-by" className="text-sm font-medium text-slate-700">
-              Registrado por
-            </label>
+            <label htmlFor="price-created-by" className="text-sm font-medium text-slate-700">Registrado por</label>
             <input
               id="price-created-by"
               type="text"
@@ -213,295 +196,469 @@ function PriceModal({
   );
 }
 
-function PriceHistorySkeleton() {
+// ─── Selector de item filtrado por type ─────────────────────────────────────
+
+function ItemSelector({
+  type,
+  selected,
+  onSelect,
+  onClear,
+  placeholder,
+}: {
+  type: "RAW_MATERIAL" | "FINISHED_PRODUCT";
+  selected: Item | null;
+  onSelect: (item: Item) => void;
+  onClear: () => void;
+  placeholder: string;
+}) {
+  const [search, setSearch] = useState(selected ? `${selected.code} — ${selected.description}` : "");
+  const [open, setOpen] = useState(false);
+  const debounced = useDebouncedValue(search, 300);
+
+  // Reseta o input quando a aba muda (selected fica null vindo do pai).
+  useEffect(() => {
+    if (!selected) setSearch("");
+  }, [selected]);
+
+  const byDesc = useItens({
+    type,
+    description_contains: debounced || undefined,
+    active_only: true,
+    skip: 0,
+    limit: 20,
+  });
+  const byCode = useItens({
+    type,
+    code_contains: debounced || undefined,
+    active_only: true,
+    skip: 0,
+    limit: 20,
+  });
+
+  const items = useMemo(
+    () => mergeItems([byDesc.data?.items ?? [], byCode.data?.items ?? []]),
+    [byDesc.data?.items, byCode.data?.items],
+  );
+
+  const loading = byDesc.isLoading || byCode.isLoading;
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="animate-pulse space-y-4 p-6">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="grid grid-cols-[1fr_1.1fr_1.1fr_1.4fr_1fr_0.8fr] gap-4">
-            {Array.from({ length: 6 }).map((__, cellIndex) => (
-              <div key={cellIndex} className="h-4 rounded bg-slate-200" />
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+      <input
+        type="text"
+        value={search}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setOpen(true);
+          if (!e.target.value) onClear();
+        }}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-9 pr-10 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      />
+      {selected ? (
+        <button
+          type="button"
+          onClick={() => {
+            setSearch("");
+            onClear();
+          }}
+          className="absolute right-2 top-2.5 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Limpar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+
+      {open ? (
+        <div className="absolute z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg">
+          {loading ? (
+            <div className="flex items-center justify-center px-4 py-8 text-sm text-slate-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Buscando...
+            </div>
+          ) : items.length > 0 ? (
+            items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  onSelect(item);
+                  setSearch(`${item.code} — ${item.description}`);
+                  setOpen(false);
+                }}
+                className="flex w-full flex-col border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0"
+              >
+                <span className="text-sm font-medium text-slate-900">{item.code}</span>
+                <span className="text-xs text-slate-500">{item.description}</span>
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-8 text-center text-sm text-slate-500">Nenhum item encontrado</div>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-export default function PrecosPage() {
-  const [search, setSearch] = useState("");
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const debouncedSearch = useDebouncedValue(search, 300);
+// ─── Painel: Matéria-Prima ──────────────────────────────────────────────────
 
-  const byDescriptionQuery = useItens({
-    description_contains: debouncedSearch || undefined,
-    active_only: true,
-    skip: 0,
-    limit: 20,
-  });
-  const byCodeQuery = useItens({
-    code_contains: debouncedSearch || undefined,
-    active_only: true,
-    skip: 0,
-    limit: 20,
-  });
+function PainelMateriaPrima({
+  selectedItem,
+  onSelect,
+  onClear,
+  onOpenModal,
+}: {
+  selectedItem: Item | null;
+  onSelect: (item: Item) => void;
+  onClear: () => void;
+  onOpenModal: () => void;
+}) {
+  const [historySkip, setHistorySkip] = useState(0);
 
-  const selectorItems = useMemo(
-    () => mergeItems([byDescriptionQuery.data?.items ?? [], byCodeQuery.data?.items ?? []]),
-    [byCodeQuery.data?.items, byDescriptionQuery.data?.items],
-  );
+  // Reseta paginação quando troca de item.
+  useEffect(() => {
+    setHistorySkip(0);
+  }, [selectedItem?.id]);
 
-  const isPA = selectedItem?.type === "FINISHED_PRODUCT";
   const currentPriceQuery = usePrecoVigente(selectedItem?.id ?? null);
-  const historyQuery = usePrecoHistory(selectedItem?.id ?? null, { skip: 0, limit: 50 });
+  const historyQuery = usePrecoHistory(selectedItem?.id ?? null, {
+    skip: historySkip,
+    limit: HISTORY_PAGE_SIZE,
+  });
+
   const noCurrentPrice =
     axios.isAxiosError(currentPriceQuery.error) &&
     (currentPriceQuery.error.response?.status === 404 || currentPriceQuery.error.response?.status === 422);
 
-  const bomCostQuery = useQuery({
-    queryKey: ["calculos", "custo-bom", selectedItem?.id],
-    queryFn: () => calculosApi.getCustoBom(selectedItem!.id),
-    enabled: !!selectedItem && isPA,
-    retry: false,
-  });
-  const bomCostError = bomCostQuery.error;
-  const bomCostStatus = axios.isAxiosError(bomCostError) ? bomCostError.response?.status : null;
-  const bomCostDetail =
-    axios.isAxiosError(bomCostError) && typeof bomCostError.response?.data?.detail === "string"
-      ? (bomCostError.response.data.detail as string)
-      : null;
-
-  const isSelectorLoading = byDescriptionQuery.isLoading || byCodeQuery.isLoading;
+  const total = historyQuery.data?.total ?? 0;
+  const showingFrom = total === 0 ? 0 : historySkip + 1;
+  const showingTo = Math.min(historySkip + HISTORY_PAGE_SIZE, total);
+  const canPrev = historySkip > 0;
+  const canNext = historySkip + HISTORY_PAGE_SIZE < total;
 
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h1 className="text-xl font-semibold text-slate-900">Histórico de Preços</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Consulte o preço vigente, acompanhe o histórico de vigência e registre novos valores.
-        </p>
-
-        <div className="relative mt-5 max-w-3xl">
-          <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            value={search}
-            onFocus={() => setDropdownOpen(true)}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setDropdownOpen(true);
-            }}
-            placeholder="Buscar item por código ou descrição"
-            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-
-          {dropdownOpen ? (
-            <div className="absolute z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-lg">
-              {isSelectorLoading ? (
-                <div className="flex items-center justify-center px-4 py-8 text-sm text-slate-500">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Buscando itens...
-                </div>
-              ) : selectorItems.length > 0 ? (
-                selectorItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedItem(item);
-                      setSearch(`${item.code} — ${item.description}`);
-                      setDropdownOpen(false);
-                    }}
-                    className="flex w-full items-start justify-between gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{item.code}</p>
-                      <p className="text-xs text-slate-500">{item.description}</p>
-                    </div>
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                        itemTypeBadgeColor(item.type as ItemType),
-                      )}
-                    >
-                      {itemTypeLabel(item.type)}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-8 text-center text-sm text-slate-500">Nenhum item encontrado</div>
-              )}
-            </div>
-          ) : null}
-        </div>
+        <ItemSelector
+          type="RAW_MATERIAL"
+          selected={selectedItem}
+          onSelect={onSelect}
+          onClear={onClear}
+          placeholder="Buscar matéria-prima por código ou descrição"
+        />
       </div>
 
       {selectedItem ? (
-        isPA ? (
-          // ── Card de PA: custo calculado a partir da BOM ────────────────────
-          <div
-            className={cn(
-              "rounded-2xl border p-6 shadow-sm",
-              bomCostQuery.isError && bomCostStatus !== 422
-                ? "border-yellow-200 bg-yellow-50"
-                : "border-slate-200 bg-white",
-            )}
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Custo Vigente (BOM)</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                  {selectedItem.code} — {selectedItem.description}
-                </h2>
+        <div
+          className={cn(
+            "rounded-2xl border p-6 shadow-sm",
+            noCurrentPrice ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
+          )}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Preço Vigente</p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                {selectedItem.code} — {selectedItem.description}
+              </h2>
 
-                {bomCostQuery.isLoading ? (
-                  <div className="mt-4 flex items-center text-sm text-slate-500">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Calculando custo da BOM...
-                  </div>
-                ) : bomCostQuery.data ? (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-4xl font-bold tracking-tight text-slate-900">
-                      R$ {formatCurrency(bomCostQuery.data.custo_total)}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      Soma do custo das matérias-primas que compõem este produto.
-                    </p>
-                  </div>
-                ) : bomCostStatus === 422 && bomCostDetail ? (
-                  <p className="mt-4 text-sm font-semibold text-yellow-800">{bomCostDetail}</p>
-                ) : (
-                  <p className="mt-4 text-sm font-semibold text-yellow-800">
-                    Não foi possível calcular o custo da BOM.
+              {currentPriceQuery.isLoading ? (
+                <div className="mt-4 flex items-center text-sm text-slate-500">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Carregando preço vigente...
+                </div>
+              ) : noCurrentPrice ? (
+                <p className="mt-4 text-sm font-semibold text-yellow-800">
+                  Esta matéria-prima ainda não possui preço vigente cadastrado
+                </p>
+              ) : currentPriceQuery.data ? (
+                <div className="mt-4 space-y-2">
+                  <p className="text-4xl font-bold tracking-tight text-slate-900">
+                    R$ {formatCurrency(currentPriceQuery.data.price_value)}
                   </p>
-                )}
-              </div>
+                  <p className="text-sm text-slate-600">
+                    Válido desde: {formatDate(currentPriceQuery.data.valid_from)}
+                  </p>
+                  <p className="text-sm text-slate-600">Registrado por: {currentPriceQuery.data.created_by}</p>
+                </div>
+              ) : null}
             </div>
-          </div>
-        ) : (
-          // ── Card de MP / outros itens com preço próprio ────────────────────
-          <div
-            className={cn(
-              "rounded-2xl border p-6 shadow-sm",
-              noCurrentPrice ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
-            )}
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">Preço Vigente</p>
-                <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                  {selectedItem.code} — {selectedItem.description}
-                </h2>
 
-                {currentPriceQuery.isLoading ? (
-                  <div className="mt-4 flex items-center text-sm text-slate-500">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Carregando preço vigente...
-                  </div>
-                ) : noCurrentPrice ? (
-                  <div className="mt-4">
-                    <p className="text-sm font-semibold text-yellow-800">Este item não possui preço vigente cadastrado</p>
-                  </div>
-                ) : currentPriceQuery.data ? (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-4xl font-bold tracking-tight text-slate-900">
-                      R$ {formatCurrency(currentPriceQuery.data.price_value)}
-                    </p>
-                    <p className="text-sm text-slate-600">
-                      Válido desde: {formatDate(currentPriceQuery.data.valid_from)}
-                    </p>
-                    <p className="text-sm text-slate-600">Registrado por: {currentPriceQuery.data.created_by}</p>
-                  </div>
-                ) : null}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setModalOpen(true)}
-                className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-              >
-                <Coins className="mr-2 h-4 w-4" />
-                Registrar novo preço
-              </button>
-            </div>
-          </div>
-        )
-      ) : null}
-
-      {selectedItem && selectedItem.type === "FINISHED_PRODUCT" ? (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-slate-900">Variações de Custo (BOM)</h2>
-            <p className="text-xs text-slate-500">
-              Como Produtos Acabados não têm preço próprio, o custo é calculado a partir das matérias-primas.
-              Cada alteração de preço de MP que afeta este PA é registrada abaixo.
-            </p>
-          </div>
-          <div className="px-5 py-3">
-            <VariacoesCustoTimeline paId={selectedItem.id} />
+            <button
+              type="button"
+              onClick={onOpenModal}
+              className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Coins className="mr-2 h-4 w-4" />
+              Registrar novo preço
+            </button>
           </div>
         </div>
       ) : null}
 
-      {selectedItem && !isPA ? (
-        historyQuery.isLoading ? (
-          <PriceHistorySkeleton />
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Histórico de Preços</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
+      {selectedItem ? (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">Histórico de Preços</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Valor</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Válido de</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Válido até</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Motivo</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Criado por</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {historyQuery.isLoading ? (
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Valor</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Válido de</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Válido até</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Motivo</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Criado por</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                      <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {historyQuery.data?.items?.length ? (
-                    historyQuery.data.items.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 font-medium text-slate-900">R$ {formatCurrency(entry.price_value)}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatDate(entry.valid_from)}</td>
-                        <td className="px-4 py-3 text-slate-600">{entry.valid_to ? formatDate(entry.valid_to) : "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">{entry.changed_reason || "—"}</td>
-                        <td className="px-4 py-3 text-slate-600">{entry.created_by}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                              entry.is_current ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600",
-                            )}
-                          >
-                            {entry.is_current ? "Vigente" : "Encerrado"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
-                        Nenhum histórico de preço encontrado
+                ) : historyQuery.data?.items?.length ? (
+                  historyQuery.data.items.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium tabular-nums text-slate-900">
+                        R$ {formatCurrency(entry.price_value)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(entry.valid_from)}</td>
+                      <td className="px-4 py-3 text-slate-600">{entry.valid_to ? formatDate(entry.valid_to) : "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{entry.changed_reason || "—"}</td>
+                      <td className="px-4 py-3 text-slate-600">{entry.created_by}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                            entry.is_current ? "bg-green-100 text-green-800" : "bg-slate-100 text-slate-600",
+                          )}
+                        >
+                          {entry.is_current ? "Vigente" : "Encerrado"}
+                        </span>
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-sm text-slate-500">
+                      Nenhum histórico de preço encontrado
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <p className="text-xs text-slate-500">
+              {total === 0 ? "—" : `Mostrando ${showingFrom}–${showingTo} de ${total}`}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!canPrev}
+                onClick={() => setHistorySkip((s) => Math.max(0, s - HISTORY_PAGE_SIZE))}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                disabled={!canNext}
+                onClick={() => setHistorySkip((s) => s + HISTORY_PAGE_SIZE)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Próximo
+              </button>
             </div>
           </div>
-        )
+        </div>
       ) : null}
+    </div>
+  );
+}
 
-      <PriceModal open={modalOpen} selectedItem={selectedItem} onClose={() => setModalOpen(false)} />
+// ─── Painel: Produto Acabado ────────────────────────────────────────────────
+
+function PainelProdutoAcabado({
+  selectedItem,
+  onSelect,
+  onClear,
+}: {
+  selectedItem: Item | null;
+  onSelect: (item: Item) => void;
+  onClear: () => void;
+}) {
+  const bomCostQuery = useQuery({
+    queryKey: ["calculos", "custo-bom", selectedItem?.id],
+    queryFn: () => calculosApi.getCustoBom(selectedItem!.id),
+    enabled: !!selectedItem,
+    retry: false,
+  });
+  const status = axios.isAxiosError(bomCostQuery.error) ? bomCostQuery.error.response?.status : null;
+  const detail =
+    axios.isAxiosError(bomCostQuery.error) && typeof bomCostQuery.error.response?.data?.detail === "string"
+      ? (bomCostQuery.error.response.data.detail as string)
+      : null;
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <ItemSelector
+          type="FINISHED_PRODUCT"
+          selected={selectedItem}
+          onSelect={onSelect}
+          onClear={onClear}
+          placeholder="Buscar produto acabado por código ou descrição"
+        />
+      </div>
+
+      {selectedItem ? (
+        <>
+          <div
+            className={cn(
+              "rounded-2xl border p-6 shadow-sm",
+              bomCostQuery.isError && status !== 422 ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
+            )}
+          >
+            <p className="text-sm font-medium text-slate-500">Custo Vigente (BOM)</p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-900">
+              {selectedItem.code} — {selectedItem.description}
+            </h2>
+
+            {bomCostQuery.isLoading ? (
+              <div className="mt-4 flex items-center text-sm text-slate-500">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Calculando custo da BOM...
+              </div>
+            ) : bomCostQuery.data ? (
+              <div className="mt-4 space-y-2">
+                <p className="text-4xl font-bold tracking-tight text-slate-900">
+                  R$ {formatCurrency(bomCostQuery.data.custo_total)}
+                </p>
+                <p className="text-sm text-slate-600">
+                  Soma do custo das matérias-primas que compõem este produto.
+                </p>
+              </div>
+            ) : status === 422 && detail ? (
+              <p className="mt-4 text-sm font-semibold text-yellow-800">{detail}</p>
+            ) : (
+              <p className="mt-4 text-sm font-semibold text-yellow-800">
+                Não foi possível calcular o custo da BOM.
+              </p>
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h2 className="text-lg font-semibold text-slate-900">Variações de Custo (BOM)</h2>
+              <p className="text-xs text-slate-500">
+                Cada alteração de preço de matéria-prima que afetou este PA é registrada abaixo.
+              </p>
+            </div>
+            <div className="px-5 py-3">
+              <VariacoesCustoTimeline paId={selectedItem.id} pageSize={20} />
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Página principal ──────────────────────────────────────────────────────
+
+export default function PrecosPage() {
+  const [activeTab, setActiveTab] = useState<TabKey>("mp");
+  const [selectedMP, setSelectedMP] = useState<Item | null>(null);
+  const [selectedPA, setSelectedPA] = useState<Item | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRefreshCosts = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["calculos"] }),
+        queryClient.invalidateQueries({ queryKey: ["produtos-acabados"] }),
+        queryClient.invalidateQueries({ queryKey: ["precos"] }),
+      ]);
+      toast.success("Custos e preços atualizados");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">Preços</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Gerencie preços de matérias-primas e visualize o custo BOM dos produtos acabados.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleRefreshCosts()}
+            disabled={refreshing}
+            title="Recalcula o custo BOM de todos os PAs e atualiza os preços vigentes (limpa cache local)"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {refreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+            Atualizar Custo
+          </button>
+        </div>
+
+        <div className="mt-5 inline-flex rounded-xl bg-slate-100 p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("mp")}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium transition",
+              activeTab === "mp" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Matéria-Prima
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("pa")}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium transition",
+              activeTab === "pa" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Produto Acabado
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "mp" ? (
+        <PainelMateriaPrima
+          selectedItem={selectedMP}
+          onSelect={setSelectedMP}
+          onClear={() => setSelectedMP(null)}
+          onOpenModal={() => setModalOpen(true)}
+        />
+      ) : (
+        <PainelProdutoAcabado
+          selectedItem={selectedPA}
+          onSelect={setSelectedPA}
+          onClear={() => setSelectedPA(null)}
+        />
+      )}
+
+      <PriceModal open={modalOpen} selectedItem={selectedMP} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

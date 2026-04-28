@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 
 import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
-import { useVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
 
 type Props = {
   open: boolean;
@@ -12,8 +11,6 @@ type Props = {
 };
 
 export default function VariacoesCustoModal({ open, onClose, paId, paCode, paDescription }: Props) {
-  const query = useVariacoesCustoPA(open ? paId : null);
-
   if (!open) return null;
 
   return (
@@ -45,10 +42,7 @@ export default function VariacoesCustoModal({ open, onClose, paId, paCode, paDes
           <VariacoesCustoTimeline paId={open ? paId : null} enabled={open} />
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-3">
-          <p className="text-xs text-slate-500">
-            {query.data ? `${query.data.total} variação(ões) registrada(s)` : ""}
-          </p>
+        <div className="flex items-center justify-end border-t border-slate-200 px-6 py-3">
           <button
             type="button"
             onClick={onClose}

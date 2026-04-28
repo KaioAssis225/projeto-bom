@@ -71,10 +71,16 @@ export function useImportProdutosAcabadosCsv() {
   });
 }
 
-export function useVariacoesCustoPA(id: string | null, enabled = true) {
+export function useVariacoesCustoPA(
+  id: string | null,
+  params?: { skip?: number; limit?: number },
+  enabled = true,
+) {
+  const skip = params?.skip ?? 0;
+  const limit = params?.limit ?? 20;
   return useQuery({
-    queryKey: ["produtos-acabados", "variacoes-custo", id],
-    queryFn: () => produtosApi.listVariacoesCusto(id as string, { skip: 0, limit: 100 }),
+    queryKey: ["produtos-acabados", "variacoes-custo", id, skip, limit],
+    queryFn: () => produtosApi.listVariacoesCusto(id as string, { skip, limit }),
     enabled: id !== null && enabled,
   });
 }
