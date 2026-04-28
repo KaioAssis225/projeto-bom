@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import * as calculosApi from "@/api/calculos";
 import { TEMPLATE_CSV_URL } from "@/api/produtos-acabados";
 import CsvImportDialog from "@/components/CsvImportDialog";
 import VariacoesCustoModal from "@/components/VariacoesCustoModal";
@@ -16,43 +15,8 @@ import {
   useProdutoAcabado,
   useUpdateProdutoAcabado,
 } from "@/hooks/useProdutoAcabado";
-import { cn, extractErrorMessage, formatCurrency, formatDecimal } from "@/lib/utils";
+import { cn, extractErrorMessage, formatDecimal } from "@/lib/utils";
 import type { FinishedProduct } from "@/types";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-
-// ─── BomCustoCell ─────────────────────────────────────────────────────────────
-
-function BomCustoCell({ itemId }: { itemId: string }) {
-  const { data, error, isError, isPending } = useQuery({
-    queryKey: ["calculos", "custo-bom", itemId],
-    queryFn: () => calculosApi.getCustoBom(itemId),
-    retry: false,
-  });
-
-  if (isPending) {
-    return <span className="inline-block h-3 w-20 animate-pulse rounded bg-slate-200" />;
-  }
-  if (isError) {
-    const status = axios.isAxiosError(error) ? error.response?.status : null;
-    const detail =
-      axios.isAxiosError(error) && typeof error.response?.data?.detail === "string"
-        ? (error.response.data.detail as string)
-        : null;
-    if (status === 422 && detail) {
-      return (
-        <span className="text-amber-600" title={detail}>
-          Sem preço
-        </span>
-      );
-    }
-    return <span className="text-slate-400">Sem BOM</span>;
-  }
-  if (!data) {
-    return <span className="text-slate-400">Sem BOM</span>;
-  }
-  return <span className="font-medium text-slate-700">R$ {formatCurrency(data.custo_total)}</span>;
-}
 
 // ─── Modal schema ─────────────────────────────────────────────────────────────
 
@@ -609,7 +573,6 @@ export default function ProdutosAcabadosTab() {
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Linha</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Designer</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Unidade</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Preço (BOM)</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">Ações</th>
                   </tr>
@@ -632,9 +595,6 @@ export default function ProdutosAcabadosTab() {
                         <td className="px-4 py-3 text-slate-600">{item.designer ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">
                           {item.unit_of_measure?.code ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <BomCustoCell itemId={item.id} />
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -662,7 +622,7 @@ export default function ProdutosAcabadosTab() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-4 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-500">
                         Nenhum produto acabado encontrado para os filtros aplicados
                       </td>
                     </tr>
