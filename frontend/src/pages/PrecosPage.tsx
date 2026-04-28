@@ -1,10 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Coins, Loader2, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import * as calculosApi from "@/api/calculos";
 import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
@@ -252,11 +254,25 @@ export default function PrecosPage() {
     [byCodeQuery.data?.items, byDescriptionQuery.data?.items],
   );
 
+  const isPA = selectedItem?.type === "FINISHED_PRODUCT";
   const currentPriceQuery = usePrecoVigente(selectedItem?.id ?? null);
   const historyQuery = usePrecoHistory(selectedItem?.id ?? null, { skip: 0, limit: 50 });
   const noCurrentPrice =
     axios.isAxiosError(currentPriceQuery.error) &&
     (currentPriceQuery.error.response?.status === 404 || currentPriceQuery.error.response?.status === 422);
+
+  const bomCostQuery = useQuery({
+    queryKey: ["calculos", "custo-bom", selectedItem?.id],
+    queryFn: () => calculosApi.getCustoBom(selectedItem!.id),
+    enabled: !!selectedItem && isPA,
+    retry: false,
+  });
+  const bomCostError = bomCostQuery.error;
+  const bomCostStatus = axios.isAxiosError(bomCostError) ? bomCostError.response?.status : null;
+  const bomCostDetail =
+    axios.isAxiosError(bomCostError) && typeof bomCostError.response?.data?.detail === "string"
+      ? (bomCostError.response.data.detail as string)
+      : null;
 
   const isSelectorLoading = byDescriptionQuery.isLoading || byCodeQuery.isLoading;
 
@@ -324,51 +340,95 @@ export default function PrecosPage() {
       </div>
 
       {selectedItem ? (
-        <div
-          className={cn(
-            "rounded-2xl border p-6 shadow-sm",
-            noCurrentPrice ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
-          )}
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500">Preço Vigente</p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">
-                {selectedItem.code} — {selectedItem.description}
-              </h2>
+        isPA ? (
+          // ── Card de PA: custo calculado a partir da BOM ────────────────────
+          <div
+            className={cn(
+              "rounded-2xl border p-6 shadow-sm",
+              bomCostQuery.isError && bomCostStatus !== 422
+                ? "border-yellow-200 bg-yellow-50"
+                : "border-slate-200 bg-white",
+            )}
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Custo Vigente (BOM)</p>
+                <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                  {selectedItem.code} — {selectedItem.description}
+                </h2>
 
-              {currentPriceQuery.isLoading ? (
-                <div className="mt-4 flex items-center text-sm text-slate-500">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Carregando preço vigente...
-                </div>
-              ) : noCurrentPrice ? (
-                <div className="mt-4">
-                  <p className="text-sm font-semibold text-yellow-800">Este item não possui preço vigente cadastrado</p>
-                </div>
-              ) : currentPriceQuery.data ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-4xl font-bold tracking-tight text-slate-900">
-                    R$ {formatCurrency(currentPriceQuery.data.price_value)}
+                {bomCostQuery.isLoading ? (
+                  <div className="mt-4 flex items-center text-sm text-slate-500">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Calculando custo da BOM...
+                  </div>
+                ) : bomCostQuery.data ? (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-4xl font-bold tracking-tight text-slate-900">
+                      R$ {formatCurrency(bomCostQuery.data.custo_total)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Soma do custo das matérias-primas que compõem este produto.
+                    </p>
+                  </div>
+                ) : bomCostStatus === 422 && bomCostDetail ? (
+                  <p className="mt-4 text-sm font-semibold text-yellow-800">{bomCostDetail}</p>
+                ) : (
+                  <p className="mt-4 text-sm font-semibold text-yellow-800">
+                    Não foi possível calcular o custo da BOM.
                   </p>
-                  <p className="text-sm text-slate-600">
-                    Válido desde: {formatDate(currentPriceQuery.data.valid_from)}
-                  </p>
-                  <p className="text-sm text-slate-600">Registrado por: {currentPriceQuery.data.created_by}</p>
-                </div>
-              ) : null}
+                )}
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              Registrar novo preço
-            </button>
           </div>
-        </div>
+        ) : (
+          // ── Card de MP / outros itens com preço próprio ────────────────────
+          <div
+            className={cn(
+              "rounded-2xl border p-6 shadow-sm",
+              noCurrentPrice ? "border-yellow-200 bg-yellow-50" : "border-slate-200 bg-white",
+            )}
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Preço Vigente</p>
+                <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                  {selectedItem.code} — {selectedItem.description}
+                </h2>
+
+                {currentPriceQuery.isLoading ? (
+                  <div className="mt-4 flex items-center text-sm text-slate-500">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Carregando preço vigente...
+                  </div>
+                ) : noCurrentPrice ? (
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-yellow-800">Este item não possui preço vigente cadastrado</p>
+                  </div>
+                ) : currentPriceQuery.data ? (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-4xl font-bold tracking-tight text-slate-900">
+                      R$ {formatCurrency(currentPriceQuery.data.price_value)}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Válido desde: {formatDate(currentPriceQuery.data.valid_from)}
+                    </p>
+                    <p className="text-sm text-slate-600">Registrado por: {currentPriceQuery.data.created_by}</p>
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Coins className="mr-2 h-4 w-4" />
+                Registrar novo preço
+              </button>
+            </div>
+          </div>
+        )
       ) : null}
 
       {selectedItem && selectedItem.type === "FINISHED_PRODUCT" ? (
@@ -386,7 +446,7 @@ export default function PrecosPage() {
         </div>
       ) : null}
 
-      {selectedItem ? (
+      {selectedItem && !isPA ? (
         historyQuery.isLoading ? (
           <PriceHistorySkeleton />
         ) : (
