@@ -30,6 +30,10 @@ export function useSetPreco() {
       queryClient.invalidateQueries({ queryKey: ["precos"] });
       queryClient.invalidateQueries({ queryKey: ["precos", "history", variables.item_id] });
       queryClient.invalidateQueries({ queryKey: ["precos", "current", variables.item_id] });
+      // Custo BOM dos PAs depende do preço das MPs — invalida o cache.
+      queryClient.invalidateQueries({ queryKey: ["calculos"] });
+      // Timeline de variações de custo do PA pode ter ganhado entradas novas.
+      queryClient.invalidateQueries({ queryKey: ["produtos-acabados", "variacoes-custo"] });
       toast.success("Preço registrado com sucesso");
     },
     onError: (error: unknown) => {

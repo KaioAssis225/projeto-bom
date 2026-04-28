@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { cn, formatCurrency, formatDate, itemTypeBadgeColor, itemTypeLabel } from "@/lib/utils";
@@ -366,6 +367,21 @@ export default function PrecosPage() {
               <Coins className="mr-2 h-4 w-4" />
               Registrar novo preço
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {selectedItem && selectedItem.type === "FINISHED_PRODUCT" ? (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-lg font-semibold text-slate-900">Variações de Custo (BOM)</h2>
+            <p className="text-xs text-slate-500">
+              Como Produtos Acabados não têm preço próprio, o custo é calculado a partir das matérias-primas.
+              Cada alteração de preço de MP que afeta este PA é registrada abaixo.
+            </p>
+          </div>
+          <div className="px-5 py-3">
+            <VariacoesCustoTimeline paId={selectedItem.id} />
           </div>
         </div>
       ) : null}
