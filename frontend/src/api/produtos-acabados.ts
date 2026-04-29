@@ -1,6 +1,7 @@
 import { client } from "@/api/client";
 import type {
   BomCostImpact,
+  BomCostImpactSummary,
   FinishedProduct,
   FinishedProductCreatePayload,
   FinishedProductListParams,
@@ -53,6 +54,13 @@ export async function listVariacoesCusto(
   const response = await client.get<PaginatedResponse<BomCostImpact>>(
     `/api/v1/produtos-acabados/${id}/variacoes-custo`,
     { params: { skip: params?.skip ?? 0, limit: params?.limit ?? 50 } },
+  );
+  return response.data;
+}
+
+export async function getResumoVariacoesCusto(id: string): Promise<BomCostImpactSummary> {
+  const response = await client.get<BomCostImpactSummary>(
+    `/api/v1/produtos-acabados/${id}/variacoes-custo/resumo`,
   );
   return response.data;
 }

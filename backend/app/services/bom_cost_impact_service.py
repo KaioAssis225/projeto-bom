@@ -12,7 +12,11 @@ from app.repositories.bom_cost_impact_repository import BomCostImpactRepository
 from app.repositories.bom_repository import BomRepository
 from app.repositories.item_repository import ItemRepository
 from app.repositories.price_repository import PriceRepository
-from app.schemas.bom_cost_impact import BomCostImpactPaginatedResponse, BomCostImpactResponse
+from app.schemas.bom_cost_impact import (
+    BomCostImpactPaginatedResponse,
+    BomCostImpactResponse,
+    BomCostImpactSummary,
+)
 
 
 logger = logging.getLogger("app.bom_cost_impact")
@@ -209,4 +213,13 @@ class BomCostImpactService:
         ]
         return BomCostImpactPaginatedResponse(
             items=responses, total=total, skip=skip, limit=limit
+        )
+
+    def summary_for_pa(self, finished_product_item_id: UUID) -> BomCostImpactSummary:
+        data = self.repository.summary_for_pa(finished_product_item_id)
+        return BomCostImpactSummary(
+            count=data["count"],
+            total_delta_cost=data["total_delta_cost"],
+            first_pa_cost=data["first_pa_cost"],
+            last_pa_cost=data["last_pa_cost"],
         )

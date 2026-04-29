@@ -26,3 +26,10 @@ class BomCostImpactResponse(BaseSchema):
 
 
 BomCostImpactPaginatedResponse = PaginatedResponse[BomCostImpactResponse]
+
+
+class BomCostImpactSummary(BaseSchema):
+    count: int
+    total_delta_cost: Decimal
+    first_pa_cost: Decimal | None
+    last_pa_cost: Decimal | None

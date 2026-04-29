@@ -85,6 +85,14 @@ export function useVariacoesCustoPA(
   });
 }
 
+export function useResumoVariacoesCustoPA(id: string | null) {
+  return useQuery({
+    queryKey: ["produtos-acabados", "variacoes-custo", "resumo", id],
+    queryFn: () => produtosApi.getResumoVariacoesCusto(id as string),
+    enabled: id !== null,
+  });
+}
+
 export function useDeactivateProdutoAcabado() {
   const queryClient = useQueryClient();
 

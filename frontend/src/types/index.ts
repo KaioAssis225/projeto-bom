@@ -428,6 +428,13 @@ export interface ImportResult {
   errors: ImportRowError[];
 }
 
+export interface BomCostImpactSummary {
+  count: number;
+  total_delta_cost: number;
+  first_pa_cost: number | null;
+  last_pa_cost: number | null;
+}
+
 export interface BomCostImpact {
   id: string;
   finished_product_item_id: string;

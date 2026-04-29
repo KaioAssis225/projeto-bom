@@ -41,6 +41,40 @@ class BomCostImpactRepository:
         )
         return int(self.db.scalar(stmt) or 0)
 
+    def summary_for_pa(self, finished_product_item_id: UUID) -> dict:
+        """Retorna agregados das variacoes do PA: contagem, soma dos deltas,
+        primeiro old_pa_cost (mais antigo) e ultimo new_pa_cost (mais recente).
+        """
+        from decimal import Decimal as _Decimal
+
+        count_stmt = (
+            select(func.count())
+            .select_from(BomCostImpact)
+            .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
+        )
+        sum_stmt = (
+            select(func.coalesce(func.sum(BomCostImpact.delta_cost), 0))
+            .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
+        )
+        first_stmt = (
+            select(BomCostImpact.old_pa_cost)
+            .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
+            .order_by(BomCostImpact.created_at.asc())
+            .limit(1)
+        )
+        last_stmt = (
+            select(BomCostImpact.new_pa_cost)
+            .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
+            .order_by(desc(BomCostImpact.created_at))
+            .limit(1)
+        )
+        return {
+            "count": int(self.db.scalar(count_stmt) or 0),
+            "total_delta_cost": _Decimal(self.db.scalar(sum_stmt) or 0),
+            "first_pa_cost": self.db.scalar(first_stmt),
+            "last_pa_cost": self.db.scalar(last_stmt),
+        }
+
     def find_pas_using_mp(self, mp_item_id: UUID) -> list[Item]:
         """CTE recursiva bottom-up: encontra todos os Items ativos do tipo
         FINISHED_PRODUCT que dependem (direta ou indiretamente) da MP."""

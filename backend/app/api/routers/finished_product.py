@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
-from app.schemas.bom_cost_impact import BomCostImpactPaginatedResponse
+from app.schemas.bom_cost_impact import BomCostImpactPaginatedResponse, BomCostImpactSummary
 from app.schemas.finished_product import (
     FinishedProductCreate,
     FinishedProductPaginatedResponse,
@@ -96,6 +96,19 @@ def list_pa_cost_variations(
     return BomCostImpactService(db).list_for_pa(
         finished_product_item_id=id, skip=skip, limit=limit
     )
+
+
+@router.get(
+    "/{id}/variacoes-custo/resumo",
+    response_model=BomCostImpactSummary,
+    summary="Resumo das variações de custo do PA",
+    description="Retorna a contagem, soma dos deltas, primeiro e ultimo custo registrados para este PA.",
+)
+def pa_cost_variations_summary(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+) -> BomCostImpactSummary:
+    return BomCostImpactService(db).summary_for_pa(finished_product_item_id=id)
 
 
 @router.get("/{id}", response_model=FinishedProductResponse)

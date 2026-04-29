@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { Coins, Loader2, RefreshCcw, Search, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, Coins, Loader2, Minus, RefreshCcw, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import * as calculosApi from "@/api/calculos";
 import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
+import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import type { Item } from "@/types";
 
@@ -487,6 +488,29 @@ function PainelMateriaPrima({
 
 // ─── Painel: Produto Acabado ────────────────────────────────────────────────
 
+function VariacaoTotalBadge({ delta }: { delta: number }) {
+  if (delta === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+        <Minus className="h-3 w-3" />
+        Sem variação
+      </span>
+    );
+  }
+  const Icon = delta > 0 ? ArrowUpRight : ArrowDownRight;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums",
+        delta > 0 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700",
+      )}
+    >
+      <Icon className="h-3 w-3" />
+      {delta > 0 ? "+" : "−"}R$ {formatCurrency(Math.abs(delta))}
+    </span>
+  );
+}
+
 function PainelProdutoAcabado({
   selectedItem,
   onSelect,
@@ -496,6 +520,13 @@ function PainelProdutoAcabado({
   onSelect: (item: Item) => void;
   onClear: () => void;
 }) {
+  const [variationsOpen, setVariationsOpen] = useState(false);
+
+  // Reseta collapse ao trocar de PA.
+  useEffect(() => {
+    setVariationsOpen(false);
+  }, [selectedItem?.id]);
+
   const bomCostQuery = useQuery({
     queryKey: ["calculos", "custo-bom", selectedItem?.id],
     queryFn: () => calculosApi.getCustoBom(selectedItem!.id),
@@ -507,6 +538,10 @@ function PainelProdutoAcabado({
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
+
+  const resumoQuery = useResumoVariacoesCustoPA(selectedItem?.id ?? null);
+  const totalDelta = Number(resumoQuery.data?.total_delta_cost ?? 0);
+  const variationCount = resumoQuery.data?.count ?? 0;
   const status = axios.isAxiosError(bomCostQuery.error) ? bomCostQuery.error.response?.status : null;
   const detail =
     axios.isAxiosError(bomCostQuery.error) && typeof bomCostQuery.error.response?.data?.detail === "string"
@@ -587,15 +622,58 @@ function PainelProdutoAcabado({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Variações de Custo (BOM)</h2>
-              <p className="text-xs text-slate-500">
-                Cada alteração de preço de matéria-prima que afetou este PA é registrada abaixo.
-              </p>
-            </div>
-            <div className="px-5 py-3">
-              <VariacoesCustoTimeline paId={selectedItem.id} pageSize={20} />
-            </div>
+            <button
+              type="button"
+              onClick={() => setVariationsOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 text-left transition hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-3">
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-slate-400 transition-transform",
+                    !variationsOpen && "-rotate-90",
+                  )}
+                />
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Variações de Custo (BOM)</h2>
+                  <p className="text-xs text-slate-500">
+                    {variationCount === 0
+                      ? "Nenhuma alteração registrada ainda."
+                      : `${variationCount} alteração(ões) de preço de MP afetaram este PA.`}
+                  </p>
+                </div>
+              </div>
+
+              {resumoQuery.isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              ) : variationCount > 0 ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-xs uppercase tracking-wide text-slate-400">Variação total</p>
+                    <p
+                      className={cn(
+                        "text-lg font-bold tabular-nums",
+                        totalDelta > 0
+                          ? "text-red-700"
+                          : totalDelta < 0
+                            ? "text-green-700"
+                            : "text-slate-700",
+                      )}
+                    >
+                      {totalDelta > 0 ? "+" : totalDelta < 0 ? "−" : ""}R${" "}
+                      {formatCurrency(Math.abs(totalDelta))}
+                    </p>
+                  </div>
+                  <VariacaoTotalBadge delta={totalDelta} />
+                </div>
+              ) : null}
+            </button>
+
+            {variationsOpen ? (
+              <div className="px-5 py-3">
+                <VariacoesCustoTimeline paId={selectedItem.id} pageSize={20} />
+              </div>
+            ) : null}
           </div>
         </>
       ) : null}
