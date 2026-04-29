@@ -51,7 +51,7 @@ class CalculationService:
         if item is None:
             raise ItemNotFoundError()
 
-        reference_date = now_sp().replace(tzinfo=None)
+        reference_date = now_sp()
         structure_rows = self.bom_repository.get_calculation_structure(
             root_item_id=item_id,
             reference_date=reference_date.date(),
@@ -113,7 +113,7 @@ class CalculationService:
         if item is None:
             raise ItemNotFoundError()
 
-        reference_date = now_sp().replace(tzinfo=None)
+        reference_date = now_sp()
         structure_rows = self.bom_repository.get_calculation_structure(
             root_item_id=item_id,
             reference_date=reference_date.date(),
@@ -140,7 +140,7 @@ class CalculationService:
             reference=payload.simulation_reference,
         )
         try:
-            reference_date = payload.reference_date or now_sp().replace(tzinfo=None)
+            reference_date = payload.reference_date or now_sp()
             root_item = self._get_active_root_item(payload.root_item_id)
 
             structure_rows = self.bom_repository.get_calculation_structure(
@@ -196,7 +196,7 @@ class CalculationService:
             reference=payload.simulation_reference,
         )
         try:
-            reference_date = payload.reference_date or now_sp().replace(tzinfo=None)
+            reference_date = payload.reference_date or now_sp()
             aggregated_quantities: dict[UUID, Decimal] = defaultdict(lambda: Decimal("0"))
             nodes: list[BomNode] = []
             first_root_item_id: UUID | None = None
@@ -301,7 +301,7 @@ class CalculationService:
         prefix: str,
     ) -> CalculationResponse:
         root_item = self.item_repository.get_by_id(root_item_id)
-        reference_date = request_payload.get("reference_date") or now_sp().replace(tzinfo=None).isoformat()
+        reference_date = request_payload.get("reference_date") or now_sp().isoformat()
         file_name = self.export_service.export(
             lines=lines,
             params={

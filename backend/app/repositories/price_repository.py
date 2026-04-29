@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.time import to_utc_naive
 from app.models.audit_price_change import AuditPriceChange
 from app.models.item_price_history import ItemPriceHistory
 
@@ -27,12 +28,13 @@ class PriceRepository:
         return self.db.scalar(stmt)
 
     def get_price_at_date(self, item_id: UUID, reference_date: datetime) -> ItemPriceHistory | None:
+        ref = to_utc_naive(reference_date)
         stmt = (
             select(ItemPriceHistory)
             .where(
                 ItemPriceHistory.item_id == item_id,
-                ItemPriceHistory.valid_from <= reference_date,
-                ((ItemPriceHistory.valid_to.is_(None)) | (ItemPriceHistory.valid_to > reference_date)),
+                ItemPriceHistory.valid_from <= ref,
+                ((ItemPriceHistory.valid_to.is_(None)) | (ItemPriceHistory.valid_to > ref)),
             )
             .order_by(ItemPriceHistory.valid_from.desc())
             .limit(1)
@@ -61,6 +63,9 @@ class PriceRepository:
         created_by: str,
         reason: str | None,
     ) -> ItemPriceHistory:
+        # Garante que o valid_from gravado seja UTC naive (consistente com a
+        # coluna DateTime(timezone=False) e com as consultas).
+        valid_from = to_utc_naive(valid_from)
         changed_reason = reason or "Price update"
         try:
             current = self.db.scalar(
@@ -115,12 +120,13 @@ class PriceRepository:
         if not item_ids:
             return {}
 
+        ref = to_utc_naive(reference_date)
         stmt = (
             select(ItemPriceHistory)
             .where(
                 ItemPriceHistory.item_id.in_(item_ids),
-                ItemPriceHistory.valid_from <= reference_date,
-                ((ItemPriceHistory.valid_to.is_(None)) | (ItemPriceHistory.valid_to > reference_date)),
+                ItemPriceHistory.valid_from <= ref,
+                ((ItemPriceHistory.valid_to.is_(None)) | (ItemPriceHistory.valid_to > ref)),
             )
             .order_by(ItemPriceHistory.item_id.asc(), ItemPriceHistory.valid_from.desc())
         )
