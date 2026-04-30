@@ -42,7 +42,7 @@ export default function PaCostHistoryTable({ paId, pageSize = 20 }: Props) {
 
   if (query.isError) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         Falha ao carregar histórico de custo.
       </div>
     );
@@ -50,7 +50,7 @@ export default function PaCostHistoryTable({ paId, pageSize = 20 }: Props) {
 
   if (total === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
         Nenhuma alteração de custo registrada ainda.
       </div>
     );
@@ -62,7 +62,7 @@ export default function PaCostHistoryTable({ paId, pageSize = 20 }: Props) {
   const canNext = skip + pageSize < total;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
+    <div className="overflow-hidden rounded-xl border border-slate-200">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
