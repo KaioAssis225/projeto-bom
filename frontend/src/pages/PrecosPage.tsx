@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import * as calculosApi from "@/api/calculos";
-import VariacoesCustoTimeline from "@/components/VariacoesCustoTimeline";
+import HistoricoCustosPATable from "@/components/HistoricoCustosPATable";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
@@ -671,7 +671,7 @@ function PainelProdutoAcabado({
 
             {variationsOpen ? (
               <div className="px-5 py-3">
-                <VariacoesCustoTimeline paId={selectedItem.id} pageSize={20} />
+                <HistoricoCustosPATable paId={selectedItem.id} pageSize={20} />
               </div>
             ) : null}
           </div>
