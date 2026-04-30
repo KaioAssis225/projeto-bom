@@ -41,12 +41,13 @@ export function useDownloadExcel() {
   });
 }
 
-export function useCustoBomAnalise(paId: string | null) {
+export function useCustoBomAnalise(paId: string | null, enabled = true) {
   return useQuery({
     queryKey: ["calculos", "custo-bom-analise", paId],
     queryFn: () => calculosApi.getCustoBomAnalise(paId as string),
-    enabled: paId !== null,
+    enabled: enabled && paId !== null,
     staleTime: 0,
+    retry: false,
     refetchOnMount: "always",
   });
 }

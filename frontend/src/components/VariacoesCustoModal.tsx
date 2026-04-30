@@ -3,6 +3,7 @@ import { Loader2, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import * as calculosApi from "@/api/calculos";
+import { useCustoBomAnalise } from "@/hooks/useCalculos";
 import HistoricoCustosPATable from "@/components/HistoricoCustosPATable";
 import PaCostHistoryTable from "@/components/PaCostHistoryTable";
 import { formatCurrency } from "@/lib/utils";
@@ -80,16 +81,11 @@ export default function VariacoesCustoModal({
     queryFn: () => calculosApi.getCustoBom(paId as string),
     enabled: open && paId !== null,
     staleTime: 0,
+    retry: false,
     refetchOnMount: "always",
   });
 
-  const analiseQuery = useQuery({
-    queryKey: ["calculos", "custo-bom-analise", paId],
-    queryFn: () => calculosApi.getCustoBomAnalise(paId as string),
-    enabled: open && paId !== null,
-    staleTime: 0,
-    refetchOnMount: "always",
-  });
+  const analiseQuery = useCustoBomAnalise(paId, open);
 
   if (!open) return null;
 
@@ -155,11 +151,13 @@ export default function VariacoesCustoModal({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Carregando composição...
               </div>
+            ) : analiseQuery.isError ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Falha ao carregar composição de matérias-primas.
+              </div>
             ) : analiseQuery.data ? (
               <MpBreakdownTable lines={analiseQuery.data.lines} />
-            ) : (
-              <p className="text-sm text-slate-500">Não foi possível carregar as matérias-primas.</p>
-            )}
+            ) : null}
           </div>
 
           {/* ③ Histórico Matéria-Prima */}
