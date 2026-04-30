@@ -1,9 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import * as calculosApi from "@/api/calculos";
 import { extractErrorMessage } from "@/lib/utils";
-import type { CalculationBatchPayload, CalculationProductPayload } from "@/types";
+import type { BomCostAnalysis, CalculationBatchPayload, CalculationProductPayload } from "@/types";
 
 export function useCalcularProduto() {
   return useMutation({
@@ -38,5 +38,15 @@ export function useDownloadExcel() {
     onError: (error: unknown) => {
       toast.error(extractErrorMessage(error));
     },
+  });
+}
+
+export function useCustoBomAnalise(paId: string | null) {
+  return useQuery({
+    queryKey: ["calculos", "custo-bom-analise", paId],
+    queryFn: () => calculosApi.getCustoBomAnalise(paId as string),
+    enabled: paId !== null,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
