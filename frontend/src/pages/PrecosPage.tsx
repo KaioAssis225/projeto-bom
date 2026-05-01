@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Coins, Loader2, Minus, RefreshCcw, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -651,24 +651,46 @@ function PainelProdutoAcabado({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
-                      {analiseQuery.data.lines.map((line: BomAnalysisLine) => (
-                        <tr key={line.item_id} className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}>
-                          <td className="px-4 py-2 font-mono text-xs text-slate-700">{line.code}</td>
-                          <td className="px-4 py-2 text-slate-700">
-                            {line.description}
-                            {line.missing_price ? (
-                              <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
-                            ) : null}
-                          </td>
-                          <td className="px-4 py-2 text-right tabular-nums text-slate-900">
-                            {line.missing_price ? (
-                              <span className="text-yellow-600">—</span>
-                            ) : (
-                              <>R$ {formatCurrency(line.line_cost)}</>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {Object.entries(
+                        analiseQuery.data.lines.reduce<Record<string, BomAnalysisLine[]>>((acc, line) => {
+                          const key = line.group_name ?? "Sem grupo";
+                          if (!acc[key]) acc[key] = [];
+                          acc[key].push(line);
+                          return acc;
+                        }, {}),
+                      ).map(([groupName, lines]) => {
+                        const groupTotal = lines.reduce((s, l) => s + (l.missing_price ? 0 : l.line_cost), 0);
+                        return (
+                          <React.Fragment key={groupName}>
+                            <tr className="bg-slate-100">
+                              <td colSpan={2} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                {groupName}
+                              </td>
+                              <td className="px-4 py-1.5 text-right text-xs font-semibold tabular-nums text-slate-700">
+                                R$ {formatCurrency(groupTotal)}
+                              </td>
+                            </tr>
+                            {lines.map((line) => (
+                              <tr key={line.item_id} className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}>
+                                <td className="px-4 py-2 pl-7 font-mono text-xs text-slate-700">{line.code}</td>
+                                <td className="px-4 py-2 text-slate-700">
+                                  {line.description}
+                                  {line.missing_price ? (
+                                    <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
+                                  ) : null}
+                                </td>
+                                <td className="px-4 py-2 text-right tabular-nums text-slate-900">
+                                  {line.missing_price ? (
+                                    <span className="text-yellow-600">—</span>
+                                  ) : (
+                                    <>R$ {formatCurrency(line.line_cost)}</>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
