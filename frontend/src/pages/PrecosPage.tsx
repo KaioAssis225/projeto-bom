@@ -9,11 +9,13 @@ import { z } from "zod";
 
 import * as calculosApi from "@/api/calculos";
 import HistoricoCustosPATable from "@/components/HistoricoCustosPATable";
+import PaCostHistoryTable from "@/components/PaCostHistoryTable";
+import { useCustoBomAnalise } from "@/hooks/useCalculos";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
-import type { Item } from "@/types";
+import type { BomAnalysisLine, Item } from "@/types";
 
 type TabKey = "mp" | "pa";
 const HISTORY_PAGE_SIZE = 20;
@@ -539,6 +541,8 @@ function PainelProdutoAcabado({
     refetchOnWindowFocus: true,
   });
 
+  const analiseQuery = useCustoBomAnalise(selectedItem?.id ?? null);
+
   const resumoQuery = useResumoVariacoesCustoPA(selectedItem?.id ?? null);
   const totalDelta = Number(resumoQuery.data?.total_delta_cost ?? 0);
   const variationCount = resumoQuery.data?.count ?? 0;
@@ -622,6 +626,57 @@ function PainelProdutoAcabado({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h2 className="text-base font-semibold text-slate-900">Matérias-Primas</h2>
+              <p className="text-xs text-slate-500">Composição do custo atual da BOM</p>
+            </div>
+            <div className="px-5 py-4">
+              {analiseQuery.isLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando composição...
+                </div>
+              ) : analiseQuery.isError ? (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  Falha ao carregar composição de matérias-primas.
+                </div>
+              ) : analiseQuery.data ? (
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Código</th>
+                        <th className="px-4 py-2 text-left">Descrição</th>
+                        <th className="px-4 py-2 text-right">Custo</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {analiseQuery.data.lines.map((line: BomAnalysisLine) => (
+                        <tr key={line.item_id} className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}>
+                          <td className="px-4 py-2 font-mono text-xs text-slate-700">{line.code}</td>
+                          <td className="px-4 py-2 text-slate-700">
+                            {line.description}
+                            {line.missing_price ? (
+                              <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-2 text-right tabular-nums text-slate-900">
+                            {line.missing_price ? (
+                              <span className="text-yellow-600">—</span>
+                            ) : (
+                              <>R$ {formatCurrency(line.line_cost)}</>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <button
               type="button"
               onClick={() => setVariationsOpen((v) => !v)}
@@ -674,6 +729,16 @@ function PainelProdutoAcabado({
                 <HistoricoCustosPATable paId={selectedItem.id} pageSize={20} />
               </div>
             ) : null}
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-5 py-4">
+              <h2 className="text-base font-semibold text-slate-900">Histórico de Custo</h2>
+              <p className="text-xs text-slate-500">Evolução do custo total do PA ao longo do tempo</p>
+            </div>
+            <div className="px-5 py-4">
+              <PaCostHistoryTable paId={selectedItem.id} pageSize={10} />
+            </div>
           </div>
         </>
       ) : null}
