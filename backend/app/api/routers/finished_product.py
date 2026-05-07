@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
@@ -91,10 +92,18 @@ def list_pa_cost_variations(
     id: UUID,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=200),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    raw_material_group_id: UUID | None = Query(default=None),
     db: Session = Depends(get_db_session),
 ) -> BomCostImpactPaginatedResponse:
     return BomCostImpactService(db).list_for_pa(
-        finished_product_item_id=id, skip=skip, limit=limit
+        finished_product_item_id=id,
+        skip=skip,
+        limit=limit,
+        date_from=date_from,
+        date_to=date_to,
+        raw_material_group_id=raw_material_group_id,
     )
 
 

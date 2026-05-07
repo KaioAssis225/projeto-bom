@@ -73,14 +73,24 @@ export function useImportProdutosAcabadosCsv() {
 
 export function useVariacoesCustoPA(
   id: string | null,
-  params?: { skip?: number; limit?: number },
+  params?: { skip?: number; limit?: number; dateFrom?: string; dateTo?: string; groupId?: string },
   enabled = true,
 ) {
   const skip = params?.skip ?? 0;
   const limit = params?.limit ?? 20;
+  const dateFrom = params?.dateFrom;
+  const dateTo = params?.dateTo;
+  const groupId = params?.groupId;
   return useQuery({
-    queryKey: ["produtos-acabados", "variacoes-custo", id, skip, limit],
-    queryFn: () => produtosApi.listVariacoesCusto(id as string, { skip, limit }),
+    queryKey: ["produtos-acabados", "variacoes-custo", id, skip, limit, dateFrom, dateTo, groupId],
+    queryFn: () =>
+      produtosApi.listVariacoesCusto(id as string, {
+        skip,
+        limit,
+        date_from: dateFrom,
+        date_to: dateTo,
+        raw_material_group_id: groupId,
+      }),
     enabled: id !== null && enabled,
   });
 }

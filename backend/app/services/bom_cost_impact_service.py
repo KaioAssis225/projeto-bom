@@ -172,12 +172,28 @@ class BomCostImpactService:
     # ─── Listagem para a UI ──────────────────────────────────────────────────
 
     def list_for_pa(
-        self, finished_product_item_id: UUID, skip: int, limit: int
+        self,
+        finished_product_item_id: UUID,
+        skip: int,
+        limit: int,
+        date_from=None,
+        date_to=None,
+        raw_material_group_id=None,
     ) -> BomCostImpactPaginatedResponse:
         impacts = self.repository.list_by_finished_product(
-            finished_product_item_id=finished_product_item_id, skip=skip, limit=limit
+            finished_product_item_id=finished_product_item_id,
+            skip=skip,
+            limit=limit,
+            date_from=date_from,
+            date_to=date_to,
+            raw_material_group_id=raw_material_group_id,
         )
-        total = self.repository.count_by_finished_product(finished_product_item_id)
+        total = self.repository.count_by_finished_product(
+            finished_product_item_id,
+            date_from=date_from,
+            date_to=date_to,
+            raw_material_group_id=raw_material_group_id,
+        )
 
         # Enriquece com code/description da MP (uma query única).
         mp_ids = {imp.raw_material_item_id for imp in impacts}

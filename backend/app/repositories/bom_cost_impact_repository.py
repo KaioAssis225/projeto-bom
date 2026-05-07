@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
 from uuid import UUID
 
 from sqlalchemy import desc, func, select, text
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.bom_cost_impact import BomCostImpact
 from app.models.item import Item
+from app.models.raw_material import RawMaterial
 
 
 class BomCostImpactRepository:
@@ -22,23 +24,46 @@ class BomCostImpactRepository:
         return len(objs)
 
     def list_by_finished_product(
-        self, finished_product_item_id: UUID, skip: int, limit: int
+        self,
+        finished_product_item_id: UUID,
+        skip: int,
+        limit: int,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        raw_material_group_id: UUID | None = None,
     ) -> list[BomCostImpact]:
-        stmt = (
-            select(BomCostImpact)
-            .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
-            .order_by(desc(BomCostImpact.created_at))
-            .offset(skip)
-            .limit(limit)
+        stmt = select(BomCostImpact).where(
+            BomCostImpact.finished_product_item_id == finished_product_item_id
         )
+        if date_from:
+            stmt = stmt.where(BomCostImpact.created_at >= date_from)
+        if date_to:
+            stmt = stmt.where(BomCostImpact.created_at < date_to + timedelta(days=1))
+        if raw_material_group_id:
+            stmt = stmt.join(RawMaterial, BomCostImpact.raw_material_item_id == RawMaterial.item_id)
+            stmt = stmt.where(RawMaterial.material_group_id == raw_material_group_id)
+        stmt = stmt.order_by(desc(BomCostImpact.created_at)).offset(skip).limit(limit)
         return list(self.db.scalars(stmt).all())
 
-    def count_by_finished_product(self, finished_product_item_id: UUID) -> int:
+    def count_by_finished_product(
+        self,
+        finished_product_item_id: UUID,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        raw_material_group_id: UUID | None = None,
+    ) -> int:
         stmt = (
             select(func.count())
             .select_from(BomCostImpact)
             .where(BomCostImpact.finished_product_item_id == finished_product_item_id)
         )
+        if date_from:
+            stmt = stmt.where(BomCostImpact.created_at >= date_from)
+        if date_to:
+            stmt = stmt.where(BomCostImpact.created_at < date_to + timedelta(days=1))
+        if raw_material_group_id:
+            stmt = stmt.join(RawMaterial, BomCostImpact.raw_material_item_id == RawMaterial.item_id)
+            stmt = stmt.where(RawMaterial.material_group_id == raw_material_group_id)
         return int(self.db.scalar(stmt) or 0)
 
     def summary_for_pa(self, finished_product_item_id: UUID) -> dict:

@@ -49,11 +49,25 @@ export async function deactivate(id: string): Promise<FinishedProduct> {
 
 export async function listVariacoesCusto(
   id: string,
-  params?: { skip?: number; limit?: number },
+  params?: {
+    skip?: number;
+    limit?: number;
+    date_from?: string;
+    date_to?: string;
+    raw_material_group_id?: string;
+  },
 ): Promise<PaginatedResponse<BomCostImpact>> {
   const response = await client.get<PaginatedResponse<BomCostImpact>>(
     `/api/v1/produtos-acabados/${id}/variacoes-custo`,
-    { params: { skip: params?.skip ?? 0, limit: params?.limit ?? 50 } },
+    {
+      params: {
+        skip: params?.skip ?? 0,
+        limit: params?.limit ?? 50,
+        date_from: params?.date_from || undefined,
+        date_to: params?.date_to || undefined,
+        raw_material_group_id: params?.raw_material_group_id || undefined,
+      },
+    },
   );
   return response.data;
 }

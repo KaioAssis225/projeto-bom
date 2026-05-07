@@ -11,6 +11,7 @@ import * as calculosApi from "@/api/calculos";
 import HistoricoCustosPATable from "@/components/HistoricoCustosPATable";
 import PaCostHistoryTable from "@/components/PaCostHistoryTable";
 import { useCustoBomAnalise } from "@/hooks/useCalculos";
+import { useGrupos } from "@/hooks/useGrupos";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
@@ -630,10 +631,28 @@ function PainelProdutoAcabado({
   onClear: () => void;
 }) {
   const [variationsOpen, setVariationsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Reseta collapse ao trocar de PA.
+  // filtros de variações
+  const [varDateFrom, setVarDateFrom] = useState("");
+  const [varDateTo, setVarDateTo] = useState("");
+  const [varGroupId, setVarGroupId] = useState("");
+
+  // filtros de histórico de custo
+  const [histDateFrom, setHistDateFrom] = useState("");
+  const [histDateTo, setHistDateTo] = useState("");
+
+  const gruposQuery = useGrupos({ limit: 200, active_only: true });
+
+  // Reseta collapse e filtros ao trocar de PA.
   useEffect(() => {
     setVariationsOpen(false);
+    setHistoryOpen(false);
+    setVarDateFrom("");
+    setVarDateTo("");
+    setVarGroupId("");
+    setHistDateFrom("");
+    setHistDateTo("");
   }, [selectedItem?.id]);
 
   const bomCostQuery = useQuery({
@@ -783,20 +802,133 @@ function PainelProdutoAcabado({
             </button>
 
             {variationsOpen ? (
-              <div className="px-5 py-3">
-                <HistoricoCustosPATable paId={selectedItem.id} pageSize={20} />
-              </div>
+              <>
+                <div
+                  className="flex flex-wrap items-end gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500">De</label>
+                    <input
+                      type="date"
+                      value={varDateFrom}
+                      max={varDateTo || undefined}
+                      onChange={(e) => setVarDateFrom(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500">Até</label>
+                    <input
+                      type="date"
+                      value={varDateTo}
+                      min={varDateFrom || undefined}
+                      onChange={(e) => setVarDateTo(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500">Grupo</label>
+                    <select
+                      value={varGroupId}
+                      onChange={(e) => setVarGroupId(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Todos os grupos</option>
+                      {(gruposQuery.data?.items ?? []).map((g) => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {(varDateFrom || varDateTo || varGroupId) ? (
+                    <button
+                      type="button"
+                      onClick={() => { setVarDateFrom(""); setVarDateTo(""); setVarGroupId(""); }}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-200"
+                    >
+                      <X className="h-3 w-3" />
+                      Limpar
+                    </button>
+                  ) : null}
+                </div>
+                <div className="px-5 py-3">
+                  <HistoricoCustosPATable
+                    paId={selectedItem.id}
+                    pageSize={20}
+                    dateFrom={varDateFrom || undefined}
+                    dateTo={varDateTo || undefined}
+                    groupId={varGroupId || undefined}
+                  />
+                </div>
+              </>
             ) : null}
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-base font-semibold text-slate-900">Histórico de Custo</h2>
-              <p className="text-xs text-slate-500">Evolução do custo total do PA ao longo do tempo</p>
-            </div>
-            <div className="px-5 py-4">
-              <PaCostHistoryTable paId={selectedItem.id} pageSize={10} />
-            </div>
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((v) => !v)}
+              className="flex w-full items-center gap-3 border-b border-slate-200 px-5 py-4 text-left transition hover:bg-slate-50"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-slate-400 transition-transform",
+                  !historyOpen && "-rotate-90",
+                )}
+              />
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Histórico de Custo</h2>
+                <p className="text-xs text-slate-500">Evolução do custo total do PA ao longo do tempo</p>
+              </div>
+            </button>
+
+            {historyOpen ? (
+              <>
+                <div
+                  className="flex flex-wrap items-end gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500">De</label>
+                    <input
+                      type="date"
+                      value={histDateFrom}
+                      max={histDateTo || undefined}
+                      onChange={(e) => setHistDateFrom(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-slate-500">Até</label>
+                    <input
+                      type="date"
+                      value={histDateTo}
+                      min={histDateFrom || undefined}
+                      onChange={(e) => setHistDateTo(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  {(histDateFrom || histDateTo) ? (
+                    <button
+                      type="button"
+                      onClick={() => { setHistDateFrom(""); setHistDateTo(""); }}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-200"
+                    >
+                      <X className="h-3 w-3" />
+                      Limpar
+                    </button>
+                  ) : null}
+                </div>
+                <div className="px-5 py-4">
+                  <PaCostHistoryTable
+                    paId={selectedItem.id}
+                    pageSize={10}
+                    dateFrom={histDateFrom || undefined}
+                    dateTo={histDateTo || undefined}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
         </>
       ) : null}

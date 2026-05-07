@@ -46,16 +46,19 @@ function DeltaCell({ delta, percent }: { delta: number; percent: number | null }
 type Props = {
   paId: string | null;
   pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  groupId?: string;
 };
 
-export default function HistoricoCustosPATable({ paId, pageSize = 20 }: Props) {
+export default function HistoricoCustosPATable({ paId, pageSize = 20, dateFrom, dateTo, groupId }: Props) {
   const [skip, setSkip] = useState(0);
 
   useEffect(() => {
     setSkip(0);
-  }, [paId]);
+  }, [paId, dateFrom, dateTo, groupId]);
 
-  const query = useVariacoesCustoPA(paId, { skip, limit: pageSize });
+  const query = useVariacoesCustoPA(paId, { skip, limit: pageSize, dateFrom, dateTo, groupId });
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
 
