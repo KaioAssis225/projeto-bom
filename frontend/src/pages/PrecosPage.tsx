@@ -513,6 +513,113 @@ function VariacaoTotalBadge({ delta }: { delta: number }) {
   );
 }
 
+function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof useCustoBomAnalise> }) {
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set());
+
+  const grouped = React.useMemo(() => {
+    if (!analiseQuery.data) return null;
+    return analiseQuery.data.lines.reduce<Record<string, BomAnalysisLine[]>>((acc, line) => {
+      const key = line.group_name ?? "Sem grupo";
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(line);
+      return acc;
+    }, {});
+  }, [analiseQuery.data]);
+
+  function toggleGroup(name: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-5 py-4">
+        <h2 className="text-base font-semibold text-slate-900">Matérias-Primas</h2>
+        <p className="text-xs text-slate-500">Composição do custo atual da BOM</p>
+      </div>
+      <div className="px-5 py-4">
+        {analiseQuery.isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando composição...
+          </div>
+        ) : analiseQuery.isError ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Falha ao carregar composição de matérias-primas.
+          </div>
+        ) : grouped ? (
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2 text-left">Código</th>
+                  <th className="px-4 py-2 text-left">Descrição</th>
+                  <th className="px-4 py-2 text-right">Custo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {Object.entries(grouped).map(([groupName, lines]) => {
+                  const groupTotal = lines.reduce((s, l) => s + (l.missing_price ? 0 : l.line_cost), 0);
+                  const isOpen = openGroups.has(groupName);
+                  return (
+                    <React.Fragment key={groupName}>
+                      <tr
+                        className="cursor-pointer bg-slate-100 hover:bg-slate-200"
+                        onClick={() => toggleGroup(groupName)}
+                      >
+                        <td colSpan={2} className="px-4 py-2">
+                          <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                            <ChevronDown
+                              className={cn(
+                                "h-3.5 w-3.5 text-slate-400 transition-transform",
+                                !isOpen && "-rotate-90",
+                              )}
+                            />
+                            {groupName}
+                            <span className="ml-1 rounded-full bg-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                              {lines.length}
+                            </span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right text-xs font-semibold tabular-nums text-slate-700">
+                          R$ {formatCurrency(groupTotal)}
+                        </td>
+                      </tr>
+                      {isOpen &&
+                        lines.map((line) => (
+                          <tr key={line.item_id} className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}>
+                            <td className="px-4 py-2 pl-9 font-mono text-xs text-slate-700">{line.code}</td>
+                            <td className="px-4 py-2 text-slate-700">
+                              {line.description}
+                              {line.missing_price ? (
+                                <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
+                              ) : null}
+                            </td>
+                            <td className="px-4 py-2 text-right tabular-nums text-slate-900">
+                              {line.missing_price ? (
+                                <span className="text-yellow-600">—</span>
+                              ) : (
+                                <>R$ {formatCurrency(line.line_cost)}</>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function PainelProdutoAcabado({
   selectedItem,
   onSelect,
@@ -625,78 +732,7 @@ function PainelProdutoAcabado({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <h2 className="text-base font-semibold text-slate-900">Matérias-Primas</h2>
-              <p className="text-xs text-slate-500">Composição do custo atual da BOM</p>
-            </div>
-            <div className="px-5 py-4">
-              {analiseQuery.isLoading ? (
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando composição...
-                </div>
-              ) : analiseQuery.isError ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  Falha ao carregar composição de matérias-primas.
-                </div>
-              ) : analiseQuery.data ? (
-                <div className="overflow-hidden rounded-xl border border-slate-200">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <tr>
-                        <th className="px-4 py-2 text-left">Código</th>
-                        <th className="px-4 py-2 text-left">Descrição</th>
-                        <th className="px-4 py-2 text-right">Custo</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {Object.entries(
-                        analiseQuery.data.lines.reduce<Record<string, BomAnalysisLine[]>>((acc, line) => {
-                          const key = line.group_name ?? "Sem grupo";
-                          if (!acc[key]) acc[key] = [];
-                          acc[key].push(line);
-                          return acc;
-                        }, {}),
-                      ).map(([groupName, lines]) => {
-                        const groupTotal = lines.reduce((s, l) => s + (l.missing_price ? 0 : l.line_cost), 0);
-                        return (
-                          <React.Fragment key={groupName}>
-                            <tr className="bg-slate-100">
-                              <td colSpan={2} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
-                                {groupName}
-                              </td>
-                              <td className="px-4 py-1.5 text-right text-xs font-semibold tabular-nums text-slate-700">
-                                R$ {formatCurrency(groupTotal)}
-                              </td>
-                            </tr>
-                            {lines.map((line) => (
-                              <tr key={line.item_id} className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}>
-                                <td className="px-4 py-2 pl-7 font-mono text-xs text-slate-700">{line.code}</td>
-                                <td className="px-4 py-2 text-slate-700">
-                                  {line.description}
-                                  {line.missing_price ? (
-                                    <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
-                                  ) : null}
-                                </td>
-                                <td className="px-4 py-2 text-right tabular-nums text-slate-900">
-                                  {line.missing_price ? (
-                                    <span className="text-yellow-600">—</span>
-                                  ) : (
-                                    <>R$ {formatCurrency(line.line_cost)}</>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <MpGroupsSection analiseQuery={analiseQuery} />
 
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <button
