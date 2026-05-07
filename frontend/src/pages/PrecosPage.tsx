@@ -11,7 +11,6 @@ import * as calculosApi from "@/api/calculos";
 import HistoricoCustosPATable from "@/components/HistoricoCustosPATable";
 import PaCostHistoryTable from "@/components/PaCostHistoryTable";
 import { useCustoBomAnalise } from "@/hooks/useCalculos";
-import { useGrupos } from "@/hooks/useGrupos";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
@@ -642,7 +641,18 @@ function PainelProdutoAcabado({
   const [histDateFrom, setHistDateFrom] = useState("");
   const [histDateTo, setHistDateTo] = useState("");
 
-  const gruposQuery = useGrupos({ limit: 200, active_only: true });
+  const analiseQuery = useCustoBomAnalise(selectedItem?.id ?? null);
+
+  // Grupos presentes na BOM deste PA (derivados da análise, sem chamada extra).
+  const bomGroups = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const line of analiseQuery.data?.lines ?? []) {
+      if (line.group_id && line.group_name && !seen.has(line.group_id)) {
+        seen.set(line.group_id, line.group_name);
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  }, [analiseQuery.data]);
 
   // Reseta collapse e filtros ao trocar de PA.
   useEffect(() => {
@@ -666,8 +676,6 @@ function PainelProdutoAcabado({
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
-
-  const analiseQuery = useCustoBomAnalise(selectedItem?.id ?? null);
 
   const resumoQuery = useResumoVariacoesCustoPA(selectedItem?.id ?? null);
   const totalDelta = Number(resumoQuery.data?.total_delta_cost ?? 0);
@@ -835,7 +843,7 @@ function PainelProdutoAcabado({
                       className="rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Todos os grupos</option>
-                      {(gruposQuery.data?.items ?? []).map((g) => (
+                      {bomGroups.map((g) => (
                         <option key={g.id} value={g.id}>{g.name}</option>
                       ))}
                     </select>
