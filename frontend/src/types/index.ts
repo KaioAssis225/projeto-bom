@@ -181,6 +181,9 @@ export interface FinishedProduct {
   catalogo?: string | null;
   linha?: string | null;
   designer?: string | null;
+  largura_mm?: number | null;
+  profundidade_mm?: number | null;
+  altura_mm?: number | null;
   created_at: string;
   updated_at: string;
   unit_of_measure?: { id: string; code: string };
@@ -195,6 +198,9 @@ export interface FinishedProductCreatePayload {
   catalogo?: string | null;
   linha?: string | null;
   designer?: string | null;
+  largura_mm?: number | null;
+  profundidade_mm?: number | null;
+  altura_mm?: number | null;
 }
 
 export interface FinishedProductUpdatePayload {
@@ -205,6 +211,9 @@ export interface FinishedProductUpdatePayload {
   catalogo?: string | null;
   linha?: string | null;
   designer?: string | null;
+  largura_mm?: number | null;
+  profundidade_mm?: number | null;
+  altura_mm?: number | null;
 }
 
 export interface FinishedProductListParams extends PaginationParams {
