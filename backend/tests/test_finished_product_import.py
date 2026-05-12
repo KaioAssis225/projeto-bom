@@ -39,9 +39,9 @@ def test_to_decimal_whitespace_raises():
 
 
 def test_to_decimal_mixed_separators():
-    """Test decimal with multiple separators."""
-    # Only the first comma should be replaced with dot
-    assert to_decimal("1.234,56") == Decimal("1.234.56")
+    """Test that a value with both dot and comma separators raises ValueError."""
+    with pytest.raises(ValueError):
+        to_decimal("1.234,56")
 
 
 def test_to_decimal_negative():

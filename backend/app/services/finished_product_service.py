@@ -20,7 +20,7 @@ from app.schemas.finished_product import (
 logger = logging.getLogger("app.finished_product")
 
 _ITEM_FIELDS = {"code", "description", "unit_of_measure_id", "notes", "active"}
-_FP_FIELDS = {"peso_liquido", "catalogo", "linha", "designer"}
+_FP_FIELDS = {"peso_liquido", "catalogo", "linha", "designer", "largura_mm", "profundidade_mm", "altura_mm"}
 
 
 def _to_response(item: Item) -> FinishedProductResponse:
@@ -36,6 +36,9 @@ def _to_response(item: Item) -> FinishedProductResponse:
         catalogo=fp.catalogo if fp else None,
         linha=fp.linha if fp else None,
         designer=fp.designer if fp else None,
+        largura_mm=fp.largura_mm if fp else None,
+        profundidade_mm=fp.profundidade_mm if fp else None,
+        altura_mm=fp.altura_mm if fp else None,
         created_at=item.created_at,
         updated_at=item.updated_at,
         unit_of_measure=item.unit_of_measure,
