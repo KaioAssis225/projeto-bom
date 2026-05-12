@@ -78,6 +78,22 @@ class FinishedProductImportService:
                 peso_liquido = None
                 err("peso_liquido", str(exc))
 
+            largura_mm = None
+            profundidade_mm = None
+            altura_mm = None
+            try:
+                largura_mm = to_decimal(row.get("largura_mm"))
+            except ValueError as exc:
+                err("largura_mm", str(exc))
+            try:
+                profundidade_mm = to_decimal(row.get("profundidade_mm"))
+            except ValueError as exc:
+                err("profundidade_mm", str(exc))
+            try:
+                altura_mm = to_decimal(row.get("altura_mm"))
+            except ValueError as exc:
+                err("altura_mm", str(exc))
+
             if line_errors:
                 errors.extend(line_errors)
                 continue
@@ -95,6 +111,9 @@ class FinishedProductImportService:
                 "catalogo": row.get("catalogo"),
                 "linha": row.get("linha"),
                 "designer": row.get("designer"),
+                "largura_mm": largura_mm,
+                "profundidade_mm": profundidade_mm,
+                "altura_mm": altura_mm,
             }
             prepared.append((item_data, fp_data))
 

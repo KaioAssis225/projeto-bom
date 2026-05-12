@@ -25,11 +25,13 @@ router = APIRouter(tags=["produtos-acabados"])
 
 _HEADERS = [
     "code", "description", "unit_of_measure_code",
-    "peso_liquido", "catalogo", "linha", "designer", "notes",
+    "peso_liquido", "catalogo", "linha", "designer",
+    "largura_mm", "profundidade_mm", "altura_mm", "notes",
 ]
 _EXAMPLE = [
     "PA001", "EXEMPLO PRODUTO ACABADO", "UN",
-    "0,500", "CAT-2026", "Premium", "Designer X", "observacao opcional",
+    "0,500", "CAT-2026", "Premium", "Designer X",
+    "100,00", "50,00", "30,00", "observacao opcional",
 ]
 _TEMPLATE_CSV = ";".join(_HEADERS) + "\r\n" + ";".join(_EXAMPLE) + "\r\n"
 
