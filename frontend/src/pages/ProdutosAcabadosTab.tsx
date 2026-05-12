@@ -30,9 +30,9 @@ const produtoSchema = z.object({
   catalogo: z.string().max(120).optional().nullable(),
   linha: z.string().max(120).optional().nullable(),
   designer: z.string().max(120).optional().nullable(),
-  largura_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
-  profundidade_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
-  altura_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
+  largura_mm: z.number().optional().nullable(),
+  profundidade_mm: z.number().optional().nullable(),
+  altura_mm: z.number().optional().nullable(),
 });
 
 type ProdutoFormValues = z.infer<typeof produtoSchema>;
@@ -112,9 +112,9 @@ function ProdutosAcabadosModal({
             catalogo: values.catalogo ?? undefined,
             linha: values.linha ?? undefined,
             designer: values.designer ?? undefined,
-            largura_mm: values.largura_mm ?? undefined,
-            profundidade_mm: values.profundidade_mm ?? undefined,
-            altura_mm: values.altura_mm ?? undefined,
+            largura_mm: values.largura_mm,
+            profundidade_mm: values.profundidade_mm,
+            altura_mm: values.altura_mm,
           },
         });
       } else {
@@ -126,9 +126,9 @@ function ProdutosAcabadosModal({
           catalogo: values.catalogo ?? undefined,
           linha: values.linha ?? undefined,
           designer: values.designer ?? undefined,
-          largura_mm: values.largura_mm ?? undefined,
-          profundidade_mm: values.profundidade_mm ?? undefined,
-          altura_mm: values.altura_mm ?? undefined,
+          largura_mm: values.largura_mm,
+          profundidade_mm: values.profundidade_mm,
+          altura_mm: values.altura_mm,
         });
       }
       onClose();
