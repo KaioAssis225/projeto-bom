@@ -30,6 +30,9 @@ const produtoSchema = z.object({
   catalogo: z.string().max(120).optional().nullable(),
   linha: z.string().max(120).optional().nullable(),
   designer: z.string().max(120).optional().nullable(),
+  largura_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
+  profundidade_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
+  altura_mm: z.number().positive("Deve ser maior que zero").optional().nullable(),
 });
 
 type ProdutoFormValues = z.infer<typeof produtoSchema>;
@@ -60,6 +63,9 @@ function ProdutosAcabadosModal({
       catalogo: null,
       linha: null,
       designer: null,
+      largura_mm: null,
+      profundidade_mm: null,
+      altura_mm: null,
     },
   });
 
@@ -73,6 +79,9 @@ function ProdutosAcabadosModal({
         catalogo: null,
         linha: null,
         designer: null,
+        largura_mm: null,
+        profundidade_mm: null,
+        altura_mm: null,
       });
       return;
     }
@@ -85,6 +94,9 @@ function ProdutosAcabadosModal({
       catalogo: item?.catalogo ?? null,
       linha: item?.linha ?? null,
       designer: item?.designer ?? null,
+      largura_mm: item?.largura_mm ?? null,
+      profundidade_mm: item?.profundidade_mm ?? null,
+      altura_mm: item?.altura_mm ?? null,
     });
   }, [form, item, open]);
 
@@ -100,6 +112,9 @@ function ProdutosAcabadosModal({
             catalogo: values.catalogo ?? undefined,
             linha: values.linha ?? undefined,
             designer: values.designer ?? undefined,
+            largura_mm: values.largura_mm ?? undefined,
+            profundidade_mm: values.profundidade_mm ?? undefined,
+            altura_mm: values.altura_mm ?? undefined,
           },
         });
       } else {
@@ -111,6 +126,9 @@ function ProdutosAcabadosModal({
           catalogo: values.catalogo ?? undefined,
           linha: values.linha ?? undefined,
           designer: values.designer ?? undefined,
+          largura_mm: values.largura_mm ?? undefined,
+          profundidade_mm: values.profundidade_mm ?? undefined,
+          altura_mm: values.altura_mm ?? undefined,
         });
       }
       onClose();
@@ -258,6 +276,77 @@ function ProdutosAcabadosModal({
                     {form.formState.errors.peso_liquido.message}
                   </p>
                 ) : null}
+              </div>
+            </div>
+
+            {/* Dimensões */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">
+                Dimensões (mm)
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="pa-largura" className="text-xs text-slate-500">
+                    L — Largura
+                  </label>
+                  <input
+                    id="pa-largura"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    disabled={isSubmitting}
+                    placeholder="0,00"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    {...form.register("largura_mm", {
+                      setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+                    })}
+                  />
+                  {form.formState.errors.largura_mm ? (
+                    <p className="text-xs text-red-600">{form.formState.errors.largura_mm.message}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="pa-profundidade" className="text-xs text-slate-500">
+                    P — Profundidade
+                  </label>
+                  <input
+                    id="pa-profundidade"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    disabled={isSubmitting}
+                    placeholder="0,00"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    {...form.register("profundidade_mm", {
+                      setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+                    })}
+                  />
+                  {form.formState.errors.profundidade_mm ? (
+                    <p className="text-xs text-red-600">{form.formState.errors.profundidade_mm.message}</p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="pa-altura" className="text-xs text-slate-500">
+                    H — Altura
+                  </label>
+                  <input
+                    id="pa-altura"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    disabled={isSubmitting}
+                    placeholder="0,00"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    {...form.register("altura_mm", {
+                      setValueAs: (v) => (v === "" || v === null ? null : Number(v)),
+                    })}
+                  />
+                  {form.formState.errors.altura_mm ? (
+                    <p className="text-xs text-red-600">{form.formState.errors.altura_mm.message}</p>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -415,8 +504,8 @@ function TableSkeleton() {
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="animate-pulse space-y-4 p-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-9 gap-4">
-            {Array.from({ length: 9 }).map((__, j) => (
+          <div key={i} className="grid grid-cols-10 gap-4">
+            {Array.from({ length: 10 }).map((__, j) => (
               <div key={j} className="h-4 rounded bg-slate-200" />
             ))}
           </div>
@@ -427,6 +516,16 @@ function TableSkeleton() {
 }
 
 // ─── ProdutosAcabadosTab (main) ───────────────────────────────────────────────
+
+function formatDimensoes(item: FinishedProduct): string {
+  const parts = [
+    item.largura_mm != null ? String(item.largura_mm) : null,
+    item.profundidade_mm != null ? String(item.profundidade_mm) : null,
+    item.altura_mm != null ? String(item.altura_mm) : null,
+  ].filter(Boolean);
+  if (parts.length === 0) return "—";
+  return parts.join(" × ") + " mm";
+}
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -569,6 +668,7 @@ export default function ProdutosAcabadosTab() {
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Descrição</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">Peso</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Dimensões</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Catálogo</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Linha</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Designer</th>
@@ -590,6 +690,7 @@ export default function ProdutosAcabadosTab() {
                             ? formatDecimal(item.peso_liquido, 3)
                             : "—"}
                         </td>
+                        <td className="px-4 py-3 text-slate-600 tabular-nums">{formatDimensoes(item)}</td>
                         <td className="px-4 py-3 text-slate-600">{item.catalogo ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{item.linha ?? "—"}</td>
                         <td className="px-4 py-3 text-slate-600">{item.designer ?? "—"}</td>
@@ -622,7 +723,7 @@ export default function ProdutosAcabadosTab() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-sm text-slate-500">
+                      <td colSpan={10} className="px-4 py-12 text-center text-sm text-slate-500">
                         Nenhum produto acabado encontrado para os filtros aplicados
                       </td>
                     </tr>
