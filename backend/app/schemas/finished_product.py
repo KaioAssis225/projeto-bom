@@ -18,6 +18,9 @@ class FinishedProductCreate(BaseSchema):
     catalogo: str | None = Field(default=None, max_length=120)
     linha: str | None = Field(default=None, max_length=120)
     designer: str | None = Field(default=None, max_length=120)
+    largura_mm: Decimal | None = None
+    profundidade_mm: Decimal | None = None
+    altura_mm: Decimal | None = None
 
 
 class FinishedProductUpdate(BaseSchema):
@@ -28,6 +31,9 @@ class FinishedProductUpdate(BaseSchema):
     catalogo: str | None = Field(default=None, max_length=120)
     linha: str | None = Field(default=None, max_length=120)
     designer: str | None = Field(default=None, max_length=120)
+    largura_mm: Decimal | None = None
+    profundidade_mm: Decimal | None = None
+    altura_mm: Decimal | None = None
 
 
 class _UomSummary(BaseSchema):
@@ -47,6 +53,9 @@ class FinishedProductResponse(BaseSchema):
     catalogo: str | None
     linha: str | None
     designer: str | None
+    largura_mm: Decimal | None
+    profundidade_mm: Decimal | None
+    altura_mm: Decimal | None
     created_at: datetime
     updated_at: datetime
     unit_of_measure: _UomSummary

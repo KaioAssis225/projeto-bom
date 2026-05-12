@@ -23,5 +23,8 @@ class FinishedProduct(Base):
     catalogo: Mapped[str | None] = mapped_column(String(120), nullable=True)
     linha: Mapped[str | None] = mapped_column(String(120), nullable=True)
     designer: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    largura_mm: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    profundidade_mm: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    altura_mm: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
 
     item: Mapped["Item"] = relationship(back_populates="finished_product")
