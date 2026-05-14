@@ -20,7 +20,7 @@ router = APIRouter(tags=["setores"])
 @router.get("/", response_model=SetorPaginatedResponse)
 def list_setores(
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=20, ge=1, le=500),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
 ) -> SetorPaginatedResponse:
