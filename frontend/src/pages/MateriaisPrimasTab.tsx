@@ -11,6 +11,7 @@ import { TEMPLATE_CSV_URL } from "@/api/materias-primas";
 import CsvImportDialog from "@/components/CsvImportDialog";
 import { useFornecedores } from "@/hooks/useFornecedores";
 import { useGrupos } from "@/hooks/useGrupos";
+import { useSetores } from "@/hooks/useSetores";
 import {
   useCreateMateriaPrima,
   useDeactivateMateriaPrima,
@@ -21,7 +22,7 @@ import {
 import { usePrecoHistory, useSetPreco } from "@/hooks/usePrecos";
 import { useUnidades } from "@/hooks/useUnidades";
 import { cn, extractErrorMessage, formatCurrency, formatDate, formatDecimal, supplierLabel } from "@/lib/utils";
-import type { MaterialGroup, RawMaterial, Supplier, UnitOfMeasure } from "@/types";
+import type { MaterialGroup, RawMaterial, Setor, Supplier, UnitOfMeasure } from "@/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -184,6 +185,7 @@ const materiaisSchema = z
       .transform((v) => v.toUpperCase()),
     unit_of_measure_id: z.string().min(1, "Selecione uma unidade válida"),
     material_group_id: z.string().min(1, "Selecione um grupo válido"),
+    setor_id: z.string().min(1, "Selecione um setor válido"),
     supplier_id: z.string().optional().nullable(),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
     unidade_conversao_id: z.string().optional().nullable(),
@@ -212,6 +214,7 @@ function MateriaisPrimasModal({
   groups,
   units,
   suppliers,
+  setores,
   onClose,
 }: {
   open: boolean;
@@ -219,6 +222,7 @@ function MateriaisPrimasModal({
   groups: MaterialGroup[];
   units: UnitOfMeasure[];
   suppliers: Supplier[];
+  setores: Setor[];
   onClose: () => void;
 }) {
   const isEditing = item !== null;
@@ -242,6 +246,7 @@ function MateriaisPrimasModal({
       unit_of_measure_id: "",
       unidade_conversao_id: null,
       material_group_id: "",
+      setor_id: "",
       supplier_id: null,
       peso_liquido: null,
       custo: null,
@@ -263,6 +268,7 @@ function MateriaisPrimasModal({
         unit_of_measure_id: "",
         unidade_conversao_id: null,
         material_group_id: "",
+        setor_id: "",
         supplier_id: null,
         peso_liquido: null,
         custo: null,
@@ -279,6 +285,7 @@ function MateriaisPrimasModal({
       unit_of_measure_id: item?.unit_of_measure_id ?? "",
       unidade_conversao_id: item?.unidade_conversao_id ?? null,
       material_group_id: item?.material_group_id ?? "",
+      setor_id: item?.setor_id ?? "",
       supplier_id: item?.supplier_id ?? null,
       peso_liquido: item?.peso_liquido ?? null,
       custo: null,
@@ -312,6 +319,7 @@ function MateriaisPrimasModal({
             active: item.active,
             notes: values.notes?.trim() || undefined,
             material_group_id: values.material_group_id,
+            setor_id: values.setor_id,
             supplier_id: values.supplier_id ?? undefined,
             peso_liquido: values.peso_liquido ?? undefined,
             unidade_conversao_id: values.unidade_conversao_id ?? undefined,
@@ -324,6 +332,7 @@ function MateriaisPrimasModal({
           description: values.description.trim(),
           unit_of_measure_id: values.unit_of_measure_id,
           material_group_id: values.material_group_id,
+          setor_id: values.setor_id,
           supplier_id: values.supplier_id ?? undefined,
           peso_liquido: values.peso_liquido ?? undefined,
           unidade_conversao_id: values.unidade_conversao_id ?? undefined,
@@ -492,6 +501,39 @@ function MateriaisPrimasModal({
                   </p>
                 ) : null}
               </div>
+            </div>
+
+            {/* Setor */}
+            <div className="space-y-2">
+              <label htmlFor="mp-setor" className="text-sm font-medium text-slate-700">
+                Setor <span className="text-red-600">*</span>
+              </label>
+              <Controller
+                name="setor_id"
+                control={form.control}
+                render={({ field }) => (
+                  <select
+                    id="mp-setor"
+                    disabled={isSubmitting}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                    value={field.value ?? ""}
+                    onBlur={field.onBlur}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {setores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              />
+              {form.formState.errors.setor_id ? (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.setor_id.message}
+                </p>
+              ) : null}
             </div>
 
             {/* Fornecedor */}
@@ -784,8 +826,8 @@ function TableSkeleton() {
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="animate-pulse space-y-4 p-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="grid grid-cols-9 gap-4">
-            {Array.from({ length: 9 }).map((__, j) => (
+          <div key={i} className="grid grid-cols-10 gap-4">
+            {Array.from({ length: 10 }).map((__, j) => (
               <div key={j} className="h-4 rounded bg-slate-200" />
             ))}
           </div>
@@ -809,6 +851,7 @@ export default function MateriaisPrimasTab() {
   const importMutation = useImportMateriasPrimasCsv();
 
   const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 100 });
+  const setoresQuery = useSetores({ active_only: true, skip: 0, limit: 200 });
   const unitsQuery = useUnidades({ skip: 0, limit: 100 });
   const fornecedoresQuery = useFornecedores({ active_only: true, skip: 0, limit: 100 });
 
@@ -939,6 +982,7 @@ export default function MateriaisPrimasTab() {
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Descrição</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Grupo</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Setor</th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-600">Unidade</th>
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">
                       Fat. Conversão
@@ -963,6 +1007,9 @@ export default function MateriaisPrimasTab() {
                         <td className="px-4 py-3 text-slate-700">{item.description}</td>
                         <td className="px-4 py-3 text-slate-600">
                           {item.material_group?.name ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {item.setor?.name ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           {item.unit_of_measure?.code ?? "—"}
@@ -1006,7 +1053,7 @@ export default function MateriaisPrimasTab() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={9}
+                        colSpan={10}
                         className="px-4 py-12 text-center text-sm text-slate-500"
                       >
                         Nenhuma matéria-prima encontrada para os filtros aplicados
@@ -1050,6 +1097,7 @@ export default function MateriaisPrimasTab() {
         groups={(groupsQuery.data?.items ?? []).filter((g) => g.active)}
         units={unitsQuery.data?.items ?? []}
         suppliers={(fornecedoresQuery.data?.items ?? []).filter((s) => s.active)}
+        setores={setoresQuery.data?.items ?? []}
         onClose={() => {
           setModalOpen(false);
           setSelectedItem(null);
