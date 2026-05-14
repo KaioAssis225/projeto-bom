@@ -18,6 +18,7 @@ const primaryItems: NavItem[] = [
 
 const secondaryItems: NavItem[] = [
   { label: "Grupos", to: "/grupos", icon: Boxes },
+  { label: "Setores", to: "/setores", icon: Boxes },
   { label: "Unidades", to: "/unidades", icon: Ruler },
   { label: "Fornecedores", to: "/fornecedores", icon: Truck },
   { label: "Importações", to: "/importacoes", icon: Upload },
