@@ -12,6 +12,7 @@ from app.core.database import Base
 if TYPE_CHECKING:
     from app.models.item import Item
     from app.models.material_group import MaterialGroup
+    from app.models.setor import Setor
     from app.models.supplier import Supplier
     from app.models.unit_of_measure import UnitOfMeasure
 
@@ -28,6 +29,9 @@ class RawMaterial(Base):
     supplier_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("supplier.id"), nullable=True
     )
+    setor_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("setor.id"), nullable=True
+    )
     unidade_conversao_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("unit_of_measure.id"), nullable=True
     )
@@ -36,4 +40,5 @@ class RawMaterial(Base):
     item: Mapped["Item"] = relationship(back_populates="raw_material")
     material_group: Mapped["MaterialGroup"] = relationship()
     supplier: Mapped["Supplier | None"] = relationship()
+    setor: Mapped["Setor | None"] = relationship()
     unidade_conversao: Mapped["UnitOfMeasure | None"] = relationship()

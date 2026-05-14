@@ -24,6 +24,7 @@ class RawMaterialRepository:
             .options(
                 selectinload(Item.unit_of_measure),
                 selectinload(Item.raw_material).selectinload(RawMaterial.material_group),
+                selectinload(Item.raw_material).selectinload(RawMaterial.setor),
                 selectinload(Item.raw_material).selectinload(RawMaterial.supplier),
                 selectinload(Item.raw_material).selectinload(RawMaterial.unidade_conversao),
             )

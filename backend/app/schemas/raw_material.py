@@ -14,6 +14,7 @@ class RawMaterialCreate(BaseSchema):
     description: str = Field(min_length=1, max_length=255)
     unit_of_measure_id: UUID
     material_group_id: UUID
+    setor_id: UUID
     notes: str | None = None
     supplier_id: UUID | None = None
     unidade_conversao_id: UUID | None = None
@@ -24,6 +25,7 @@ class RawMaterialUpdate(BaseSchema):
     description: str = Field(min_length=1, max_length=255)
     active: bool
     material_group_id: UUID
+    setor_id: UUID
     notes: str | None = None
     supplier_id: UUID | None = None
     unidade_conversao_id: UUID | None = None
@@ -37,6 +39,12 @@ class _UomSummary(BaseSchema):
 
 
 class _GroupSummary(BaseSchema):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    name: str
+
+
+class _SetorSummary(BaseSchema):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     name: str
@@ -56,6 +64,7 @@ class RawMaterialResponse(BaseSchema):
     notes: str | None
     unit_of_measure_id: UUID
     material_group_id: UUID
+    setor_id: UUID | None
     supplier_id: UUID | None
     unidade_conversao_id: UUID | None
     peso_liquido: Decimal | None
@@ -63,6 +72,7 @@ class RawMaterialResponse(BaseSchema):
     updated_at: datetime
     unit_of_measure: _UomSummary
     material_group: _GroupSummary
+    setor: _SetorSummary | None
     supplier: _SupplierSummary | None
     unidade_conversao: _UomSummary | None
 
