@@ -3,6 +3,7 @@ from app.models.bom import Bom
 from app.models.bom_cost_impact import BomCostImpact
 from app.models.bom_item import BomItem
 from app.models.calculation_execution_log import CalculationExecutionLog, CalculationStatus
+from app.models.estoque_movimento import EstoqueMovimento
 from app.models.finished_product import FinishedProduct
 from app.models.item import Item, ItemType
 from app.models.item_price_history import ItemPriceHistory
@@ -20,6 +21,7 @@ __all__ = [
     "BomItem",
     "CalculationExecutionLog",
     "CalculationStatus",
+    "EstoqueMovimento",
     "FinishedProduct",
     "Item",
     "ItemPriceHistory",
