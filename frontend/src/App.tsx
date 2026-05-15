@@ -7,6 +7,7 @@ import BomPage from "@/pages/BomPage";
 import CalculosPage from "@/pages/CalculosPage";
 import FornecedoresPage from "@/pages/FornecedoresPage";
 import GruposPage from "@/pages/GruposPage";
+import EstoqueAluminioPage from "@/pages/EstoqueAluminioPage";
 import SetoresPage from "@/pages/SetoresPage";
 import ImportacoesPage from "@/pages/ImportacoesPage";
 import ItensPage from "@/pages/ItensPage";
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/calculos" element={<CalculosPage />} />
             <Route path="/grupos" element={<GruposPage />} />
             <Route path="/setores" element={<SetoresPage />} />
+            <Route path="/estoque-aluminio" element={<EstoqueAluminioPage />} />
             <Route path="/unidades" element={<UnidadesPage />} />
             <Route path="/fornecedores" element={<FornecedoresPage />} />
             <Route path="/logs" element={<LogsPage />} />
