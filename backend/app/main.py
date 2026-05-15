@@ -20,6 +20,7 @@ from app.api.routers.prices import router as prices_router
 from app.api.routers.raw_material import router as raw_material_router
 from app.api.routers.suppliers import router as suppliers_router
 from app.api.routers.setores import router as setores_router
+from app.api.routers.estoque_aluminio import router as estoque_aluminio_router
 from app.api.routers.unit_of_measures import router as unit_of_measures_router
 from app.core.config import settings
 from app.core.error_handlers import register_exception_handlers
@@ -122,3 +123,4 @@ app.include_router(audit_router, prefix="/api/v1/auditoria", tags=["auditoria"])
 app.include_router(suppliers_router, prefix="/api/v1/fornecedores", tags=["fornecedores"])
 app.include_router(unit_of_measures_router, prefix="/api/v1/unidades", tags=["unidades"])
 app.include_router(setores_router, prefix="/api/v1/setores", tags=["setores"])
+app.include_router(estoque_aluminio_router, prefix="/api/v1/estoque-aluminio", tags=["estoque-aluminio"])
