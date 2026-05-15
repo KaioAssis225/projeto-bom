@@ -514,6 +514,7 @@ function VariacaoTotalBadge({ delta }: { delta: number }) {
 }
 
 function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof useCustoBomAnalise> }) {
+  const [openSetores, setOpenSetores] = React.useState<Set<string>>(new Set());
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set());
 
   // Map<setorKey, Map<groupKey, BomAnalysisLine[]>>
@@ -530,6 +531,15 @@ function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof use
     }
     return result;
   }, [analiseQuery.data]);
+
+  function toggleSetor(key: string) {
+    setOpenSetores((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function toggleGroup(key: string) {
     setOpenGroups((prev) => {
@@ -574,19 +584,31 @@ function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof use
                       .flat()
                       .reduce((s, l) => s + (l.missing_price ? 0 : Number(l.line_cost)), 0);
 
+                    const isSetorOpen = openSetores.has(setorName);
                     return (
                       <React.Fragment key={setorName}>
-                        {/* Linha de setor */}
-                        <tr className="bg-slate-200">
-                          <td colSpan={2} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700">
-                            {setorName}
+                        {/* Linha de setor — clicável */}
+                        <tr
+                          className="cursor-pointer bg-slate-200 hover:bg-slate-300"
+                          onClick={() => toggleSetor(setorName)}
+                        >
+                          <td colSpan={2} className="px-4 py-2">
+                            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-700">
+                              <ChevronDown
+                                className={cn(
+                                  "h-3.5 w-3.5 text-slate-500 transition-transform",
+                                  !isSetorOpen && "-rotate-90",
+                                )}
+                              />
+                              {setorName}
+                            </span>
                           </td>
                           <td className="px-4 py-2 text-right text-xs font-bold tabular-nums text-slate-700">
                             R$ {formatCurrency(setorTotal)}
                           </td>
                         </tr>
 
-                        {Array.from(groupMap.entries())
+                        {isSetorOpen && Array.from(groupMap.entries())
                           .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
                           .map(([groupName, mpLines]) => {
                             const groupKey = `${setorName}||${groupName}`;
