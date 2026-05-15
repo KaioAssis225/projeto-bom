@@ -485,3 +485,37 @@ export interface BomCostImpact {
   changed_reason: string | null;
   created_at: string;
 }
+
+export interface EstoqueItem {
+  item_id: string;
+  code: string;
+  description: string;
+  uom: string;
+  uom2: string | null;
+  saldo_uom1: number;
+  saldo_uom2: number | null;
+  estoque_minimo: number | null;
+  abaixo_minimo: boolean;
+}
+
+export interface EstoqueMovimento {
+  id: string;
+  item_id: string;
+  tipo: 'entrada' | 'saida';
+  quantidade: number;
+  solicitante: string | null;
+  created_at: string;
+}
+
+export interface EstoqueEntradaPayload {
+  quantidade: number;
+}
+
+export interface EstoqueSaidaPayload {
+  quantidade: number;
+  solicitante?: string;
+}
+
+export interface EstoqueMinimoPayload {
+  estoque_minimo: number | null;
+}
