@@ -557,35 +557,35 @@ function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof use
             Falha ao carregar composição de matérias-primas.
           </div>
         ) : bySetor ? (
-          <div className="space-y-3">
-            {Array.from(bySetor.entries())
-              .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
-              .map(([setorName, groupMap]) => {
-                const setorTotal = Array.from(groupMap.values())
-                  .flat()
-                  .reduce((s, l) => s + (l.missing_price ? 0 : Number(l.line_cost)), 0);
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-2 text-left">Código</th>
+                  <th className="px-4 py-2 text-left">Descrição</th>
+                  <th className="px-4 py-2 text-right">Custo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {Array.from(bySetor.entries())
+                  .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
+                  .map(([setorName, groupMap]) => {
+                    const setorTotal = Array.from(groupMap.values())
+                      .flat()
+                      .reduce((s, l) => s + (l.missing_price ? 0 : Number(l.line_cost)), 0);
 
-                return (
-                  <div key={setorName} className="overflow-hidden rounded-xl border border-slate-200">
-                    {/* Cabeçalho do setor */}
-                    <div className="flex items-center justify-between bg-slate-200 px-4 py-2">
-                      <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
-                        {setorName}
-                      </span>
-                      <span className="text-xs font-bold tabular-nums text-slate-700">
-                        R$ {formatCurrency(setorTotal)}
-                      </span>
-                    </div>
-
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <tr>
-                          <th className="px-4 py-2 text-left">Código</th>
-                          <th className="px-4 py-2 text-left">Descrição</th>
-                          <th className="px-4 py-2 text-right">Custo</th>
+                    return (
+                      <React.Fragment key={setorName}>
+                        {/* Linha de setor */}
+                        <tr className="bg-slate-200">
+                          <td colSpan={2} className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700">
+                            {setorName}
+                          </td>
+                          <td className="px-4 py-2 text-right text-xs font-bold tabular-nums text-slate-700">
+                            R$ {formatCurrency(setorTotal)}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
+
                         {Array.from(groupMap.entries())
                           .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
                           .map(([groupName, mpLines]) => {
@@ -638,11 +638,11 @@ function MpGroupsSection({ analiseQuery }: { analiseQuery: ReturnType<typeof use
                               </React.Fragment>
                             );
                           })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })}
+                      </React.Fragment>
+                    );
+                  })}
+              </tbody>
+            </table>
           </div>
         ) : null}
       </div>
