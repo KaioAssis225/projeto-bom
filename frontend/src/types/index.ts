@@ -35,6 +35,7 @@ export interface MaterialGroupCreatePayload {
 }
 
 export interface MaterialGroupUpdatePayload {
+  code?: string;
   name: string;
   description?: string;
   active: boolean;

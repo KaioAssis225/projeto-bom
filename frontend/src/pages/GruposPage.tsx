@@ -67,7 +67,7 @@ function GroupModal({
     if (isEditing && item) {
       await updateGrupo.mutateAsync({
         id: item.id,
-        data: { name: payload.name, active: item.active },
+        data: { code: payload.code, name: payload.name, active: item.active },
       });
     } else {
       await createGrupo.mutateAsync(payload);

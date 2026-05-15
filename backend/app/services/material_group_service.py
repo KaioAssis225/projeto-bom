@@ -55,6 +55,11 @@ class MaterialGroupService:
                 detail="Material group not found",
             )
 
+        if payload.code is not None and payload.code != existing.code:
+            conflict = self.repository.get_by_code(payload.code)
+            if conflict is not None:
+                raise DuplicateCodeError("Material group code already exists")
+
         updated = self.repository.update(id=id, data=payload.model_dump(exclude_none=True))
         logger.info("Material group updated: id=%s code=%s", updated.id, updated.code)
         return updated

@@ -29,12 +29,14 @@ class MaterialGroupUpdate(BaseSchema):
         from_attributes=True,
         json_schema_extra={
             "example": {
+                "code": "MET",
                 "name": "Metais Ferrosos",
                 "description": "Grupo revisado para metais ferrosos",
                 "active": True,
             }
         },
     )
+    code: str | None = Field(default=None, min_length=1, max_length=3)
     name: str = Field(min_length=1, max_length=120)
     description: str | None = None
     active: bool
