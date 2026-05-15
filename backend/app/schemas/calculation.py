@@ -79,6 +79,8 @@ class BomAnalysisLine(BaseSchema):
     missing_price: bool
     uom2: str | None = None
     quantity2: Decimal | None = None
+    setor_id: UUID | None = None
+    setor_name: str | None = None
 
 
 class BomCostAnalysis(BaseSchema):

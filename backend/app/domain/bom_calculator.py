@@ -20,6 +20,8 @@ class BomNode:
     children: list[UUID]
     uom2: str | None = None
     peso_liquido: Decimal | None = None
+    setor_id: UUID | None = None
+    setor_name: str | None = None
 
 
 @dataclass(slots=True)

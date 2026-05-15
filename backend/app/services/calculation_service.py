@@ -96,10 +96,12 @@ class CalculationService:
                     missing_price=not has_price,
                     uom2=node.uom2,
                     quantity2=quantity2,
+                    setor_id=node.setor_id,
+                    setor_name=node.setor_name,
                 )
             )
 
-        lines.sort(key=lambda line: (line.group_name or "\uffff", line.code))
+        lines.sort(key=lambda line: (line.setor_name or "\uffff", line.group_name or "\uffff", line.code))
         return BomCostAnalysis(
             item_id=item_id,
             custo_total=total,
@@ -273,6 +275,8 @@ class CalculationService:
                     children=children_map.get(row["item_id"], []),
                     uom2=row.get("uom2"),
                     peso_liquido=row.get("peso_liquido"),
+                    setor_id=row.get("setor_id"),
+                    setor_name=row.get("setor_name"),
                 )
             )
         return nodes
