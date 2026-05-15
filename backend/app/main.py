@@ -37,7 +37,7 @@ def _run_migrations() -> None:
     """Run Alembic migrations programmatically at startup."""
     try:
         from pathlib import Path
-        alembic_cfg = AlembicConfig(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        alembic_cfg = AlembicConfig(str(Path(__file__).resolve().parents[1] / "alembic.ini"))
         alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
         alembic_command.upgrade(alembic_cfg, "head")
         logger.info("database_migrations_ok")
