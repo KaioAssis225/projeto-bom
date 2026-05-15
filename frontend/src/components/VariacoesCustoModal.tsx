@@ -25,46 +25,92 @@ function SectionHeading({ title }: { title: string }) {
   );
 }
 
+type GroupMap = Map<string, BomAnalysisLine[]>;
+type SetorMap = Map<string, GroupMap>;
+
+function groupLines(lines: BomAnalysisLine[]): SetorMap {
+  const result: SetorMap = new Map();
+  for (const line of lines) {
+    const setorKey = line.setor_name ?? "Sem setor";
+    const groupKey = line.group_name ?? "Sem grupo";
+    if (!result.has(setorKey)) result.set(setorKey, new Map());
+    const gm = result.get(setorKey)!;
+    if (!gm.has(groupKey)) gm.set(groupKey, []);
+    gm.get(groupKey)!.push(line);
+  }
+  return result;
+}
+
 function MpBreakdownTable({ lines }: { lines: BomAnalysisLine[] }) {
   if (lines.length === 0) {
     return (
       <p className="text-sm text-slate-500">Nenhuma matéria-prima encontrada na BOM.</p>
     );
   }
+
+  const setorMap = groupLines(lines);
+  const setorEntries = Array.from(setorMap.entries()).sort(([a], [b]) =>
+    a.localeCompare(b, "pt-BR")
+  );
+
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-4 py-2 text-left">Código</th>
-            <th className="px-4 py-2 text-left">Descrição</th>
-            <th className="px-4 py-2 text-right">Custo</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100 bg-white">
-          {lines.map((line) => (
-            <tr
-              key={line.item_id}
-              className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}
-            >
-              <td className="px-4 py-2 font-mono text-xs text-slate-700">{line.code}</td>
-              <td className="px-4 py-2 text-slate-700">
-                {line.description}
-                {line.missing_price ? (
-                  <span className="ml-2 text-xs font-medium text-yellow-700">sem preço</span>
-                ) : null}
-              </td>
-              <td className="px-4 py-2 text-right tabular-nums text-slate-900">
-                {line.missing_price ? (
-                  <span className="text-yellow-600">—</span>
-                ) : (
-                  <>R$ {formatCurrency(line.line_cost)}</>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-3">
+      {setorEntries.map(([setorName, groupMap]) => {
+        const setorTotal = Array.from(groupMap.values())
+          .flat()
+          .reduce((sum, l) => sum + Number(l.line_cost), 0);
+        const groupEntries = Array.from(groupMap.entries()).sort(([a], [b]) =>
+          a.localeCompare(b, "pt-BR")
+        );
+
+        return (
+          <div key={setorName} className="overflow-hidden rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between bg-slate-100 px-4 py-2">
+              <span className="text-sm font-semibold text-slate-700">{setorName}</span>
+              <span className="text-sm font-semibold tabular-nums text-slate-900">
+                R$ {formatCurrency(setorTotal)}
+              </span>
+            </div>
+
+            {groupEntries.map(([groupName, mpLines]) => (
+              <div key={groupName}>
+                <div className="border-t border-slate-100 bg-slate-50 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {groupName}
+                </div>
+                <table className="min-w-full divide-y divide-slate-100 text-sm">
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {mpLines.map((line) => (
+                      <tr
+                        key={line.item_id}
+                        className={line.missing_price ? "bg-yellow-50" : "hover:bg-slate-50"}
+                      >
+                        <td className="px-4 py-2 font-mono text-xs text-slate-700">
+                          {line.code}
+                        </td>
+                        <td className="px-4 py-2 text-slate-700">
+                          {line.description}
+                          {line.missing_price ? (
+                            <span className="ml-2 text-xs font-medium text-yellow-700">
+                              sem preço
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-slate-900">
+                          {line.missing_price ? (
+                            <span className="text-yellow-600">—</span>
+                          ) : (
+                            <>R$ {formatCurrency(line.line_cost)}</>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

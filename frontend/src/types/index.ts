@@ -363,6 +363,8 @@ export interface BomAnalysisLine {
   description: string;
   group_id: string | null;
   group_name: string | null;
+  setor_id: string | null;
+  setor_name: string | null;
   uom: string;
   quantity: number;
   price: number;
