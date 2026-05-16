@@ -116,6 +116,30 @@ class EstoqueAluminioRepository:
         )
         return int(self.db.scalar(stmt) or 0)
 
+    def get_ultimos_movimentos(self, limit: int) -> list[dict]:
+        stmt = text("""
+            SELECT
+                em.id,
+                em.item_id,
+                em.tipo,
+                em.quantidade,
+                em.solicitante,
+                em.created_at,
+                i.code AS item_code,
+                i.description AS item_description,
+                uom.code AS uom
+            FROM estoque_movimento em
+            JOIN item i ON i.id = em.item_id
+            JOIN raw_material rm ON rm.item_id = i.id
+            JOIN material_group mg ON mg.id = rm.material_group_id
+            JOIN unit_of_measure uom ON uom.id = i.unit_of_measure_id
+            WHERE mg.code = :group_code
+            ORDER BY em.created_at DESC
+            LIMIT :limit
+        """)
+        rows = self.db.execute(stmt, {"group_code": ALU_GROUP_CODE, "limit": limit}).mappings().all()
+        return [dict(r) for r in rows]
+
     def set_estoque_minimo(self, item_id: UUID, estoque_minimo: Decimal | None) -> None:
         stmt = text(
             "UPDATE raw_material SET estoque_minimo = :val WHERE item_id = :item_id"

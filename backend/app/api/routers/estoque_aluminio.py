@@ -12,12 +12,21 @@ from app.schemas.estoque_aluminio import (
     EstoqueItemPaginatedResponse,
     EstoqueItemResponse,
     EstoqueMinimoPayload,
+    EstoqueMovimentoRecenteResponse,
     EstoqueMovimentoResponse,
     EstoqueSaidaPayload,
 )
 from app.services.estoque_aluminio_service import EstoqueAluminioService
 
 router = APIRouter(tags=["estoque-aluminio"])
+
+
+@router.get("/ultimos-movimentos", response_model=list[EstoqueMovimentoRecenteResponse])
+def get_ultimos_movimentos(
+    limit: int = Query(default=10, ge=1, le=50),
+    db: Session = Depends(get_db_session),
+) -> list[EstoqueMovimentoRecenteResponse]:
+    return EstoqueAluminioService(db).get_ultimos_movimentos(limit=limit)
 
 
 @router.get("/", response_model=EstoqueItemPaginatedResponse)

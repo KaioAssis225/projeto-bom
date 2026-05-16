@@ -519,3 +519,15 @@ export interface EstoqueSaidaPayload {
 export interface EstoqueMinimoPayload {
   estoque_minimo: number | null;
 }
+
+export interface EstoqueMovimentoRecente {
+  id: string;
+  item_id: string;
+  item_code: string;
+  item_description: string;
+  uom: string;
+  tipo: 'entrada' | 'saida';
+  quantidade: number;
+  solicitante: string | null;
+  created_at: string;
+}

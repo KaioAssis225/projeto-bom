@@ -12,6 +12,14 @@ export function useEstoqueAluminio() {
   });
 }
 
+export function useUltimosMovimentos(limit = 10) {
+  return useQuery({
+    queryKey: ["estoque-aluminio", "ultimos-movimentos", limit],
+    queryFn: () => estoqueApi.getUltimosMovimentos(limit),
+    refetchInterval: 30_000,
+  });
+}
+
 export function useEstoqueHistorico(itemId: string, skip: number, limit: number) {
   return useQuery({
     queryKey: ["estoque-aluminio", "historico", itemId, skip, limit],

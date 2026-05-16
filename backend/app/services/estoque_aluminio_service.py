@@ -13,6 +13,7 @@ from app.schemas.estoque_aluminio import (
     EstoqueItemPaginatedResponse,
     EstoqueItemResponse,
     EstoqueMinimoPayload,
+    EstoqueMovimentoRecenteResponse,
     EstoqueMovimentoResponse,
     EstoqueSaidaPayload,
 )
@@ -93,6 +94,10 @@ class EstoqueAluminioService:
             skip=skip,
             limit=limit,
         )
+
+    def get_ultimos_movimentos(self, limit: int) -> list[EstoqueMovimentoRecenteResponse]:
+        rows = self.repository.get_ultimos_movimentos(limit=limit)
+        return [EstoqueMovimentoRecenteResponse(**r) for r in rows]
 
     def set_estoque_minimo(
         self, item_id: UUID, payload: EstoqueMinimoPayload

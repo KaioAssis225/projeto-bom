@@ -8,9 +8,10 @@ import {
   useEstoqueAluminio,
   useEstoqueHistorico,
   useSetEstoqueMinimo,
+  useUltimosMovimentos,
 } from "@/hooks/useEstoqueAluminio";
 import { cn } from "@/lib/utils";
-import type { EstoqueItem, EstoqueMovimento } from "@/types";
+import type { EstoqueItem, EstoqueMovimento, EstoqueMovimentoRecente } from "@/types";
 
 function EntradaModal({
   item,
@@ -404,6 +405,54 @@ function HistoricoModal({
   );
 }
 
+function UltimosMovimentosWidget() {
+  const query = useUltimosMovimentos(8);
+  const movimentos: EstoqueMovimentoRecente[] = query.data ?? [];
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Últimas movimentações
+      </p>
+      {query.isLoading ? (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
+        </div>
+      ) : movimentos.length === 0 ? (
+        <p className="text-sm text-slate-400">Nenhum movimento ainda.</p>
+      ) : (
+        <ul className="space-y-1.5 overflow-y-auto">
+          {movimentos.map((mov) => (
+            <li key={mov.id} className="flex items-center gap-2 text-xs">
+              <span
+                className={cn(
+                  "w-14 shrink-0 rounded-full px-2 py-0.5 text-center font-semibold",
+                  mov.tipo === "entrada"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-slate-100 text-slate-600",
+                )}
+              >
+                {mov.tipo === "entrada" ? "Entrada" : "Saída"}
+              </span>
+              <span className="w-20 shrink-0 font-mono text-slate-500">{formatDate(mov.created_at)}</span>
+              <span className="truncate font-medium text-slate-700">{mov.item_code}</span>
+              <span className="ml-auto shrink-0 font-mono text-slate-900">
+                {Number(mov.quantidade).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}{" "}
+                <span className="text-slate-400">{mov.uom}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function TableSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -446,31 +495,38 @@ export default function EstoqueAluminioPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Estoque de Alumínios</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Controle de entradas e saídas das matérias-primas do grupo ALU.
-            </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          {/* Título + busca */}
+          <div className="flex flex-1 flex-col gap-4">
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900">Estoque de Alumínios</h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Controle de entradas e saídas das matérias-primas do grupo ALU.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por código ou descrição"
+                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              <span className="text-sm text-slate-500">
+                {estoqueQuery.data
+                  ? `${filteredItems.length} item(s) exibido(s)`
+                  : "Carregando..."}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por código ou descrição"
-              className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
+          {/* Widget de últimas movimentações */}
+          <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 lg:w-80 xl:w-96">
+            <UltimosMovimentosWidget />
           </div>
-          <span className="text-sm text-slate-500">
-            {estoqueQuery.data
-              ? `${filteredItems.length} item(s) exibido(s)`
-              : "Carregando..."}
-          </span>
         </div>
       </div>
 

@@ -43,5 +43,17 @@ class EstoqueItemResponse(BaseSchema):
     abaixo_minimo: bool
 
 
+class EstoqueMovimentoRecenteResponse(BaseSchema):
+    id: UUID
+    item_id: UUID
+    item_code: str
+    item_description: str
+    uom: str
+    tipo: str
+    quantidade: Decimal
+    solicitante: str | None
+    created_at: datetime
+
+
 EstoqueItemPaginatedResponse = PaginatedResponse[EstoqueItemResponse]
 EstoqueHistoricoPaginatedResponse = PaginatedResponse[EstoqueMovimentoResponse]

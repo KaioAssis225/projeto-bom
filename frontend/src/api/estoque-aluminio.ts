@@ -4,6 +4,7 @@ import type {
   EstoqueItem,
   EstoqueMinimoPayload,
   EstoqueMovimento,
+  EstoqueMovimentoRecente,
   EstoqueSaidaPayload,
   PaginatedResponse,
 } from "@/types";
@@ -39,6 +40,14 @@ export async function getHistorico(
   const response = await client.get<PaginatedResponse<EstoqueMovimento>>(
     `/api/v1/estoque-aluminio/${itemId}/historico`,
     { params: { skip, limit } },
+  );
+  return response.data;
+}
+
+export async function getUltimosMovimentos(limit = 10): Promise<EstoqueMovimentoRecente[]> {
+  const response = await client.get<EstoqueMovimentoRecente[]>(
+    "/api/v1/estoque-aluminio/ultimos-movimentos",
+    { params: { limit } },
   );
   return response.data;
 }
