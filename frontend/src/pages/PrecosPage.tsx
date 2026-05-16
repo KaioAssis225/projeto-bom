@@ -17,7 +17,7 @@ import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import type { BomAnalysisLine, Item } from "@/types";
 
-type TabKey = "mp" | "pa";
+type TabKey = "mp" | "pa" | "comp";
 const HISTORY_PAGE_SIZE = 20;
 
 const priceSchema = z.object({
@@ -996,6 +996,295 @@ function PainelProdutoAcabado({
   );
 }
 
+// ─── Painel: Comparação de Custos ─────────────────────────────────────────
+
+function PainelComparacaoCustos() {
+  const [itemA, setItemA] = React.useState<Item | null>(null);
+  const [itemB, setItemB] = React.useState<Item | null>(null);
+
+  const analiseA = useCustoBomAnalise(itemA?.id ?? null);
+  const analiseB = useCustoBomAnalise(itemB?.id ?? null);
+
+  const custoA = analiseA.data?.custo_total ?? null;
+  const custoB = analiseB.data?.custo_total ?? null;
+
+  const diffAbs = custoA !== null && custoB !== null ? custoA - custoB : null;
+  const diffPct =
+    custoA !== null && custoB !== null && custoB !== 0
+      ? ((custoA - custoB) / custoB) * 100
+      : null;
+
+  // Agrupa linhas por setor → { setorName: total }
+  function totalBySetor(lines: BomAnalysisLine[]): Map<string, number> {
+    const m = new Map<string, number>();
+    for (const l of lines) {
+      const k = l.setor_name ?? "Sem setor";
+      m.set(k, (m.get(k) ?? 0) + (l.missing_price ? 0 : Number(l.line_cost)));
+    }
+    return m;
+  }
+
+  const setorA = React.useMemo(
+    () => totalBySetor(analiseA.data?.lines ?? []),
+    [analiseA.data],
+  );
+  const setorB = React.useMemo(
+    () => totalBySetor(analiseB.data?.lines ?? []),
+    [analiseB.data],
+  );
+
+  const allSetores = Array.from(
+    new Set([...setorA.keys(), ...setorB.keys()]),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  const isLoading = analiseA.isLoading || analiseB.isLoading;
+  const showTable = (analiseA.data || analiseB.data) && allSetores.length > 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Seletores */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Produto A
+            </p>
+            <ItemSelector
+              type="FINISHED_PRODUCT"
+              selected={itemA}
+              onSelect={setItemA}
+              onClear={() => setItemA(null)}
+              placeholder="Buscar produto A por código ou descrição"
+            />
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Produto B
+            </p>
+            <ItemSelector
+              type="FINISHED_PRODUCT"
+              selected={itemB}
+              onSelect={setItemB}
+              onClear={() => setItemB(null)}
+              placeholder="Buscar produto B por código ou descrição"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Resumo de custo total */}
+      {(itemA || itemB) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Custo A */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
+              {itemA ? itemA.code : "Produto A"}
+            </p>
+            <p className="mt-1 text-sm text-slate-500 truncate">
+              {itemA?.description ?? "—"}
+            </p>
+            <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
+              {analiseA.isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+              ) : custoA !== null ? (
+                `R$ ${formatCurrency(custoA)}`
+              ) : (
+                <span className="text-xl text-slate-400">—</span>
+              )}
+            </p>
+          </div>
+
+          {/* Custo B */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">
+              {itemB ? itemB.code : "Produto B"}
+            </p>
+            <p className="mt-1 text-sm text-slate-500 truncate">
+              {itemB?.description ?? "—"}
+            </p>
+            <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
+              {analiseB.isLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+              ) : custoB !== null ? (
+                `R$ ${formatCurrency(custoB)}`
+              ) : (
+                <span className="text-xl text-slate-400">—</span>
+              )}
+            </p>
+          </div>
+
+          {/* Diferença */}
+          <div
+            className={cn(
+              "rounded-2xl border p-5 shadow-sm",
+              diffAbs === null
+                ? "border-slate-200 bg-white"
+                : diffAbs > 0
+                  ? "border-red-200 bg-red-50"
+                  : diffAbs < 0
+                    ? "border-green-200 bg-green-50"
+                    : "border-slate-200 bg-white",
+            )}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Diferença A − B
+            </p>
+            <p className="mt-1 text-sm text-slate-500">Custo total</p>
+            <p
+              className={cn(
+                "mt-3 text-3xl font-bold tabular-nums",
+                diffAbs === null
+                  ? "text-slate-400"
+                  : diffAbs > 0
+                    ? "text-red-700"
+                    : diffAbs < 0
+                      ? "text-green-700"
+                      : "text-slate-900",
+              )}
+            >
+              {diffAbs === null ? (
+                "—"
+              ) : (
+                <>
+                  {diffAbs > 0 ? "+" : ""}
+                  {`R$ ${formatCurrency(diffAbs)}`}
+                </>
+              )}
+            </p>
+            {diffPct !== null && (
+              <p
+                className={cn(
+                  "mt-1 text-sm font-semibold tabular-nums",
+                  diffPct > 0 ? "text-red-600" : diffPct < 0 ? "text-green-600" : "text-slate-500",
+                )}
+              >
+                {diffPct > 0 ? "+" : ""}
+                {diffPct.toFixed(2)}%
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tabela de comparação por setor */}
+      {isLoading && (
+        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando análise...
+        </div>
+      )}
+
+      {showTable && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="text-base font-semibold text-slate-900">Comparação por Setor</h2>
+            <p className="text-xs text-slate-500">Custo de matéria-prima agrupado por setor</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Setor</th>
+                  <th className="px-4 py-3 text-right text-blue-600">
+                    {itemA?.code ?? "Produto A"}
+                  </th>
+                  <th className="px-4 py-3 text-right text-purple-600">
+                    {itemB?.code ?? "Produto B"}
+                  </th>
+                  <th className="px-4 py-3 text-right">Δ R$</th>
+                  <th className="px-4 py-3 text-right">Δ %</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {allSetores.map((setor) => {
+                  const vA = setorA.get(setor) ?? 0;
+                  const vB = setorB.get(setor) ?? 0;
+                  const dAbs = vA - vB;
+                  const dPct = vB !== 0 ? (dAbs / vB) * 100 : null;
+                  return (
+                    <tr key={setor} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 font-medium text-slate-700">{setor}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                        {vA > 0 ? `R$ ${formatCurrency(vA)}` : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                        {vB > 0 ? `R$ ${formatCurrency(vB)}` : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right tabular-nums font-medium",
+                          dAbs > 0 ? "text-red-600" : dAbs < 0 ? "text-green-600" : "text-slate-400",
+                        )}
+                      >
+                        {dAbs === 0 ? "—" : `${dAbs > 0 ? "+" : ""}R$ ${formatCurrency(dAbs)}`}
+                      </td>
+                      <td
+                        className={cn(
+                          "px-4 py-3 text-right tabular-nums font-medium",
+                          dPct === null || dPct === 0
+                            ? "text-slate-400"
+                            : dPct > 0
+                              ? "text-red-600"
+                              : "text-green-600",
+                        )}
+                      >
+                        {dPct === null || dPct === 0
+                          ? "—"
+                          : `${dPct > 0 ? "+" : ""}${dPct.toFixed(2)}%`}
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* Totais */}
+                {custoA !== null || custoB !== null ? (
+                  <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
+                    <td className="px-4 py-3 text-slate-800">Total</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                      {custoA !== null ? `R$ ${formatCurrency(custoA)}` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                      {custoB !== null ? `R$ ${formatCurrency(custoB)}` : "—"}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-right tabular-nums",
+                        diffAbs === null || diffAbs === 0
+                          ? "text-slate-400"
+                          : diffAbs > 0
+                            ? "text-red-600"
+                            : "text-green-600",
+                      )}
+                    >
+                      {diffAbs === null || diffAbs === 0
+                        ? "—"
+                        : `${diffAbs > 0 ? "+" : ""}R$ ${formatCurrency(diffAbs)}`}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-4 py-3 text-right tabular-nums",
+                        diffPct === null || diffPct === 0
+                          ? "text-slate-400"
+                          : diffPct > 0
+                            ? "text-red-600"
+                            : "text-green-600",
+                      )}
+                    >
+                      {diffPct === null || diffPct === 0
+                        ? "—"
+                        : `${diffPct > 0 ? "+" : ""}${diffPct.toFixed(2)}%`}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Página principal ──────────────────────────────────────────────────────
 
 export default function PrecosPage() {
@@ -1065,6 +1354,16 @@ export default function PrecosPage() {
           >
             Produto Acabado
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("comp")}
+            className={cn(
+              "rounded-lg px-4 py-2 text-sm font-medium transition",
+              activeTab === "comp" ? "bg-white text-blue-700 shadow-sm" : "text-slate-600 hover:text-slate-900",
+            )}
+          >
+            Comparação de Custos
+          </button>
         </div>
       </div>
 
@@ -1075,6 +1374,8 @@ export default function PrecosPage() {
           onClear={() => setSelectedMP(null)}
           onOpenModal={() => setModalOpen(true)}
         />
+      ) : activeTab === "comp" ? (
+        <PainelComparacaoCustos />
       ) : (
         <PainelProdutoAcabado
           selectedItem={selectedPA}
