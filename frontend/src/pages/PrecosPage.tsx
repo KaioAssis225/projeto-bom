@@ -998,9 +998,28 @@ function PainelProdutoAcabado({
 
 // ─── Painel: Comparação de Custos ─────────────────────────────────────────
 
+interface CompMpEntry {
+  code: string;
+  description: string;
+  costA: number | null;
+  costB: number | null;
+}
+interface CompGroupEntry {
+  totalA: number;
+  totalB: number;
+  mps: Map<string, CompMpEntry>;
+}
+interface CompSetorEntry {
+  totalA: number;
+  totalB: number;
+  groups: Map<string, CompGroupEntry>;
+}
+
 function PainelComparacaoCustos() {
   const [itemA, setItemA] = React.useState<Item | null>(null);
   const [itemB, setItemB] = React.useState<Item | null>(null);
+  const [openSetores, setOpenSetores] = React.useState<Set<string>>(new Set());
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set());
 
   const analiseA = useCustoBomAnalise(itemA?.id ?? null);
   const analiseB = useCustoBomAnalise(itemB?.id ?? null);
@@ -1014,109 +1033,135 @@ function PainelComparacaoCustos() {
       ? ((custoA - custoB) / custoB) * 100
       : null;
 
-  // Agrupa linhas por setor → { setorName: total }
-  function totalBySetor(lines: BomAnalysisLine[]): Map<string, number> {
-    const m = new Map<string, number>();
-    for (const l of lines) {
-      const k = l.setor_name ?? "Sem setor";
-      m.set(k, (m.get(k) ?? 0) + (l.missing_price ? 0 : Number(l.line_cost)));
+  // Builds a merged 3-level tree from both analyses
+  const tree = React.useMemo<Map<string, CompSetorEntry>>(() => {
+    const result = new Map<string, CompSetorEntry>();
+
+    function addLines(lines: BomAnalysisLine[], side: "A" | "B") {
+      for (const l of lines) {
+        const sk = l.setor_name ?? "Sem setor";
+        const gk = l.group_name ?? "Sem grupo";
+        const cost = l.missing_price ? 0 : Number(l.line_cost);
+
+        if (!result.has(sk)) result.set(sk, { totalA: 0, totalB: 0, groups: new Map() });
+        const setor = result.get(sk)!;
+        if (!setor.groups.has(gk)) setor.groups.set(gk, { totalA: 0, totalB: 0, mps: new Map() });
+        const group = setor.groups.get(gk)!;
+        if (!group.mps.has(l.item_id)) {
+          group.mps.set(l.item_id, { code: l.code, description: l.description, costA: null, costB: null });
+        }
+        const mp = group.mps.get(l.item_id)!;
+
+        if (side === "A") {
+          mp.costA = (mp.costA ?? 0) + cost;
+          group.totalA += cost;
+          setor.totalA += cost;
+        } else {
+          mp.costB = (mp.costB ?? 0) + cost;
+          group.totalB += cost;
+          setor.totalB += cost;
+        }
+      }
     }
-    return m;
+
+    addLines(analiseA.data?.lines ?? [], "A");
+    addLines(analiseB.data?.lines ?? [], "B");
+    return result;
+  }, [analiseA.data, analiseB.data]);
+
+  function toggleSetor(key: string) {
+    setOpenSetores((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
   }
 
-  const setorA = React.useMemo(
-    () => totalBySetor(analiseA.data?.lines ?? []),
-    [analiseA.data],
-  );
-  const setorB = React.useMemo(
-    () => totalBySetor(analiseB.data?.lines ?? []),
-    [analiseB.data],
-  );
-
-  const allSetores = Array.from(
-    new Set([...setorA.keys(), ...setorB.keys()]),
-  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  function toggleGroup(key: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   const isLoading = analiseA.isLoading || analiseB.isLoading;
-  const showTable = (analiseA.data || analiseB.data) && allSetores.length > 0;
+  const showTable = (analiseA.data || analiseB.data) && tree.size > 0;
 
   return (
     <div className="space-y-6">
-      {/* Seletores */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Produto A
+      {/* Seletores — visualmente separados por cor */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 shadow-sm">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-600">Produto A</p>
+          <ItemSelector
+            type="FINISHED_PRODUCT"
+            selected={itemA}
+            onSelect={setItemA}
+            onClear={() => setItemA(null)}
+            placeholder="Buscar produto A por código ou descrição"
+          />
+          {itemA ? (
+            <p className="mt-2 truncate text-sm font-medium text-blue-700">
+              {itemA.code} — {itemA.description}
             </p>
-            <ItemSelector
-              type="FINISHED_PRODUCT"
-              selected={itemA}
-              onSelect={setItemA}
-              onClear={() => setItemA(null)}
-              placeholder="Buscar produto A por código ou descrição"
-            />
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Produto B
+          ) : null}
+        </div>
+        <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-5 shadow-sm">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-purple-600">Produto B</p>
+          <ItemSelector
+            type="FINISHED_PRODUCT"
+            selected={itemB}
+            onSelect={setItemB}
+            onClear={() => setItemB(null)}
+            placeholder="Buscar produto B por código ou descrição"
+          />
+          {itemB ? (
+            <p className="mt-2 truncate text-sm font-medium text-purple-700">
+              {itemB.code} — {itemB.description}
             </p>
-            <ItemSelector
-              type="FINISHED_PRODUCT"
-              selected={itemB}
-              onSelect={setItemB}
-              onClear={() => setItemB(null)}
-              placeholder="Buscar produto B por código ou descrição"
-            />
-          </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Resumo de custo total */}
+      {/* Cards de resumo */}
       {(itemA || itemB) && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {/* Custo A */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
+          <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-blue-600">
               {itemA ? itemA.code : "Produto A"}
             </p>
-            <p className="mt-1 text-sm text-slate-500 truncate">
-              {itemA?.description ?? "—"}
-            </p>
-            <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
+            <p className="mt-1 truncate text-sm text-blue-700/80">{itemA?.description ?? "—"}</p>
+            <p className="mt-3 text-3xl font-bold tabular-nums text-blue-900">
               {analiseA.isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+                <Loader2 className="h-6 w-6 animate-spin text-blue-300" />
               ) : custoA !== null ? (
                 `R$ ${formatCurrency(custoA)}`
               ) : (
-                <span className="text-xl text-slate-400">—</span>
+                <span className="text-xl text-blue-300">—</span>
               )}
             </p>
           </div>
 
-          {/* Custo B */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-500">
+          <div className="rounded-2xl border-2 border-purple-200 bg-purple-50 p-5 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-purple-600">
               {itemB ? itemB.code : "Produto B"}
             </p>
-            <p className="mt-1 text-sm text-slate-500 truncate">
-              {itemB?.description ?? "—"}
-            </p>
-            <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
+            <p className="mt-1 truncate text-sm text-purple-700/80">{itemB?.description ?? "—"}</p>
+            <p className="mt-3 text-3xl font-bold tabular-nums text-purple-900">
               {analiseB.isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+                <Loader2 className="h-6 w-6 animate-spin text-purple-300" />
               ) : custoB !== null ? (
                 `R$ ${formatCurrency(custoB)}`
               ) : (
-                <span className="text-xl text-slate-400">—</span>
+                <span className="text-xl text-purple-300">—</span>
               )}
             </p>
           </div>
 
-          {/* Diferença */}
           <div
             className={cn(
-              "rounded-2xl border p-5 shadow-sm",
+              "rounded-2xl border-2 p-5 shadow-sm",
               diffAbs === null
                 ? "border-slate-200 bg-white"
                 : diffAbs > 0
@@ -1126,9 +1171,7 @@ function PainelComparacaoCustos() {
                     : "border-slate-200 bg-white",
             )}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Diferença A − B
-            </p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Diferença A − B</p>
             <p className="mt-1 text-sm text-slate-500">Custo total</p>
             <p
               className={cn(
@@ -1142,31 +1185,24 @@ function PainelComparacaoCustos() {
                       : "text-slate-900",
               )}
             >
-              {diffAbs === null ? (
-                "—"
-              ) : (
-                <>
-                  {diffAbs > 0 ? "+" : ""}
-                  {`R$ ${formatCurrency(diffAbs)}`}
-                </>
-              )}
+              {diffAbs === null
+                ? "—"
+                : `${diffAbs > 0 ? "+" : ""}R$ ${formatCurrency(diffAbs)}`}
             </p>
-            {diffPct !== null && (
+            {diffPct !== null ? (
               <p
                 className={cn(
                   "mt-1 text-sm font-semibold tabular-nums",
                   diffPct > 0 ? "text-red-600" : diffPct < 0 ? "text-green-600" : "text-slate-500",
                 )}
               >
-                {diffPct > 0 ? "+" : ""}
-                {diffPct.toFixed(2)}%
+                {diffPct > 0 ? "+" : ""}{diffPct.toFixed(2)}%
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       )}
 
-      {/* Tabela de comparação por setor */}
       {isLoading && (
         <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1174,81 +1210,192 @@ function PainelComparacaoCustos() {
         </div>
       )}
 
+      {/* Tabela hierárquica expansível: setor → grupo → MP */}
       {showTable && (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Comparação por Setor</h2>
-            <p className="text-xs text-slate-500">Custo de matéria-prima agrupado por setor</p>
+            <h2 className="text-base font-semibold text-slate-900">Comparação por Setor / Grupo / MP</h2>
+            <p className="text-xs text-slate-500">Clique em um setor ou grupo para expandir</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <table className="min-w-full text-sm">
+              <thead className="text-xs font-bold uppercase tracking-wide">
                 <tr>
-                  <th className="px-4 py-3 text-left">Setor</th>
-                  <th className="px-4 py-3 text-right text-blue-600">
-                    {itemA?.code ?? "Produto A"}
-                  </th>
-                  <th className="px-4 py-3 text-right text-purple-600">
-                    {itemB?.code ?? "Produto B"}
-                  </th>
-                  <th className="px-4 py-3 text-right">Δ R$</th>
-                  <th className="px-4 py-3 text-right">Δ %</th>
+                  <th className="bg-slate-100 px-4 py-3 text-left text-slate-500">Item</th>
+                  <th className="bg-blue-100 px-4 py-3 text-right text-blue-700">{itemA?.code ?? "Produto A"}</th>
+                  <th className="bg-purple-100 px-4 py-3 text-right text-purple-700">{itemB?.code ?? "Produto B"}</th>
+                  <th className="bg-slate-100 px-4 py-3 text-right text-slate-500">Δ R$</th>
+                  <th className="bg-slate-100 px-4 py-3 text-right text-slate-500">Δ %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {allSetores.map((setor) => {
-                  const vA = setorA.get(setor) ?? 0;
-                  const vB = setorB.get(setor) ?? 0;
-                  const dAbs = vA - vB;
-                  const dPct = vB !== 0 ? (dAbs / vB) * 100 : null;
-                  return (
-                    <tr key={setor} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 font-medium text-slate-700">{setor}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-900">
-                        {vA > 0 ? `R$ ${formatCurrency(vA)}` : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-900">
-                        {vB > 0 ? `R$ ${formatCurrency(vB)}` : <span className="text-slate-300">—</span>}
-                      </td>
-                      <td
-                        className={cn(
-                          "px-4 py-3 text-right tabular-nums font-medium",
-                          dAbs > 0 ? "text-red-600" : dAbs < 0 ? "text-green-600" : "text-slate-400",
-                        )}
-                      >
-                        {dAbs === 0 ? "—" : `${dAbs > 0 ? "+" : ""}R$ ${formatCurrency(dAbs)}`}
-                      </td>
-                      <td
-                        className={cn(
-                          "px-4 py-3 text-right tabular-nums font-medium",
-                          dPct === null || dPct === 0
-                            ? "text-slate-400"
-                            : dPct > 0
-                              ? "text-red-600"
-                              : "text-green-600",
-                        )}
-                      >
-                        {dPct === null || dPct === 0
-                          ? "—"
-                          : `${dPct > 0 ? "+" : ""}${dPct.toFixed(2)}%`}
-                      </td>
-                    </tr>
-                  );
-                })}
+              <tbody>
+                {Array.from(tree.entries())
+                  .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
+                  .map(([setorName, setor]) => {
+                    const isSetorOpen = openSetores.has(setorName);
+                    const sDabs = setor.totalA - setor.totalB;
+                    const sDpct = setor.totalB !== 0 ? (sDabs / setor.totalB) * 100 : null;
+                    return (
+                      <React.Fragment key={setorName}>
+                        {/* ── Setor ── */}
+                        <tr
+                          className="cursor-pointer border-t border-slate-300 bg-slate-200 hover:bg-slate-300"
+                          onClick={() => toggleSetor(setorName)}
+                        >
+                          <td className="px-4 py-2.5">
+                            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-700">
+                              <ChevronDown
+                                className={cn(
+                                  "h-3.5 w-3.5 text-slate-500 transition-transform",
+                                  !isSetorOpen && "-rotate-90",
+                                )}
+                              />
+                              {setorName}
+                            </span>
+                          </td>
+                          <td className="bg-blue-100 px-4 py-2.5 text-right text-xs font-bold tabular-nums text-blue-800">
+                            {setor.totalA > 0 ? `R$ ${formatCurrency(setor.totalA)}` : <span className="text-blue-300">—</span>}
+                          </td>
+                          <td className="bg-purple-100 px-4 py-2.5 text-right text-xs font-bold tabular-nums text-purple-800">
+                            {setor.totalB > 0 ? `R$ ${formatCurrency(setor.totalB)}` : <span className="text-purple-300">—</span>}
+                          </td>
+                          <td
+                            className={cn(
+                              "px-4 py-2.5 text-right text-xs font-bold tabular-nums",
+                              sDabs > 0 ? "text-red-600" : sDabs < 0 ? "text-green-600" : "text-slate-400",
+                            )}
+                          >
+                            {sDabs === 0 ? "—" : `${sDabs > 0 ? "+" : ""}R$ ${formatCurrency(sDabs)}`}
+                          </td>
+                          <td
+                            className={cn(
+                              "px-4 py-2.5 text-right text-xs font-bold tabular-nums",
+                              sDpct === null || sDpct === 0 ? "text-slate-400" : sDpct > 0 ? "text-red-600" : "text-green-600",
+                            )}
+                          >
+                            {sDpct === null || sDpct === 0 ? "—" : `${sDpct > 0 ? "+" : ""}${sDpct.toFixed(2)}%`}
+                          </td>
+                        </tr>
 
-                {/* Totais */}
-                {custoA !== null || custoB !== null ? (
-                  <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold">
-                    <td className="px-4 py-3 text-slate-800">Total</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                        {isSetorOpen &&
+                          Array.from(setor.groups.entries())
+                            .sort(([a], [b]) => a.localeCompare(b, "pt-BR"))
+                            .map(([groupName, group]) => {
+                              const groupKey = `${setorName}||${groupName}`;
+                              const isGroupOpen = openGroups.has(groupKey);
+                              const gDabs = group.totalA - group.totalB;
+                              const gDpct = group.totalB !== 0 ? (gDabs / group.totalB) * 100 : null;
+                              return (
+                                <React.Fragment key={groupKey}>
+                                  {/* ── Grupo ── */}
+                                  <tr
+                                    className="cursor-pointer border-t border-slate-200 bg-slate-100 hover:bg-slate-200"
+                                    onClick={() => toggleGroup(groupKey)}
+                                  >
+                                    <td className="px-4 py-2 pl-8">
+                                      <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-3 w-3 text-slate-400 transition-transform",
+                                            !isGroupOpen && "-rotate-90",
+                                          )}
+                                        />
+                                        {groupName}
+                                        <span className="ml-1 rounded-full bg-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                                          {group.mps.size}
+                                        </span>
+                                      </span>
+                                    </td>
+                                    <td className="bg-blue-50 px-4 py-2 text-right text-xs font-semibold tabular-nums text-blue-700">
+                                      {group.totalA > 0 ? `R$ ${formatCurrency(group.totalA)}` : <span className="text-slate-300">—</span>}
+                                    </td>
+                                    <td className="bg-purple-50 px-4 py-2 text-right text-xs font-semibold tabular-nums text-purple-700">
+                                      {group.totalB > 0 ? `R$ ${formatCurrency(group.totalB)}` : <span className="text-slate-300">—</span>}
+                                    </td>
+                                    <td
+                                      className={cn(
+                                        "px-4 py-2 text-right text-xs font-semibold tabular-nums",
+                                        gDabs > 0 ? "text-red-600" : gDabs < 0 ? "text-green-600" : "text-slate-400",
+                                      )}
+                                    >
+                                      {gDabs === 0 ? "—" : `${gDabs > 0 ? "+" : ""}R$ ${formatCurrency(gDabs)}`}
+                                    </td>
+                                    <td
+                                      className={cn(
+                                        "px-4 py-2 text-right text-xs font-semibold tabular-nums",
+                                        gDpct === null || gDpct === 0 ? "text-slate-400" : gDpct > 0 ? "text-red-600" : "text-green-600",
+                                      )}
+                                    >
+                                      {gDpct === null || gDpct === 0 ? "—" : `${gDpct > 0 ? "+" : ""}${gDpct.toFixed(2)}%`}
+                                    </td>
+                                  </tr>
+
+                                  {isGroupOpen &&
+                                    Array.from(group.mps.values())
+                                      .sort((a, b) => a.code.localeCompare(b.code, "pt-BR"))
+                                      .map((mp) => {
+                                        const mA = mp.costA ?? 0;
+                                        const mB = mp.costB ?? 0;
+                                        const mDabs = mA - mB;
+                                        const mDpct = mB !== 0 ? (mDabs / mB) * 100 : null;
+                                        return (
+                                          <tr
+                                            key={`${groupKey}||${mp.code}`}
+                                            className="border-t border-slate-100 hover:bg-slate-50"
+                                          >
+                                            <td className="px-4 py-1.5 pl-16">
+                                              <span className="font-mono text-xs text-slate-600">{mp.code}</span>
+                                              <span className="ml-2 text-xs text-slate-500">{mp.description}</span>
+                                            </td>
+                                            <td className="px-4 py-1.5 text-right text-xs tabular-nums text-blue-700">
+                                              {mp.costA !== null
+                                                ? `R$ ${formatCurrency(mp.costA)}`
+                                                : <span className="text-slate-300">—</span>}
+                                            </td>
+                                            <td className="px-4 py-1.5 text-right text-xs tabular-nums text-purple-700">
+                                              {mp.costB !== null
+                                                ? `R$ ${formatCurrency(mp.costB)}`
+                                                : <span className="text-slate-300">—</span>}
+                                            </td>
+                                            <td
+                                              className={cn(
+                                                "px-4 py-1.5 text-right text-xs tabular-nums",
+                                                mDabs > 0 ? "text-red-500" : mDabs < 0 ? "text-green-500" : "text-slate-400",
+                                              )}
+                                            >
+                                              {mDabs === 0 ? "—" : `${mDabs > 0 ? "+" : ""}R$ ${formatCurrency(mDabs)}`}
+                                            </td>
+                                            <td
+                                              className={cn(
+                                                "px-4 py-1.5 text-right text-xs tabular-nums",
+                                                mDpct === null || mDpct === 0 ? "text-slate-400" : mDpct > 0 ? "text-red-500" : "text-green-500",
+                                              )}
+                                            >
+                                              {mDpct === null || mDpct === 0 ? "—" : `${mDpct > 0 ? "+" : ""}${mDpct.toFixed(2)}%`}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                </React.Fragment>
+                              );
+                            })}
+                      </React.Fragment>
+                    );
+                  })}
+
+                {/* Total geral */}
+                {(custoA !== null || custoB !== null) ? (
+                  <tr className="border-t-2 border-slate-300 bg-slate-50">
+                    <td className="px-4 py-3 text-sm font-bold text-slate-800">Total Geral</td>
+                    <td className="bg-blue-50 px-4 py-3 text-right text-sm font-bold tabular-nums text-blue-900">
                       {custoA !== null ? `R$ ${formatCurrency(custoA)}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-900">
+                    <td className="bg-purple-50 px-4 py-3 text-right text-sm font-bold tabular-nums text-purple-900">
                       {custoB !== null ? `R$ ${formatCurrency(custoB)}` : "—"}
                     </td>
                     <td
                       className={cn(
-                        "px-4 py-3 text-right tabular-nums",
+                        "px-4 py-3 text-right text-sm font-bold tabular-nums",
                         diffAbs === null || diffAbs === 0
                           ? "text-slate-400"
                           : diffAbs > 0
@@ -1262,7 +1409,7 @@ function PainelComparacaoCustos() {
                     </td>
                     <td
                       className={cn(
-                        "px-4 py-3 text-right tabular-nums",
+                        "px-4 py-3 text-right text-sm font-bold tabular-nums",
                         diffPct === null || diffPct === 0
                           ? "text-slate-400"
                           : diffPct > 0
