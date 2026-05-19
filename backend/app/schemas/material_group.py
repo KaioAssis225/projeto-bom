@@ -16,12 +16,14 @@ class MaterialGroupCreate(BaseSchema):
                 "code": "MET",
                 "name": "Metais",
                 "description": "Grupo de matérias-primas metálicas",
+                "controla_estoque": False,
             }
         },
     )
     code: str = Field(min_length=1, max_length=3)
     name: str = Field(min_length=1, max_length=120)
     description: str | None = None
+    controla_estoque: bool = False
 
 
 class MaterialGroupUpdate(BaseSchema):
@@ -33,6 +35,7 @@ class MaterialGroupUpdate(BaseSchema):
                 "name": "Metais Ferrosos",
                 "description": "Grupo revisado para metais ferrosos",
                 "active": True,
+                "controla_estoque": False,
             }
         },
     )
@@ -40,6 +43,7 @@ class MaterialGroupUpdate(BaseSchema):
     name: str = Field(min_length=1, max_length=120)
     description: str | None = None
     active: bool
+    controla_estoque: bool = False
 
 
 class MaterialGroupResponse(BaseSchema):
@@ -52,6 +56,7 @@ class MaterialGroupResponse(BaseSchema):
                 "name": "Metais",
                 "description": "Grupo de matérias-primas metálicas",
                 "active": True,
+                "controla_estoque": False,
                 "created_at": "2026-03-30T09:00:00-03:00",
                 "updated_at": "2026-03-30T09:00:00-03:00",
             }
@@ -62,6 +67,7 @@ class MaterialGroupResponse(BaseSchema):
     name: str
     description: str | None
     active: bool
+    controla_estoque: bool
     created_at: datetime
     updated_at: datetime
 

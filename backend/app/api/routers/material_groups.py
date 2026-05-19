@@ -28,10 +28,16 @@ def list_material_groups(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     active_only: bool = Query(default=True),
+    controla_estoque_only: bool = Query(default=False),
     db: Session = Depends(get_db_session),
 ) -> MaterialGroupPaginatedResponse:
     service = MaterialGroupService(db)
-    return service.list(skip=skip, limit=limit, active_only=active_only)
+    return service.list(
+        skip=skip,
+        limit=limit,
+        active_only=active_only,
+        controla_estoque_only=controla_estoque_only,
+    )
 
 
 @router.post(

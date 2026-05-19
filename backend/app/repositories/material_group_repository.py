@@ -26,14 +26,16 @@ class MaterialGroupRepository:
         stmt = select(MaterialGroup).where(MaterialGroup.code == code)
         return self.db.scalar(stmt)
 
-    def list_all(self, skip: int, limit: int, active_only: bool) -> list[MaterialGroup]:
-        stmt = self._base_list_query(active_only).offset(skip).limit(limit)
+    def list_all(self, skip: int, limit: int, active_only: bool, controla_estoque_only: bool = False) -> list[MaterialGroup]:
+        stmt = self._base_list_query(active_only, controla_estoque_only).offset(skip).limit(limit)
         return list(self.db.scalars(stmt).all())
 
-    def count_all(self, active_only: bool) -> int:
+    def count_all(self, active_only: bool, controla_estoque_only: bool = False) -> int:
         stmt = select(func.count()).select_from(MaterialGroup)
         if active_only:
             stmt = stmt.where(MaterialGroup.active.is_(True))
+        if controla_estoque_only:
+            stmt = stmt.where(MaterialGroup.controla_estoque.is_(True))
         return int(self.db.scalar(stmt) or 0)
 
     def update(self, id: UUID, data: dict) -> MaterialGroup:
@@ -59,8 +61,10 @@ class MaterialGroupRepository:
         self.db.commit()
 
     @staticmethod
-    def _base_list_query(active_only: bool) -> Select[tuple[MaterialGroup]]:
+    def _base_list_query(active_only: bool, controla_estoque_only: bool = False) -> Select[tuple[MaterialGroup]]:
         stmt = select(MaterialGroup).order_by(MaterialGroup.code.asc())
         if active_only:
             stmt = stmt.where(MaterialGroup.active.is_(True))
+        if controla_estoque_only:
+            stmt = stmt.where(MaterialGroup.controla_estoque.is_(True))
         return stmt

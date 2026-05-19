@@ -12,6 +12,7 @@ import type { MaterialGroup } from "@/types";
 const groupSchema = z.object({
   code: z.string().trim().min(1, "Informe o codigo").max(3, "Maximo de 3 caracteres"),
   name: z.string().trim().min(1, "Informe o nome").max(120, "Maximo de 120 caracteres"),
+  controla_estoque: z.boolean(),
 });
 
 type GroupFormValues = z.infer<typeof groupSchema>;
@@ -50,24 +51,32 @@ function GroupModal({
 
   const form = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
-    defaultValues: { code: "", name: "" },
+    defaultValues: { code: "", name: "", controla_estoque: false },
   });
 
   useEffect(() => {
     if (!open) {
-      form.reset({ code: "", name: "" });
+      form.reset({ code: "", name: "", controla_estoque: false });
       return;
     }
-    form.reset({ code: item?.code ?? "", name: item?.name ?? "" });
+    form.reset({
+      code: item?.code ?? "",
+      name: item?.name ?? "",
+      controla_estoque: item?.controla_estoque ?? false,
+    });
   }, [form, item, open]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const payload = { code: values.code.trim(), name: values.name.trim() };
+    const payload = {
+      code: values.code.trim(),
+      name: values.name.trim(),
+      controla_estoque: values.controla_estoque,
+    };
 
     if (isEditing && item) {
       await updateGrupo.mutateAsync({
         id: item.id,
-        data: { code: payload.code, name: payload.name, active: item.active },
+        data: { ...payload, active: item.active },
       });
     } else {
       await createGrupo.mutateAsync(payload);
@@ -140,6 +149,20 @@ function GroupModal({
             {form.formState.errors.name ? (
               <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
             ) : null}
+          </div>
+
+          <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <input
+              id="controla-estoque"
+              type="checkbox"
+              disabled={isSubmitting}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 disabled:opacity-60"
+              {...form.register("controla_estoque")}
+            />
+            <label htmlFor="controla-estoque" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+              Controla estoque
+              <span className="ml-1 text-xs font-normal text-slate-400">(aparece na aba Estoques)</span>
+            </label>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -292,6 +315,7 @@ export default function GruposPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Código</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Nome</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-600">Estoque</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-600">Ações</th>
                 </tr>
@@ -302,6 +326,15 @@ export default function GruposPage() {
                     <tr key={group.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{group.code}</td>
                       <td className="px-4 py-3 text-slate-700">{group.name}</td>
+                      <td className="px-4 py-3">
+                        {group.controla_estoque ? (
+                          <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">
+                            Sim
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(
@@ -321,7 +354,7 @@ export default function GruposPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={5} className="px-4 py-12 text-center text-sm text-slate-500">
                       Nenhum grupo cadastrado
                     </td>
                   </tr>

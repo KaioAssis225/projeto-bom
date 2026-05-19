@@ -5,34 +5,36 @@ import * as estoqueApi from "@/api/estoque-aluminio";
 import { extractErrorMessage } from "@/lib/utils";
 import type { EstoqueEntradaPayload, EstoqueMinimoPayload, EstoqueSaidaPayload } from "@/types";
 
-export function useEstoqueAluminio() {
+export function useEstoqueAluminio(groupId: string | null) {
   return useQuery({
-    queryKey: ["estoque-aluminio"],
-    queryFn: () => estoqueApi.listEstoque(0, 200),
+    queryKey: ["estoque-aluminio", groupId],
+    queryFn: () => estoqueApi.listEstoque(groupId!, 0, 200),
+    enabled: !!groupId,
   });
 }
 
-export function useUltimosMovimentos(limit = 10) {
+export function useUltimosMovimentos(groupId: string | null, limit = 10) {
   return useQuery({
-    queryKey: ["estoque-aluminio", "ultimos-movimentos", limit],
-    queryFn: () => estoqueApi.getUltimosMovimentos(limit),
+    queryKey: ["estoque-aluminio", "ultimos-movimentos", groupId, limit],
+    queryFn: () => estoqueApi.getUltimosMovimentos(groupId!, limit),
+    enabled: !!groupId,
     refetchInterval: 30_000,
   });
 }
 
-export function useEstoqueHistorico(itemId: string, skip: number, limit: number) {
+export function useEstoqueHistorico(groupId: string | null, itemId: string, skip: number, limit: number) {
   return useQuery({
-    queryKey: ["estoque-aluminio", "historico", itemId, skip, limit],
-    queryFn: () => estoqueApi.getHistorico(itemId, skip, limit),
-    enabled: !!itemId,
+    queryKey: ["estoque-aluminio", "historico", groupId, itemId, skip, limit],
+    queryFn: () => estoqueApi.getHistorico(groupId!, itemId, skip, limit),
+    enabled: !!groupId && !!itemId,
   });
 }
 
-export function useAddEntrada() {
+export function useAddEntrada(groupId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ itemId, payload }: { itemId: string; payload: EstoqueEntradaPayload }) =>
-      estoqueApi.addEntrada(itemId, payload),
+      estoqueApi.addEntrada(groupId!, itemId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque-aluminio"] });
       toast.success("Entrada registrada com sucesso");
@@ -43,11 +45,11 @@ export function useAddEntrada() {
   });
 }
 
-export function useAddSaida() {
+export function useAddSaida(groupId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ itemId, payload }: { itemId: string; payload: EstoqueSaidaPayload }) =>
-      estoqueApi.addSaida(itemId, payload),
+      estoqueApi.addSaida(groupId!, itemId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque-aluminio"] });
       toast.success("Saída registrada com sucesso");
@@ -58,11 +60,11 @@ export function useAddSaida() {
   });
 }
 
-export function useSetEstoqueMinimo() {
+export function useSetEstoqueMinimo(groupId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ itemId, payload }: { itemId: string; payload: EstoqueMinimoPayload }) =>
-      estoqueApi.setEstoqueMinimo(itemId, payload),
+      estoqueApi.setEstoqueMinimo(groupId!, itemId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque-aluminio"] });
       toast.success("Estoque mínimo atualizado");

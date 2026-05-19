@@ -5,7 +5,7 @@ import * as gruposApi from "@/api/grupos";
 import { extractErrorMessage } from "@/lib/utils";
 import type { MaterialGroupCreatePayload, MaterialGroupUpdatePayload, PaginationParams } from "@/types";
 
-export function useGrupos(filters?: PaginationParams & { active_only?: boolean }) {
+export function useGrupos(filters?: PaginationParams & { active_only?: boolean; controla_estoque_only?: boolean }) {
   return useQuery({
     queryKey: ["grupos", filters],
     queryFn: () => gruposApi.list(filters),

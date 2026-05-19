@@ -1,4 +1,4 @@
-import { Clock, Loader2, Minus, Plus, Search, X } from "lucide-react";
+import { ChevronDown, Clock, Loader2, Minus, Plus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -10,17 +10,20 @@ import {
   useSetEstoqueMinimo,
   useUltimosMovimentos,
 } from "@/hooks/useEstoqueAluminio";
+import { useGrupos } from "@/hooks/useGrupos";
 import { cn } from "@/lib/utils";
-import type { EstoqueItem, EstoqueMovimento, EstoqueMovimentoRecente } from "@/types";
+import type { EstoqueItem, EstoqueMovimento, EstoqueMovimentoRecente, MaterialGroup } from "@/types";
 
 function EntradaModal({
   item,
+  groupId,
   onClose,
 }: {
   item: EstoqueItem | null;
+  groupId: string | null;
   onClose: () => void;
 }) {
-  const addEntrada = useAddEntrada();
+  const addEntrada = useAddEntrada(groupId);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{ quantidade: number }>();
 
   const onSubmit = handleSubmit(async (values) => {
@@ -94,12 +97,14 @@ function EntradaModal({
 
 function SaidaModal({
   item,
+  groupId,
   onClose,
 }: {
   item: EstoqueItem | null;
+  groupId: string | null;
   onClose: () => void;
 }) {
-  const addSaida = useAddSaida();
+  const addSaida = useAddSaida(groupId);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{
     quantidade: number;
     solicitante: string;
@@ -197,12 +202,14 @@ function SaidaModal({
 
 function MinimoModal({
   item,
+  groupId,
   onClose,
 }: {
   item: EstoqueItem | null;
+  groupId: string | null;
   onClose: () => void;
 }) {
-  const setMinimo = useSetEstoqueMinimo();
+  const setMinimo = useSetEstoqueMinimo(groupId);
   const { register, handleSubmit, reset } = useForm<{ estoque_minimo: string }>({
     defaultValues: { estoque_minimo: item?.estoque_minimo?.toString() ?? "" },
   });
@@ -277,14 +284,16 @@ const HIST_PAGE_SIZE = 10;
 
 function HistoricoModal({
   item,
+  groupId,
   onClose,
 }: {
   item: EstoqueItem | null;
+  groupId: string | null;
   onClose: () => void;
 }) {
   const [page, setPage] = useState(0);
   const skip = page * HIST_PAGE_SIZE;
-  const historicoQuery = useEstoqueHistorico(item?.item_id ?? "", skip, HIST_PAGE_SIZE);
+  const historicoQuery = useEstoqueHistorico(groupId, item?.item_id ?? "", skip, HIST_PAGE_SIZE);
 
   const totalPages = historicoQuery.data
     ? Math.max(1, Math.ceil(historicoQuery.data.total / HIST_PAGE_SIZE))
@@ -405,8 +414,8 @@ function HistoricoModal({
   );
 }
 
-function UltimosMovimentosWidget() {
-  const query = useUltimosMovimentos(8);
+function UltimosMovimentosWidget({ groupId }: { groupId: string | null }) {
+  const query = useUltimosMovimentos(groupId, 8);
   const movimentos: EstoqueMovimentoRecente[] = query.data ?? [];
 
   const formatDate = (iso: string) => {
@@ -471,12 +480,17 @@ function TableSkeleton() {
 
 export default function EstoqueAluminioPage() {
   const [search, setSearch] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState<MaterialGroup | null>(null);
   const [modalEntrada, setModalEntrada] = useState<EstoqueItem | null>(null);
   const [modalSaida, setModalSaida] = useState<EstoqueItem | null>(null);
   const [modalMinimo, setModalMinimo] = useState<EstoqueItem | null>(null);
   const [modalHistorico, setModalHistorico] = useState<EstoqueItem | null>(null);
 
-  const estoqueQuery = useEstoqueAluminio();
+  const gruposQuery = useGrupos({ skip: 0, limit: 100, active_only: true, controla_estoque_only: true });
+  const grupos: MaterialGroup[] = gruposQuery.data?.items ?? [];
+  const groupId = selectedGroup?.id ?? null;
+
+  const estoqueQuery = useEstoqueAluminio(groupId);
 
   const filteredItems = useMemo(() => {
     const all = estoqueQuery.data?.items ?? [];
@@ -496,43 +510,83 @@ export default function EstoqueAluminioPage() {
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-          {/* Título + busca */}
+          {/* Título + seletor de grupo + busca */}
           <div className="flex flex-1 flex-col gap-4">
             <div>
-              <h1 className="text-xl font-semibold text-slate-900">Estoque de Alumínios</h1>
+              <h1 className="text-xl font-semibold text-slate-900">Estoques</h1>
               <p className="mt-1 text-sm text-slate-500">
-                Controle de entradas e saídas das matérias-primas do grupo ALU.
+                Controle de entradas e saídas por grupo de matéria-prima.
               </p>
             </div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="relative w-full max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por código ou descrição"
-                  className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+
+            {/* Seletor de grupo */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-slate-700 shrink-0">Grupo:</label>
+              <div className="relative w-56">
+                <select
+                  value={selectedGroup?.id ?? ""}
+                  onChange={(e) => {
+                    const g = grupos.find((g) => g.id === e.target.value) ?? null;
+                    setSelectedGroup(g);
+                    setSearch("");
+                  }}
+                  disabled={gruposQuery.isLoading}
+                  className="w-full appearance-none rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-8 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                >
+                  <option value="">Selecione um estoque</option>
+                  {grupos.map((g) => (
+                    <option key={g.id} value={g.id}>{g.code} — {g.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </div>
-              <span className="text-sm text-slate-500">
-                {estoqueQuery.data
-                  ? `${filteredItems.length} item(s) exibido(s)`
-                  : "Carregando..."}
-              </span>
+              {gruposQuery.isLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
             </div>
+
+            {selectedGroup && (
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="relative w-full max-w-md">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar por código ou descrição"
+                    className="w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <span className="text-sm text-slate-500">
+                  {estoqueQuery.data
+                    ? `${filteredItems.length} item(s) exibido(s)`
+                    : "Carregando..."}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Widget de últimas movimentações */}
-          <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 lg:w-80 xl:w-96">
-            <UltimosMovimentosWidget />
-          </div>
+          {selectedGroup && (
+            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 lg:w-80 xl:w-96">
+              <UltimosMovimentosWidget groupId={groupId} />
+            </div>
+          )}
         </div>
       </div>
 
-      {estoqueQuery.isLoading ? <TableSkeleton /> : null}
+      {!selectedGroup && !gruposQuery.isLoading && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+          <p className="text-slate-500 text-sm">Selecione um grupo de estoque para visualizar os itens.</p>
+          {grupos.length === 0 && !gruposQuery.isLoading && (
+            <p className="mt-2 text-xs text-slate-400">
+              Nenhum grupo com controle de estoque ativo. Configure em <strong>Grupos</strong>.
+            </p>
+          )}
+        </div>
+      )}
 
-      {estoqueQuery.isError ? (
+      {selectedGroup && estoqueQuery.isLoading ? <TableSkeleton /> : null}
+
+      {selectedGroup && estoqueQuery.isError ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
           <p>Não foi possível carregar o estoque.</p>
           <button
@@ -545,7 +599,7 @@ export default function EstoqueAluminioPage() {
         </div>
       ) : null}
 
-      {!estoqueQuery.isLoading && !estoqueQuery.isError ? (
+      {selectedGroup && !estoqueQuery.isLoading && !estoqueQuery.isError ? (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -662,10 +716,10 @@ export default function EstoqueAluminioPage() {
         </div>
       ) : null}
 
-      <EntradaModal item={modalEntrada} onClose={() => setModalEntrada(null)} />
-      <SaidaModal item={modalSaida} onClose={() => setModalSaida(null)} />
-      <MinimoModal item={modalMinimo} onClose={() => setModalMinimo(null)} />
-      <HistoricoModal item={modalHistorico} onClose={() => setModalHistorico(null)} />
+      <EntradaModal item={modalEntrada} groupId={groupId} onClose={() => setModalEntrada(null)} />
+      <SaidaModal item={modalSaida} groupId={groupId} onClose={() => setModalSaida(null)} />
+      <MinimoModal item={modalMinimo} groupId={groupId} onClose={() => setModalMinimo(null)} />
+      <HistoricoModal item={modalHistorico} groupId={groupId} onClose={() => setModalHistorico(null)} />
     </div>
   );
 }

@@ -45,16 +45,16 @@ class EstoqueAluminioService:
             abaixo_minimo=abaixo_minimo,
         )
 
-    def _require_alu_item(self, item_id: UUID) -> None:
-        if not self.repository.item_exists_in_alu(item_id):
+    def _require_item_in_group(self, group_id: UUID, item_id: UUID) -> None:
+        if not self.repository.item_exists_in_group(group_id=group_id, item_id=item_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Item ALU não encontrado",
+                detail="Item não encontrado no grupo de estoque informado",
             )
 
-    def list_items(self, skip: int, limit: int) -> EstoqueItemPaginatedResponse:
-        rows = self.repository.list_items(skip=skip, limit=limit)
-        total = self.repository.count_items()
+    def list_items(self, group_id: UUID, skip: int, limit: int) -> EstoqueItemPaginatedResponse:
+        rows = self.repository.list_items(group_id=group_id, skip=skip, limit=limit)
+        total = self.repository.count_items(group_id=group_id)
         return EstoqueItemPaginatedResponse(
             items=[self._row_to_response(r) for r in rows],
             total=total,
@@ -62,8 +62,8 @@ class EstoqueAluminioService:
             limit=limit,
         )
 
-    def add_entrada(self, item_id: UUID, payload: EstoqueEntradaPayload) -> EstoqueMovimentoResponse:
-        self._require_alu_item(item_id)
+    def add_entrada(self, group_id: UUID, item_id: UUID, payload: EstoqueEntradaPayload) -> EstoqueMovimentoResponse:
+        self._require_item_in_group(group_id=group_id, item_id=item_id)
         mov = self.repository.add_movimento(
             item_id=item_id,
             tipo="entrada",
@@ -72,8 +72,8 @@ class EstoqueAluminioService:
         )
         return EstoqueMovimentoResponse.model_validate(mov)
 
-    def add_saida(self, item_id: UUID, payload: EstoqueSaidaPayload) -> EstoqueMovimentoResponse:
-        self._require_alu_item(item_id)
+    def add_saida(self, group_id: UUID, item_id: UUID, payload: EstoqueSaidaPayload) -> EstoqueMovimentoResponse:
+        self._require_item_in_group(group_id=group_id, item_id=item_id)
         mov = self.repository.add_movimento(
             item_id=item_id,
             tipo="saida",
@@ -83,9 +83,9 @@ class EstoqueAluminioService:
         return EstoqueMovimentoResponse.model_validate(mov)
 
     def get_historico(
-        self, item_id: UUID, skip: int, limit: int
+        self, group_id: UUID, item_id: UUID, skip: int, limit: int
     ) -> EstoqueHistoricoPaginatedResponse:
-        self._require_alu_item(item_id)
+        self._require_item_in_group(group_id=group_id, item_id=item_id)
         items = self.repository.list_historico(item_id=item_id, skip=skip, limit=limit)
         total = self.repository.count_historico(item_id=item_id)
         return EstoqueHistoricoPaginatedResponse(
@@ -95,17 +95,17 @@ class EstoqueAluminioService:
             limit=limit,
         )
 
-    def get_ultimos_movimentos(self, limit: int) -> list[EstoqueMovimentoRecenteResponse]:
-        rows = self.repository.get_ultimos_movimentos(limit=limit)
+    def get_ultimos_movimentos(self, group_id: UUID, limit: int) -> list[EstoqueMovimentoRecenteResponse]:
+        rows = self.repository.get_ultimos_movimentos(group_id=group_id, limit=limit)
         return [EstoqueMovimentoRecenteResponse(**r) for r in rows]
 
     def set_estoque_minimo(
-        self, item_id: UUID, payload: EstoqueMinimoPayload
+        self, group_id: UUID, item_id: UUID, payload: EstoqueMinimoPayload
     ) -> EstoqueItemResponse:
-        self._require_alu_item(item_id)
+        self._require_item_in_group(group_id=group_id, item_id=item_id)
         self.repository.set_estoque_minimo(
             item_id=item_id, estoque_minimo=payload.estoque_minimo
         )
-        row = self.repository.get_item(item_id)
+        row = self.repository.get_item(group_id=group_id, item_id=item_id)
         assert row is not None
         return self._row_to_response(row)

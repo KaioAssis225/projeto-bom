@@ -37,9 +37,9 @@ class MaterialGroupService:
             )
         return material_group
 
-    def list(self, skip: int, limit: int, active_only: bool) -> MaterialGroupPaginatedResponse:
-        items = self.repository.list_all(skip=skip, limit=limit, active_only=active_only)
-        total = self.repository.count_all(active_only=active_only)
+    def list(self, skip: int, limit: int, active_only: bool, controla_estoque_only: bool = False) -> MaterialGroupPaginatedResponse:
+        items = self.repository.list_all(skip=skip, limit=limit, active_only=active_only, controla_estoque_only=controla_estoque_only)
+        total = self.repository.count_all(active_only=active_only, controla_estoque_only=controla_estoque_only)
         return MaterialGroupPaginatedResponse(
             items=items,
             total=total,

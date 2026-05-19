@@ -25,6 +25,7 @@ export interface MaterialGroup {
   name: string;
   description?: string;
   active: boolean;
+  controla_estoque: boolean;
   created_at: string;
 }
 
@@ -32,6 +33,7 @@ export interface MaterialGroupCreatePayload {
   code: string;
   name: string;
   description?: string;
+  controla_estoque?: boolean;
 }
 
 export interface MaterialGroupUpdatePayload {
@@ -39,6 +41,7 @@ export interface MaterialGroupUpdatePayload {
   name: string;
   description?: string;
   active: boolean;
+  controla_estoque: boolean;
 }
 
 export interface Setor {

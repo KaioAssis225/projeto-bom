@@ -8,13 +8,14 @@ import type {
 } from "@/types";
 
 export async function list(
-  params?: PaginationParams & { active_only?: boolean },
+  params?: PaginationParams & { active_only?: boolean; controla_estoque_only?: boolean },
 ): Promise<PaginatedResponse<MaterialGroup>> {
   const response = await client.get<PaginatedResponse<MaterialGroup>>("/api/v1/grupos/", {
     params: {
       skip: params?.skip ?? 0,
       limit: params?.limit ?? 50,
       active_only: params?.active_only ?? true,
+      controla_estoque_only: params?.controla_estoque_only ?? false,
     },
   });
 

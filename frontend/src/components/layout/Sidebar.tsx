@@ -14,7 +14,7 @@ const primaryItems: NavItem[] = [
   { label: "BOM", to: "/bom", icon: FolderTree },
   { label: "Preços", to: "/precos", icon: Coins },
   { label: "Cálculo", to: "/calculos", icon: Calculator },
-  { label: "Alumínios", to: "/estoque-aluminio", icon: Warehouse },
+  { label: "Estoques", to: "/estoques", icon: Warehouse },
 ];
 
 const secondaryItems: NavItem[] = [

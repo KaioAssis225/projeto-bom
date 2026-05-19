@@ -21,3 +21,8 @@ class MaterialGroup(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
         server_default=text("true"),
     )
+    controla_estoque: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("false"),
+    )
