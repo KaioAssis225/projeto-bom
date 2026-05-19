@@ -16,7 +16,7 @@ class RawMaterialCreate(BaseSchema):
     material_group_id: UUID
     setor_id: UUID
     notes: str | None = None
-    supplier_id: UUID | None = None
+    supplier_ids: list[UUID] = []
     unidade_conversao_id: UUID | None = None
     peso_liquido: Decimal | None = None
 
@@ -27,7 +27,7 @@ class RawMaterialUpdate(BaseSchema):
     material_group_id: UUID
     setor_id: UUID
     notes: str | None = None
-    supplier_id: UUID | None = None
+    supplier_ids: list[UUID] = []
     unidade_conversao_id: UUID | None = None
     peso_liquido: Decimal | None = None
 
@@ -54,6 +54,7 @@ class _SupplierSummary(BaseSchema):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     name: str
+    code: str
 
 
 class RawMaterialResponse(BaseSchema):
@@ -65,7 +66,7 @@ class RawMaterialResponse(BaseSchema):
     unit_of_measure_id: UUID
     material_group_id: UUID
     setor_id: UUID | None
-    supplier_id: UUID | None
+    supplier_ids: list[UUID]
     unidade_conversao_id: UUID | None
     peso_liquido: Decimal | None
     created_at: datetime
@@ -73,7 +74,7 @@ class RawMaterialResponse(BaseSchema):
     unit_of_measure: _UomSummary
     material_group: _GroupSummary
     setor: _SetorSummary | None
-    supplier: _SupplierSummary | None
+    suppliers: list[_SupplierSummary]
     unidade_conversao: _UomSummary | None
 
 

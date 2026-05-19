@@ -1,5 +1,5 @@
 import { ChevronDown, Clock, Loader2, Minus, Plus, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -200,83 +200,82 @@ function SaidaModal({
   );
 }
 
-function MinimoModal({
+const formatQty = (n: number) =>
+  n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+
+function InlineMinimoCell({
   item,
   groupId,
-  onClose,
 }: {
-  item: EstoqueItem | null;
+  item: EstoqueItem;
   groupId: string | null;
-  onClose: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const setMinimo = useSetEstoqueMinimo(groupId);
-  const { register, handleSubmit, reset } = useForm<{ estoque_minimo: string }>({
-    defaultValues: { estoque_minimo: item?.estoque_minimo?.toString() ?? "" },
-  });
 
-  const onSubmit = handleSubmit(async (values) => {
-    if (!item) return;
-    const val = values.estoque_minimo.trim();
+  const startEdit = () => {
+    setValue(item.estoque_minimo?.toString() ?? "");
+    setEditing(true);
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const save = async () => {
+    const val = value.trim();
     await setMinimo.mutateAsync({
       itemId: item.item_id,
       payload: { estoque_minimo: val === "" ? null : Number(val) },
     });
-    reset();
-    onClose();
-  });
+    setEditing(false);
+  };
 
-  if (!item) return null;
+  const cancel = () => setEditing(false);
+
+  if (editing) {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <input
+          ref={inputRef}
+          type="number"
+          step="any"
+          min="0"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); void save(); }
+            if (e.key === "Escape") cancel();
+          }}
+          onBlur={() => void save()}
+          disabled={setMinimo.isPending}
+          className="w-28 rounded border border-blue-400 bg-white px-2 py-1 text-right font-mono text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+        />
+        {setMinimo.isPending
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 shrink-0" />
+          : <span className="text-xs text-slate-400 shrink-0">{item.uom}</span>}
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Estoque Mínimo</h2>
-            <p className="text-sm text-slate-500">{item.code} — {item.description}</p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <form onSubmit={onSubmit} className="space-y-4 px-6 py-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
-              Mínimo ({item.uom}) — deixe em branco para remover
-            </label>
-            <input
-              type="number"
-              step="any"
-              min="0"
-              disabled={setMinimo.isPending}
-              className={cn(
-                "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition",
-                "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
-              )}
-              {...register("estoque_minimo")}
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={setMinimo.isPending}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={setMinimo.isPending}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
-            >
-              {setMinimo.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Salvar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={startEdit}
+      className="font-mono text-slate-600 underline-offset-2 hover:text-blue-600 hover:underline"
+      title="Clique para editar o estoque mínimo"
+    >
+      {item.estoque_minimo !== null ? (
+        <>
+          {formatQty(Number(item.estoque_minimo))}{" "}
+          <span className="text-xs text-slate-400">{item.uom}</span>
+        </>
+      ) : (
+        <span className="text-xs text-slate-300">Definir</span>
+      )}
+    </button>
   );
 }
 
@@ -483,7 +482,6 @@ export default function EstoqueAluminioPage() {
   const [selectedGroup, setSelectedGroup] = useState<MaterialGroup | null>(null);
   const [modalEntrada, setModalEntrada] = useState<EstoqueItem | null>(null);
   const [modalSaida, setModalSaida] = useState<EstoqueItem | null>(null);
-  const [modalMinimo, setModalMinimo] = useState<EstoqueItem | null>(null);
   const [modalHistorico, setModalHistorico] = useState<EstoqueItem | null>(null);
 
   const gruposQuery = useGrupos({ skip: 0, limit: 100, active_only: true, controla_estoque_only: true });
@@ -500,9 +498,6 @@ export default function EstoqueAluminioPage() {
       `${item.code} ${item.description}`.toLowerCase().includes(q),
     );
   }, [estoqueQuery.data?.items, search]);
-
-  const formatQty = (n: number) =>
-    n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
   const hasUom2 = filteredItems.some((item) => item.uom2 !== null);
 
@@ -639,21 +634,7 @@ export default function EstoqueAluminioPage() {
                         </td>
                       )}
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setModalMinimo(item)}
-                          className="font-mono text-slate-600 underline-offset-2 hover:text-blue-600 hover:underline"
-                          title="Clique para editar o estoque mínimo"
-                        >
-                          {item.estoque_minimo !== null ? (
-                            <>
-                              {formatQty(item.estoque_minimo)}{" "}
-                              <span className="text-xs text-slate-400">{item.uom}</span>
-                            </>
-                          ) : (
-                            <span className="text-slate-300 text-xs">Definir</span>
-                          )}
-                        </button>
+                        <InlineMinimoCell item={item} groupId={groupId} />
                       </td>
                       <td className="px-4 py-3">
                         {item.estoque_minimo !== null ? (
@@ -718,7 +699,6 @@ export default function EstoqueAluminioPage() {
 
       <EntradaModal item={modalEntrada} groupId={groupId} onClose={() => setModalEntrada(null)} />
       <SaidaModal item={modalSaida} groupId={groupId} onClose={() => setModalSaida(null)} />
-      <MinimoModal item={modalMinimo} groupId={groupId} onClose={() => setModalMinimo(null)} />
       <HistoricoModal item={modalHistorico} groupId={groupId} onClose={() => setModalHistorico(null)} />
     </div>
   );

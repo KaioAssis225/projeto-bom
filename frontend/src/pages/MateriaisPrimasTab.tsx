@@ -21,12 +21,113 @@ import {
 } from "@/hooks/useMateriaPrima";
 import { usePrecoHistory, useSetPreco } from "@/hooks/usePrecos";
 import { useUnidades } from "@/hooks/useUnidades";
-import { cn, extractErrorMessage, formatCurrency, formatDate, formatDecimal, supplierLabel } from "@/lib/utils";
+import { cn, extractErrorMessage, formatCurrency, formatDate, formatDecimal } from "@/lib/utils";
 import type { MaterialGroup, RawMaterial, Setor, Supplier, UnitOfMeasure } from "@/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 type StatusFilter = "all" | "active" | "inactive";
+
+// ─── SupplierMultiSelect ──────────────────────────────────────────────────────
+
+function SupplierMultiSelect({
+  value,
+  onChange,
+  suppliers,
+  disabled,
+}: {
+  value: string[];
+  onChange: (ids: string[]) => void;
+  suppliers: Supplier[];
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle = (id: string) => {
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  };
+
+  const selected = suppliers.filter((s) => value.includes(s.id));
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-sm outline-none transition",
+          "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
+          open && "border-blue-500 ring-2 ring-blue-100",
+        )}
+      >
+        {selected.length === 0 ? (
+          <span className="text-slate-400">Selecione fornecedores</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {selected.map((s) => (
+              <span
+                key={s.id}
+                className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
+              >
+                {s.code}
+                <span
+                  role="button"
+                  aria-label={`Remover ${s.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(s.id);
+                  }}
+                  className="cursor-pointer leading-none hover:text-blue-600"
+                >
+                  ×
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+          <div className="max-h-48 overflow-y-auto p-1">
+            {suppliers.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-slate-400">Nenhum fornecedor cadastrado</p>
+            ) : (
+              suppliers.map((s) => (
+                <label
+                  key={s.id}
+                  className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={value.includes(s.id)}
+                    onChange={() => toggle(s.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-700">
+                    {s.code} — {s.name}
+                  </span>
+                </label>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── CustoCell ────────────────────────────────────────────────────────────────
 
@@ -186,7 +287,7 @@ const materiaisSchema = z
     unit_of_measure_id: z.string().min(1, "Selecione uma unidade válida"),
     material_group_id: z.string().min(1, "Selecione um grupo válido"),
     setor_id: z.string().min(1, "Selecione um setor válido"),
-    supplier_id: z.string().optional().nullable(),
+    supplier_ids: z.array(z.string()).default([]),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
     unidade_conversao_id: z.string().optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
@@ -247,7 +348,7 @@ function MateriaisPrimasModal({
       unidade_conversao_id: null,
       material_group_id: "",
       setor_id: "",
-      supplier_id: null,
+      supplier_ids: [],
       peso_liquido: null,
       custo: null,
       created_by: null,
@@ -269,7 +370,7 @@ function MateriaisPrimasModal({
         unidade_conversao_id: null,
         material_group_id: "",
         setor_id: "",
-        supplier_id: null,
+        supplier_ids: [],
         peso_liquido: null,
         custo: null,
         created_by: null,
@@ -286,7 +387,7 @@ function MateriaisPrimasModal({
       unidade_conversao_id: item?.unidade_conversao_id ?? null,
       material_group_id: item?.material_group_id ?? "",
       setor_id: item?.setor_id ?? "",
-      supplier_id: item?.supplier_id ?? null,
+      supplier_ids: item?.supplier_ids ?? [],
       peso_liquido: item?.peso_liquido ?? null,
       custo: null,
       created_by: null,
@@ -320,7 +421,7 @@ function MateriaisPrimasModal({
             notes: values.notes?.trim() || undefined,
             material_group_id: values.material_group_id,
             setor_id: values.setor_id,
-            supplier_id: values.supplier_id ?? undefined,
+            supplier_ids: values.supplier_ids,
             peso_liquido: values.peso_liquido ?? undefined,
             unidade_conversao_id: values.unidade_conversao_id ?? undefined,
           },
@@ -333,7 +434,7 @@ function MateriaisPrimasModal({
           unit_of_measure_id: values.unit_of_measure_id,
           material_group_id: values.material_group_id,
           setor_id: values.setor_id,
-          supplier_id: values.supplier_id ?? undefined,
+          supplier_ids: values.supplier_ids,
           peso_liquido: values.peso_liquido ?? undefined,
           unidade_conversao_id: values.unidade_conversao_id ?? undefined,
           notes: values.notes?.trim() || undefined,
@@ -538,28 +639,17 @@ function MateriaisPrimasModal({
 
             {/* Fornecedor */}
             <div className="space-y-2">
-              <label htmlFor="mp-supplier" className="text-sm font-medium text-slate-700">
-                Fornecedor
-              </label>
+              <label className="text-sm font-medium text-slate-700">Fornecedor</label>
               <Controller
-                name="supplier_id"
+                name="supplier_ids"
                 control={form.control}
                 render={({ field }) => (
-                  <select
-                    id="mp-supplier"
+                  <SupplierMultiSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    suppliers={suppliers}
                     disabled={isSubmitting}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                    value={field.value ?? ""}
-                    onBlur={field.onBlur}
-                    onChange={(e) => field.onChange(e.target.value || null)}
-                  >
-                    <option value="">Selecione</option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.code} — {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 )}
               />
             </div>
@@ -1021,7 +1111,9 @@ export default function MateriaisPrimasTab() {
                           <CustoCell itemId={item.id} />
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          {supplierLabel(item.supplier)}
+                          {item.suppliers.length === 0
+                            ? <span className="text-slate-400">—</span>
+                            : item.suppliers.map((s) => s.name).join(", ")}
                         </td>
                         <td className="px-4 py-3">
                           <span

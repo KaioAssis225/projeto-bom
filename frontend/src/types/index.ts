@@ -153,7 +153,7 @@ export interface RawMaterial {
   unit_of_measure_id: string;
   material_group_id: string;
   setor_id?: string | null;
-  supplier_id?: string | null;
+  supplier_ids: string[];
   unidade_conversao_id?: string | null;
   peso_liquido?: number | null;
   created_at: string;
@@ -161,7 +161,7 @@ export interface RawMaterial {
   unit_of_measure?: { id: string; code: string };
   material_group?: { id: string; name: string } | null;
   setor?: { id: string; name: string } | null;
-  supplier?: { id: string; name: string } | null;
+  suppliers: { id: string; name: string; code: string }[];
   unidade_conversao?: { id: string; code: string } | null;
 }
 
@@ -172,7 +172,7 @@ export interface RawMaterialCreatePayload {
   material_group_id: string;
   setor_id: string;
   notes?: string | null;
-  supplier_id?: string | null;
+  supplier_ids: string[];
   unidade_conversao_id?: string | null;
   peso_liquido?: number | null;
 }
@@ -183,7 +183,7 @@ export interface RawMaterialUpdatePayload {
   material_group_id: string;
   setor_id: string;
   notes?: string | null;
-  supplier_id?: string | null;
+  supplier_ids: string[];
   unidade_conversao_id?: string | null;
   peso_liquido?: number | null;
 }

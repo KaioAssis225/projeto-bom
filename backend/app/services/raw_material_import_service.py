@@ -41,7 +41,7 @@ class RawMaterialImportService:
 
         errors: list[ImportRowError] = []
         seen_codes: set[str] = set()
-        prepared: list[tuple[dict, dict]] = []
+        prepared: list[tuple[dict, dict, list[Supplier]]] = []
 
         for idx, row in enumerate(rows, start=2):  # header is line 1
             code = row.get("code")
@@ -81,11 +81,13 @@ class RawMaterialImportService:
                 err("material_group_code", f"Grupo '{group_code}' não encontrado")
 
             supplier_code = row.get("supplier_code")
-            supplier_id = None
+            supplier_obj: Supplier | None = None
             if supplier_code:
                 supplier_id = suppliers.get(supplier_code)
                 if supplier_id is None:
                     err("supplier_code", f"Fornecedor '{supplier_code}' não encontrado")
+                else:
+                    supplier_obj = self.db.get(Supplier, supplier_id)
 
             conv_code = row.get("unidade_conversao_code")
             conv_id = None
@@ -114,21 +116,23 @@ class RawMaterialImportService:
             }
             rm_data = {
                 "material_group_id": group_id,
-                "supplier_id": supplier_id,
                 "unidade_conversao_id": conv_id,
                 "peso_liquido": peso_liquido,
             }
-            prepared.append((item_data, rm_data))
+            row_suppliers = [supplier_obj] if supplier_obj is not None else []
+            prepared.append((item_data, rm_data, row_suppliers))
 
         if errors:
             return ImportResult(imported=0, errors=errors)
 
         try:
-            for item_data, rm_data in prepared:
+            for item_data, rm_data, row_suppliers in prepared:
                 item = Item(**item_data, type=ItemType.RAW_MATERIAL)
                 self.db.add(item)
                 self.db.flush()
-                self.db.add(RawMaterial(item_id=item.id, **rm_data))
+                rm = RawMaterial(item_id=item.id, **rm_data)
+                rm.suppliers = row_suppliers
+                self.db.add(rm)
             self.db.commit()
         except SQLAlchemyError as exc:
             self.db.rollback()

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.item import Item, ItemType
 from app.models.raw_material import RawMaterial
+from app.models.supplier import Supplier
 
 
 class RawMaterialRepository:
@@ -25,7 +26,7 @@ class RawMaterialRepository:
                 selectinload(Item.unit_of_measure),
                 selectinload(Item.raw_material).selectinload(RawMaterial.material_group),
                 selectinload(Item.raw_material).selectinload(RawMaterial.setor),
-                selectinload(Item.raw_material).selectinload(RawMaterial.supplier),
+                selectinload(Item.raw_material).selectinload(RawMaterial.suppliers),
                 selectinload(Item.raw_material).selectinload(RawMaterial.unidade_conversao),
             )
             .order_by(Item.code.asc())
@@ -77,22 +78,24 @@ class RawMaterialRepository:
         )
         return int(self.db.scalar(stmt) or 0)
 
-    def create(self, item_data: dict, rm_data: dict) -> Item:
+    def create(self, item_data: dict, rm_data: dict, suppliers: list[Supplier]) -> Item:
         item = Item(**item_data, type=ItemType.RAW_MATERIAL)
         self.db.add(item)
         self.db.flush()
         rm = RawMaterial(item_id=item.id, **rm_data)
+        rm.suppliers = suppliers
         self.db.add(rm)
         self.db.commit()
         return self._load(item.id)  # type: ignore[return-value]
 
-    def update(self, item_id: UUID, item_data: dict, rm_data: dict) -> Item:
+    def update(self, item_id: UUID, item_data: dict, rm_data: dict, suppliers: list[Supplier]) -> Item:
         item = self.db.get(Item, item_id)
         rm = self.db.get(RawMaterial, item_id)
         for k, v in item_data.items():
             setattr(item, k, v)
         for k, v in rm_data.items():
             setattr(rm, k, v)
+        rm.suppliers = suppliers
         self.db.commit()
         return self._load(item_id)  # type: ignore[return-value]
 
