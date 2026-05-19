@@ -287,7 +287,7 @@ const materiaisSchema = z
     unit_of_measure_id: z.string().min(1, "Selecione uma unidade válida"),
     material_group_id: z.string().min(1, "Selecione um grupo válido"),
     setor_id: z.string().min(1, "Selecione um setor válido"),
-    supplier_ids: z.array(z.string()).default([]),
+    supplier_ids: z.array(z.string()),
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
     unidade_conversao_id: z.string().optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
