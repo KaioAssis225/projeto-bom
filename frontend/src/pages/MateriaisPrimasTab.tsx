@@ -42,30 +42,42 @@ function SupplierMultiSelect({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
+        setSearch("");
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
   const toggle = (id: string) => {
     onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   };
 
   const selected = suppliers.filter((s) => value.includes(s.id));
+  const filtered = search.trim()
+    ? suppliers.filter((s) =>
+        `${s.code} ${s.name}`.toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : suppliers;
 
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setOpen((o) => !o); setSearch(""); }}
         className={cn(
           "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-sm outline-none transition",
           "focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100",
@@ -85,10 +97,7 @@ function SupplierMultiSelect({
                 <span
                   role="button"
                   aria-label={`Remover ${s.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggle(s.id);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); toggle(s.id); }}
                   className="cursor-pointer leading-none hover:text-blue-600"
                 >
                   ×
@@ -101,11 +110,23 @@ function SupplierMultiSelect({
 
       {open && (
         <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+          <div className="border-b border-slate-100 p-2">
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar fornecedor..."
+              className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
           <div className="max-h-48 overflow-y-auto p-1">
-            {suppliers.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-slate-400">Nenhum fornecedor cadastrado</p>
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-slate-400">
+                {suppliers.length === 0 ? "Nenhum fornecedor cadastrado" : "Nenhum resultado"}
+              </p>
             ) : (
-              suppliers.map((s) => (
+              filtered.map((s) => (
                 <label
                   key={s.id}
                   className="flex cursor-pointer items-center gap-2 rounded px-3 py-2 hover:bg-slate-50"
