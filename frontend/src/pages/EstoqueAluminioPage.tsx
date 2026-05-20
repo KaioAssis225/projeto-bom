@@ -643,7 +643,7 @@ export default function EstoqueAluminioPage() {
 
           {/* Widget de últimas movimentações */}
           {selectedGroup && (
-            <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 lg:w-80 xl:w-96">
+            <div className="flex h-64 w-full flex-col rounded-xl border border-slate-200 bg-slate-50 p-4 lg:w-80 xl:w-96">
               <UltimosMovimentosWidget groupId={groupId} />
             </div>
           )}
