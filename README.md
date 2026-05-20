@@ -1,195 +1,209 @@
-# BOM Sistema
+# ProjetoGH — Sistema de Gestão de Custos BOM
 
-Sistema de gestão de BOM (Bill of Materials) multinível para ambientes industriais, com cadastro de itens, composição de estruturas produtivas, histórico de preços por vigência, cálculo de custo consolidado e exportação para Excel.
+> Sistema industrial de gerenciamento de **Bill of Materials (BOM)** multinível com cálculo de custos, histórico de preços com vigência e exportação Excel. Deployado na plataforma **Railway**.
 
-## Visão Geral
+## O que o sistema faz
 
-O projeto é dividido em dois módulos principais:
+| # | Funcionalidade | Detalhe |
+|---|---|---|
+| 1 | **Cadastro de itens** | Matérias-primas, produtos acabados, semi-acabados, embalagens e serviços |
+| 2 | **Estrutura BOM multinível** | Hierarquia pai→filho com profundidade arbitrária e detecção de ciclos |
+| 3 | **Histórico de preços** | Sem sobrescrita destrutiva — cada alteração cria novo registro com vigência |
+| 4 | **Cálculo de custo** | Explosão da BOM com acumulação de quantidades e aplicação de preços |
+| 5 | **Exportação Excel** | Planilha detalhada por linha gerada a cada cálculo executado |
+| 6 | **Auditoria completa** | Log de execuções de cálculo e rastreamento de alterações de preço |
 
-- `backend/`: API REST em FastAPI responsável por regras de negócio, persistência, cálculo e exportação.
-- `frontend/`: aplicação React para operação do sistema por usuários internos.
-
-Documentação da API:
-
-- Swagger: [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
-- ReDoc: [http://localhost:8000/api/v1/redoc](http://localhost:8000/api/v1/redoc)
+---
 
 ## Stack Tecnológica
 
 ### Backend
 
-- Python 3.12
-- FastAPI
-- SQLAlchemy 2.x
-- Alembic
-- PostgreSQL 15+
-- Pydantic v2
-- Pytest
+| Lib | Versão | Papel |
+|---|---|---|
+| Python | 3.12 | Linguagem principal |
+| FastAPI | ≥0.115.0 | API REST com OpenAPI automático |
+| SQLAlchemy | 2.x | ORM com suporte asyncio |
+| PostgreSQL | 15+ | Banco de dados com `NUMERIC(18,6)` para precisão financeira |
+| Alembic | 1.13+ | Migrations com 6 versões |
+| Pydantic v2 | — | Validação de dados e settings |
+| pytest | 9+ | Testes com cobertura e suporte async |
+| openpyxl + pandas | — | Geração de Excel |
+| python-jose | — | JWT/autenticação |
 
 ### Frontend
 
-- React 18
-- TypeScript
-- Vite
-- TanStack Query v5
-- React Router v6
-- Axios
-- Tailwind CSS
-- React Hook Form + Zod
-- lucide-react
+| Lib | Versão | Papel |
+|---|---|---|
+| React | 18.3.1 | UI framework |
+| TypeScript | 5.9.3 | Tipagem estática |
+| Vite | 7.1.7 | Build e dev server |
+| React Router DOM | 6.30.1 | Roteamento SPA |
+| TanStack Query | v5 | Cache, fetching e mutations |
+| Axios | 1.12.2 | HTTP client |
+| React Hook Form | 7.62.0 | Gerenciamento de formulários |
+| Zod | 4.1.11 | Validação de schemas |
+| Tailwind CSS | 3.4.17 | Estilização utilitária |
+| shadcn/ui + Radix UI | — | Componentes acessíveis |
+| sonner | — | Notificações toast |
+
+### Infraestrutura
+
+| Ferramenta | Uso |
+|---|---|
+| Docker + Docker Compose | PostgreSQL local via `backend/docker-compose.yml` |
+| Railway | Deploy de produção com `Procfile` |
+| ProxyHeadersMiddleware | Suporte a HTTPS atrás de reverse proxy |
+
+---
 
 ## Arquitetura em Camadas
 
-O backend segue a separação:
-
-```text
-router -> service -> repository -> database
-                 -> domain (quando há lógica pura)
+```
+HTTP Request
+    ↓
+[Router]         → recebe HTTP, valida entrada/saída, mapeia exceções
+    ↓
+[Service]        → regras de negócio, validação de estado, orquestração
+    ↓
+[Repository]     → encapsulamento de acesso ao banco (SQLAlchemy)
+    ↓
+[Domain]         → lógica pura sem dependência de banco (BomCalculator)
+    ↓
+PostgreSQL 15+
 ```
 
-- `router`: recebe requisições HTTP e valida entrada/saída.
-- `service`: aplica regras de negócio.
-- `repository`: encapsula acesso ao banco.
-- `domain`: concentra lógica pura, sem dependência de banco, como o motor de cálculo da BOM.
+Veja detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Pré-requisitos
+---
 
-Antes de rodar o projeto, garanta:
+## Estrutura de Pastas
 
-- Node.js 20+ com `npm`
-- Python 3.12
-- PostgreSQL 15+
-- Git
+```
+ProjetoGH/
+├── backend/
+│   ├── alembic/
+│   │   └── versions/           → 6 migrations (001–006)
+│   ├── app/
+│   │   ├── api/routers/        → 12 routers FastAPI
+│   │   ├── core/               → config, db, exceptions, logging, security, timezone
+│   │   ├── domain/             → bom_calculator.py (lógica pura)
+│   │   ├── models/             → 14 modelos SQLAlchemy com UUID PKs
+│   │   ├── repositories/       → 9 classes de acesso a dados
+│   │   ├── schemas/            → 10 módulos Pydantic v2
+│   │   ├── services/           → 11 classes de regras de negócio
+│   │   ├── utils/              → decimal_utils.py, excel_builder.py
+│   │   └── main.py             → entrypoint FastAPI
+│   ├── tests/
+│   │   ├── integration/
+│   │   └── unit/
+│   ├── docker-compose.yml
+│   ├── requirements.txt
+│   ├── alembic.ini
+│   ├── Makefile
+│   └── Procfile
+├── frontend/
+│   ├── src/
+│   │   ├── api/                → 13 módulos Axios (um por recurso)
+│   │   ├── components/
+│   │   │   ├── layout/         → AppLayout, Header, Sidebar
+│   │   │   ├── bom/            → BomTreeNode (componente recursivo)
+│   │   │   └── ui/             → componentes shadcn/ui
+│   │   ├── hooks/              → 10 hooks TanStack Query
+│   │   ├── lib/                → utils.ts (cn helper)
+│   │   ├── pages/              → 8 páginas
+│   │   ├── types/              → interfaces TypeScript espelhando schemas
+│   │   ├── App.tsx             → roteamento React Router
+│   │   └── main.tsx            → entrypoint React
+│   ├── vite.config.ts
+│   └── tailwind.config.ts
+├── docs/
+│   ├── ARCHITECTURE.md         → arquitetura e decisões técnicas
+│   ├── BACKEND.md              → camadas, serviços, domínio e cálculo BOM
+│   ├── FRONTEND.md             → páginas, hooks, API client e tipos
+│   ├── DATABASE.md             → modelos, relacionamentos e constraints
+│   └── API.md                  → referência completa de endpoints
+└── README.md
+```
 
-Opcional:
-
-- Docker e Docker Compose
+---
 
 ## Como Rodar Localmente
 
-### 1. Clonar o repositório
+### Pré-requisitos
 
-```bash
-git clone <url-do-repositorio>
-cd ProjetoGH
-```
+- Node.js 20+ com `npm`
+- Python 3.12
+- PostgreSQL 15+ (ou Docker)
 
-### 2. Configurar o backend
-
-```powershell
-cd backend
-copy .env.example .env
-```
-
-Ajuste as credenciais do PostgreSQL no `.env`.
-
-### 3. Criar e ativar o ambiente Python
+### Backend
 
 ```powershell
-cd C:\Users\koian\Desktop\ProjetoGH
+cd ProjetoGH\backend
+copy .env.example .env          # ajustar credenciais do PostgreSQL
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-cd backend
 pip install -r requirements.txt
-```
-
-### 4. Rodar as migrations
-
-```powershell
-cd C:\Users\koian\Desktop\ProjetoGH\backend
 alembic upgrade head
-```
-
-### 5. Subir o backend
-
-```powershell
-cd C:\Users\koian\Desktop\ProjetoGH\backend
 uvicorn app.main:app --reload
 ```
 
-Backend disponível em:
+API disponível em `http://localhost:8000`
+Swagger UI em `http://localhost:8000/api/v1/docs`
 
-- API: [http://localhost:8000](http://localhost:8000)
-- Docs: [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs)
-
-### 6. Configurar o frontend
+### Frontend
 
 ```powershell
-cd C:\Users\koian\Desktop\ProjetoGH\frontend
-copy .env.example .env
+cd ProjetoGH\frontend
+copy .env.example .env          # ajustar VITE_API_URL
 npm install
-```
-
-### 7. Subir o frontend
-
-```powershell
-cd C:\Users\koian\Desktop\ProjetoGH\frontend
 npm run dev
 ```
 
-Frontend disponível em:
+Frontend disponível em `http://localhost:5173`
 
-- [http://localhost:5173](http://localhost:5173)
-
-### Alternativa com Docker
-
-O projeto também possui `backend/docker-compose.yml` para subir a API e o PostgreSQL.
+### PostgreSQL via Docker
 
 ```powershell
-cd C:\Users\koian\Desktop\ProjetoGH\backend
+cd ProjetoGH\backend
 docker compose up -d
 alembic upgrade head
 ```
 
-## Estrutura de Pastas Resumida
+---
 
-```text
-ProjetoGH/
-├── backend/
-│   ├── alembic/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── domain/
-│   │   ├── models/
-│   │   ├── repositories/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   └── utils/
-│   ├── tests/
-│   └── README.md
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── api/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   ├── pages/
-│   │   └── types/
-│   └── README.md
-└── docs/
-    ├── API.md
-    └── ARCHITECTURE.md
+## Variáveis de Ambiente
+
+### Backend (`.env`)
+
+```env
+APP_NAME=ProjetoGH
+APP_ENV=development
+APP_TIMEZONE=America/Sao_Paulo
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=projetogh
+DB_USER=postgres
+DB_PASSWORD=secret
+ALLOWED_CORS_ORIGINS=["http://localhost:5173"]
+SECRET_KEY=sua-chave-jwt-secreta
+DOCS_ENABLED=true
 ```
 
-## Principais Funcionalidades
+### Frontend (`.env`)
 
-- Cadastro de grupos de matéria-prima
-- Cadastro de unidades de medida
-- Cadastro de itens produtivos e materiais
-- Cadastro de BOM multinível
-- Validação de ciclo na estrutura BOM
-- Histórico de preços com controle de vigência
-- Cálculo de custo por produto
-- Cálculo de custo em lote
-- Filtro de cálculo por grupo de matéria-prima
-- Exportação de resultado para Excel
-- Log de execução de cálculos
+```env
+VITE_API_URL=http://localhost:8000
+```
 
-## Links Úteis
+---
 
-- Documentação da API: [docs/API.md](C:/Users/koian/Desktop/ProjetoGH/docs/API.md)
-- Arquitetura: [docs/ARCHITECTURE.md](C:/Users/koian/Desktop/ProjetoGH/docs/ARCHITECTURE.md)
-- README do backend: [backend/README.md](C:/Users/koian/Desktop/ProjetoGH/backend/README.md)
-- README do frontend: [frontend/README.md](C:/Users/koian/Desktop/ProjetoGH/frontend/README.md)
+## Documentação Detalhada
+
+| Documento | Conteúdo |
+|---|---|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Fluxo de dados, decisões de design, padrões arquiteturais |
+| [BACKEND.md](docs/BACKEND.md) | Camadas, serviços, domínio e motor de cálculo BOM |
+| [FRONTEND.md](docs/FRONTEND.md) | Páginas, hooks, API client e sistema de tipos |
+| [DATABASE.md](docs/DATABASE.md) | Modelos, relacionamentos, constraints e migrations |
+| [API.md](docs/API.md) | Referência completa de endpoints com payloads |

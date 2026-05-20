@@ -1,267 +1,243 @@
-# Arquitetura do BOM Sistema
+# Arquitetura — ProjetoGH
 
-## Visão Geral
+## Diagrama Geral
 
-O sistema foi construído para suportar cadastro e cálculo de custo de estruturas BOM multinível, preservando histórico de preços, evitando sobrescrita destrutiva e mantendo cálculo como operação transitória.
-
-## Diagrama Textual da Arquitetura
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│                         Frontend                           │
-│ React + TypeScript + Vite + TanStack Query + Tailwind CSS │
-└──────────────────────────────┬─────────────────────────────┘
-                               │ HTTP/JSON
-                               ▼
-┌────────────────────────────────────────────────────────────┐
-│                         FastAPI API                        │
-│                    /api/v1/* routers                       │
-└──────────────────────────────┬─────────────────────────────┘
-                               ▼
-┌────────────────────────────────────────────────────────────┐
-│                         Services                           │
-│ Regras de negócio, validações, orquestração, logs, Excel  │
-└───────────────┬───────────────────────┬────────────────────┘
-                │                       │
-                ▼                       ▼
-┌──────────────────────────┐   ┌─────────────────────────────┐
-│       Repositories       │   │          Domain             │
-│ SQLAlchemy / consultas   │   │ BomCalculator (lógica pura) │
-└───────────────┬──────────┘   └──────────────┬──────────────┘
-                │                             
-                ▼                             
-┌────────────────────────────────────────────────────────────┐
-│                       PostgreSQL 15+                       │
-│ BOM, itens, preços, auditoria, logs, constraints, views   │
-└────────────────────────────────────────────────────────────┘
 ```
+┌───────────────────────────────────────────────────────────────┐
+│                          Frontend                             │
+│   React 18 + TypeScript + Vite + TanStack Query + Tailwind   │
+└──────────────────────────────┬────────────────────────────────┘
+                               │ HTTP/JSON (Axios)
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                        FastAPI API                            │
+│                    /api/v1/* routers                          │
+│           (ProxyHeadersMiddleware para Railway)               │
+└──────────────────────────────┬────────────────────────────────┘
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                          Services                             │
+│    Regras de negócio · Validação · Orquestração · Logs       │
+└──────────────┬────────────────────────┬───────────────────────┘
+               │                        │
+               ▼                        ▼
+┌─────────────────────────┐  ┌──────────────────────────────────┐
+│      Repositories       │  │            Domain                │
+│  SQLAlchemy / Queries   │  │  BomCalculator (lógica pura)     │
+└─────────────┬───────────┘  └──────────────────────────────────┘
+              ▼
+┌───────────────────────────────────────────────────────────────┐
+│                      PostgreSQL 15+                           │
+│  BOM · Itens · Preços · Auditoria · Logs · NUMERIC(18,6)     │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Camadas em Detalhe
+
+### Router
+
+Responsabilidades:
+- Receber requisições HTTP e definir contratos de entrada/saída via Pydantic
+- Delegar para o service correto
+- Mapear exceções de domínio para códigos HTTP via `error_handlers.py`
+- Não contém lógica de negócio
+
+Localização: `backend/app/api/routers/`
+
+Routers existentes:
+- `health.py` — verificação de saúde
+- `items.py` — itens genéricos (SEMI_FINISHED, PACKAGING, SERVICE)
+- `raw_material.py` — matérias-primas
+- `finished_product.py` — produtos acabados
+- `material_groups.py` — grupos de matéria-prima
+- `unit_of_measures.py` — unidades de medida
+- `suppliers.py` — fornecedores
+- `bom.py` — estrutura BOM
+- `prices.py` — preços e vigências
+- `calculations.py` — cálculo de custo e download Excel
+- `audit.py` — auditoria de preços
+- `logs.py` — logs de execução
+
+### Service
+
+Responsabilidades:
+- Aplicar regras de negócio
+- Validar estado do domínio (item ativo, preço existente, grupo existente)
+- Orquestrar múltiplos repositórios em uma transação lógica
+- Iniciar e finalizar logs de execução de cálculo
+- Disparar geração de Excel via `ExportService`
+
+Localização: `backend/app/services/`
+
+Serviços existentes: `ItemService`, `RawMaterialService`, `FinishedProductService`, `MaterialGroupService`, `UnitOfMeasureService`, `SupplierService`, `BomService`, `PriceService`, `CalculationService`, `ExportService`, `ExecutionLogService`
+
+### Repository
+
+Responsabilidades:
+- Encapsular todas as queries SQLAlchemy
+- Isolar detalhes de banco do service
+- Montar consultas recursivas quando necessário (BOM tree)
+- Retornar entidades ORM ou DTOs
+
+Localização: `backend/app/repositories/`
+
+Repositórios: `ItemRepository`, `RawMaterialRepository`, `FinishedProductRepository`, `MaterialGroupRepository`, `UnitOfMeasureRepository`, `SupplierRepository`, `BomRepository`, `PriceRepository`, `CalculationLogRepository`
+
+### Domain
+
+Responsabilidades:
+- Lógica pura sem qualquer dependência de banco ou I/O
+- Totalmente testável de forma unitária
+
+Localização: `backend/app/domain/bom_calculator.py`
+
+Classes:
+- `BomNode` — dataclass representando um nó da árvore BOM
+- `CalculationLine` — dataclass com quantidade acumulada, preço e custo de linha
+- `BomCalculator` — motor de cálculo:
+  - `detect_cycle()` — DFS para detectar ciclo antes de inserir filho
+  - `ensure_no_cycle()` — lança `BomCycleError` se ciclo seria criado
+  - `explode()` — percorre a árvore acumulando quantidades (considerando `loss_factor`)
+  - `calculate()` — aplica preços às quantidades acumuladas, suporta filtro por grupo
+  - `total_cost()` — soma custos de todas as linhas com `Decimal`
+
+---
 
 ## Fluxo de um Cálculo BOM
 
-```text
-1. Usuário envia requisição de cálculo pelo frontend
-2. Router recebe payload e delega ao CalculationService
+```
+1. Frontend envia POST /api/v1/calculos/produto com root_item_id + quantidade
+2. Router valida payload via Pydantic e chama CalculationService
 3. CalculationService:
-   - valida item raiz
-   - abre log de execução
-   - carrega árvore da BOM via bom_repository
-   - carrega preços vigentes por data
-   - monta nós de domínio
-4. BomCalculator:
-   - explode quantidades
-   - acumula consumo por item
-   - aplica preços
-   - retorna linhas consolidadas
-5. CalculationService:
-   - aplica filtro por grupo, se informado
-   - calcula totais
-   - chama ExportService
-   - grava log final de sucesso ou erro
-6. API retorna JSON com linhas, totais e caminho do Excel
-7. Frontend permite download do arquivo
+   a. Valida item raiz (existe e está ativo)
+   b. Abre log de execução com status PENDING
+   c. Carrega árvore BOM via BomRepository (query recursiva)
+   d. Carrega preços vigentes na data de referência via PriceRepository
+   e. Monta BomNode com filhos recursivos
+4. BomCalculator.explode():
+   - Percorre a árvore em profundidade
+   - Multiplica quantidade de cada nó por quantity * loss_factor dos ancestrais
+   - Retorna lista de CalculationLine com quantidades acumuladas
+5. BomCalculator.calculate():
+   - Aplica o preço unitário a cada CalculationLine
+   - Filtra por material_group_id se informado
+   - Retorna linhas com line_cost calculado
+6. ExportService:
+   - Gera arquivo Excel com openpyxl
+   - Persiste em disco (diretório exports/)
+7. CalculationService:
+   - Atualiza log com status SUCCESS, duration_ms e nome do arquivo
+8. Router retorna JSON com linhas, totais e caminho do Excel
+9. Frontend exibe resultado e permite download
 ```
 
-## Camadas da Aplicação
-
-## `router`
-
-Responsável por:
-
-- receber requisições HTTP
-- validar parâmetros de rota, query e body
-- serializar respostas
-- mapear exceções em códigos HTTP
-
-Exemplo:
-
-```text
-/api/v1/itens
-/api/v1/materias-primas
-/api/v1/produtos-acabados
-/api/v1/bom
-/api/v1/precos
-/api/v1/calculos
-```
-
-## `service`
-
-Responsável por:
-
-- aplicar regras de negócio
-- validar estado do domínio
-- orquestrar múltiplos repositórios
-- controlar transações lógicas
-- disparar geração de Excel e logs
-
-Exemplos:
-
-- `ItemService`
-- `RawMaterialService`
-- `FinishedProductService`
-- `BomService`
-- `PriceService`
-- `CalculationService`
-
-## `repository`
-
-Responsável por:
-
-- encapsular queries SQLAlchemy
-- isolar o acesso ao banco
-- retornar entidades persistidas
-- montar consultas recursivas quando necessário
-
-Exemplos:
-
-- `ItemRepository`
-- `BomRepository`
-- `PriceRepository`
-
-## `domain`
-
-Responsável por:
-
-- lógica pura, sem dependência de banco
-- regras algorítmicas e testáveis
-
-Exemplo:
-
-- `BomCalculator`
+---
 
 ## Decisões Técnicas
 
-## FastAPI no backend
+### FastAPI
 
-Foi escolhido por oferecer:
+Escolhido por:
+- Alta produtividade com tipagem forte via Pydantic
+- Documentação OpenAPI gerada automaticamente (Swagger + ReDoc)
+- Performance comparable a frameworks Node.js (ASGI/Starlette)
+- Integração simples com SQLAlchemy via dependency injection
 
-- alta produtividade
-- tipagem forte com Pydantic
-- documentação OpenAPI automática
-- integração simples com SQLAlchemy
+### PostgreSQL com NUMERIC
 
-## SQLAlchemy 2.x + Alembic
+Decisão de precisão financeira:
+- Campos monetários e quantitativos usam `NUMERIC(18,6)` no banco
+- Python usa `Decimal` em toda a camada de cálculo
+- Nunca há `float` no caminho crítico de cálculo
+- Conversão para `float` ocorre apenas na escrita do Excel (limitação `openpyxl`)
 
-Permitem:
+Trade-off aceito: `Decimal` é mais lento que `float`, mas em sistema financeiro a precisão é inegociável.
 
-- modelagem explícita
-- controle de migrations
-- queries expressivas
-- compatibilidade com PostgreSQL
+### Sem Sobrescrita Destrutiva de Preços
 
-## PostgreSQL
+Motivação: rastreabilidade e auditoria.
 
-Foi adotado por:
-
-- suporte sólido a `NUMERIC`
-- `WITH RECURSIVE`
-- constraints e índices parciais
-- suporte robusto a `JSONB`
-
-## React + Vite
-
-No frontend, essa combinação entrega:
-
-- build rápido
-- boa DX
-- tipagem forte com TypeScript
-- modularidade por hooks e páginas
-
-## TanStack Query
-
-Foi escolhido para:
-
-- cache de dados por chave
-- invalidação automática
-- tratamento padronizado de loading/error
-- integração simples com mutations
-
-## Regras de Negócio Críticas
-
-## BOM multinível
-
-- A estrutura suporta profundidade arbitrária.
-- Cada nó pode ter filhos e netos sem limite fixo.
-- O cálculo percorre toda a árvore.
-
-## Histórico de preços sem sobrescrita
-
-- Nunca há `UPDATE` destrutivo do preço vigente.
-- Ao registrar novo preço:
-  - o registro atual é encerrado com `valid_to`
-  - `is_current` passa para `false`
-  - um novo registro é criado
-  - a auditoria é gravada
-
-## Cálculo não persistido
-
-- O resultado detalhado do cálculo não é salvo no banco.
-- O sistema só persiste:
-  - log mínimo da execução
-  - auditoria operacional
-  - arquivo Excel gerado em disco
-
-## Validação de ciclo
-
-- Antes de inserir um filho na BOM, a aplicação verifica se isso criaria ciclo.
-- Se um item filho já for ancestral do pai atual, a operação é bloqueada.
-- A API retorna erro claro com o caminho do ciclo detectado.
-
-## Uso de `Decimal` e nunca `float`
-
-- Preço, quantidade e custo usam `Decimal` no Python.
-- No banco, os campos monetários e quantitativos usam `NUMERIC`.
-- Conversão para `float` só ocorre no momento de escrita em Excel, por limitação do `openpyxl`.
-
-## Observações Importantes
-
-- `loss_factor` é coluna gerada no banco e não calculada manualmente no Python.
-- O filtro por grupo de matéria-prima é uma visão do resultado do cálculo, não uma duplicação estrutural da BOM.
-- `RAW_MATERIAL` exige grupo de matéria-prima associado.
-
-## Entidades do Sistema
-
-| Entidade | Tabela | Descrição |
-|---|---|---|
-| `MaterialGroup` | `material_group` | Grupos de matéria-prima (ex: Aços, Plásticos) |
-| `UnitOfMeasure` | `unit_of_measure` | Unidades de medida (ex: KG, UN, M) |
-| `Supplier` | `supplier` | Fornecedores vinculados a matérias-primas |
-| `Item` | `item` | Registro base de todos os itens (código, tipo, unidade, ativo) |
-| `RawMaterial` | `raw_material` | Detalhes de matéria-prima: grupo, fornecedor, unidade conversão, peso |
-| `FinishedProduct` | `finished_product` | Detalhes de produto acabado: catálogo, linha, designer, peso |
-| `Bom` | `bom` | Cabeçalho da estrutura BOM (versão, validade) |
-| `BomItem` | `bom_item` | Linha da BOM: pai → filho com quantidade e scrap |
-| `ItemPriceHistory` | `item_price_history` | Histórico de preços com `valid_from`, `valid_to`, `is_current` |
-| `AuditPriceChange` | `audit_price_change` | Auditoria de alterações de preço |
-| `CalculationExecutionLog` | `calculation_execution_log` | Log de cálculos executados |
-
-## Separação de Tabelas (Class Table Inheritance)
-
-`raw_material` e `finished_product` usam class table inheritance em relação ao `item`:
-
-```text
-item (id, code, description, type, unit_of_measure_id, active, notes)
-  ├── raw_material (item_id PK FK→item, material_group_id, supplier_id, unidade_conversao_id, peso_liquido)
-  └── finished_product (item_id PK FK→item, peso_liquido, catalogo, linha, designer)
+Implementação:
+```
+POST /api/v1/precos/{item_id}
+  → encerra registro atual (valid_to = now, is_current = false)
+  → cria novo registro (is_current = true)
+  → grava audit_price_change com old_price, new_price, changed_by, reason
 ```
 
-- Cada tabela de detalhe tem `item_id` como chave primária com `ON DELETE CASCADE`.
-- O join entre `item` e a tabela de detalhe é feito via SQLAlchemy `uselist=False` relationship.
-- Endpoints dedicados: `/api/v1/materias-primas/` e `/api/v1/produtos-acabados/`.
-- O endpoint genérico `/api/v1/itens/` rejeita criação de `RAW_MATERIAL` ou `FINISHED_PRODUCT`.
+Consequência: nunca há `UPDATE` em `item_price_history` — apenas `INSERT`.
+
+### Cálculo Transitório (Não Persistido)
+
+O resultado detalhado do cálculo não é salvo no banco. Apenas:
+- Log mínimo da execução (`calculation_execution_log`)
+- Arquivo Excel gerado em disco
+- Referência ao arquivo no log
+
+Motivação: evitar crescimento descontrolado do banco com dados derivados que podem ser recalculados.
+
+### Detecção de Ciclo em Memória
+
+Antes de qualquer `INSERT` em `bom_item`, o `BomCalculator.detect_cycle()` executa DFS na estrutura atual em memória.
+
+Se o filho proposto já for ancestral do pai atual, a operação é bloqueada antes de tocar o banco. A API retorna `422 CYCLE_DETECTED` com o caminho do ciclo.
+
+### Class Table Inheritance
+
+`item` é a tabela base. `raw_material` e `finished_product` estendem `item` com `item_id` como PK + FK com `ON DELETE CASCADE`.
+
+```
+item (id, code, description, type, unit_of_measure_id, active, notes)
+  ├── raw_material   (item_id PK→item, material_group_id FK, supplier_id FK, ...)
+  └── finished_product (item_id PK→item, catalogo, linha, designer, peso_liquido)
+```
+
+Motivação: evitar colunas nulas desnecessárias em uma tabela única. Cada tipo de item tem sua tabela de detalhe com apenas as colunas relevantes.
+
+### TanStack Query no Frontend
+
+Escolhido para:
+- Cache automático com `staleTime: 30s`
+- `retry: 1` em falhas de rede
+- Invalidação automática de cache após mutations
+- Separação clara entre estado de servidor (TanStack Query) e estado de UI (useState)
+
+---
 
 ## Tipos de Item
 
-- `RAW_MATERIAL` — matéria-prima. Detalhes em tabela `raw_material`. Exige `material_group_id`. Pode ter `supplier_id`, `unidade_conversao_id`, `peso_liquido`. Endpoint: `/api/v1/materias-primas/`.
-- `FINISHED_PRODUCT` — produto acabado. Detalhes em tabela `finished_product`. Campos adicionais: `catalogo`, `linha`, `designer`, `peso_liquido`. Custo calculado pela BOM. Endpoint: `/api/v1/produtos-acabados/`.
-- `SEMI_FINISHED`, `PACKAGING`, `SERVICE` — tipos genéricos sem tabela de detalhe. Endpoint: `/api/v1/itens/`.
+| Tipo | Tabela de detalhe | Endpoint dedicado | Exige grupo |
+|---|---|---|---|
+| `RAW_MATERIAL` | `raw_material` | `/api/v1/materias-primas/` | Sim |
+| `FINISHED_PRODUCT` | `finished_product` | `/api/v1/produtos-acabados/` | Não |
+| `SEMI_FINISHED` | — | `/api/v1/itens/` | Não |
+| `PACKAGING` | — | `/api/v1/itens/` | Não |
+| `SERVICE` | — | `/api/v1/itens/` | Não |
+
+O endpoint `/api/v1/itens/` rejeita criação de `RAW_MATERIAL` ou `FINISHED_PRODUCT` com `422`.
+
+---
+
+## Filtro por Grupo de Matéria-Prima
+
+O filtro por `material_group_id` no cálculo é aplicado **apenas na visualização do resultado**, não na estrutura da BOM.
+
+- A BOM continua explodindo todos os itens independente de grupo
+- O filtro remove linhas cujo grupo não corresponde ao filtrado
+- O total exibido reflete apenas as linhas filtradas
+- Motivação: permitir análise de custo por grupo sem criar BOMs duplicadas por grupo
+
+---
 
 ## Migrations Alembic
 
 | Revisão | Descrição |
 |---|---|
-| `20260326_0001` | Schema inicial |
+| `20260326_0001` | Schema inicial: item, bom, bom_item, price_history, logs |
 | `20260326_0002` | Tabela de fornecedores + FK em item |
 | `20260326_0003` | Campo `unidade_conversao_id` em item |
 | `20260414_0004` | Campos `catalogo`, `linha`, `designer` em item |
 | `20260415_0005` | Reparo de colunas ausentes por schema drift |
-| `20260415_0006` | Separação: tabelas `raw_material` e `finished_product` + migração de dados |
+| `20260415_0006` | Class table inheritance: tabelas `raw_material` e `finished_product` com migração de dados |
