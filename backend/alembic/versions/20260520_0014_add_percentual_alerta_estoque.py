@@ -18,10 +18,13 @@ def upgrade() -> None:
     op.execute("""
         ALTER TABLE raw_material
         ADD COLUMN IF NOT EXISTS percentual_alerta NUMERIC(5,2) NULL
-        CONSTRAINT chk_percentual_alerta
+        CONSTRAINT chk_raw_material_percentual_alerta
             CHECK (percentual_alerta IS NULL OR (percentual_alerta > 0 AND percentual_alerta < 1))
     """)
 
 
 def downgrade() -> None:
+    op.execute(
+        "ALTER TABLE raw_material DROP CONSTRAINT IF EXISTS chk_raw_material_percentual_alerta"
+    )
     op.execute("ALTER TABLE raw_material DROP COLUMN IF EXISTS percentual_alerta")
