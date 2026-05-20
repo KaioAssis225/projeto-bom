@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import * as estoqueApi from "@/api/estoque-aluminio";
 import { extractErrorMessage } from "@/lib/utils";
-import type { EstoqueEntradaPayload, EstoqueMinimoPayload, EstoqueSaidaPayload } from "@/types";
+import type { EstoqueEntradaPayload, EstoqueMinimoPayload, EstoqueSaidaPayload, PercentualAlertaPayload } from "@/types";
 
 export function useEstoqueAluminio(groupId: string | null) {
   return useQuery({
@@ -68,6 +68,21 @@ export function useSetEstoqueMinimo(groupId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["estoque-aluminio"] });
       toast.success("Estoque mínimo atualizado");
+    },
+    onError: (error: unknown) => {
+      toast.error(extractErrorMessage(error));
+    },
+  });
+}
+
+export function useSetPercentualAlerta(groupId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ itemId, payload }: { itemId: string; payload: PercentualAlertaPayload }) =>
+      estoqueApi.setPercentualAlerta(groupId!, itemId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["estoque-aluminio"] });
+      toast.success("Percentual de alerta atualizado");
     },
     onError: (error: unknown) => {
       toast.error(extractErrorMessage(error));

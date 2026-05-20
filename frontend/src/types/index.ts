@@ -499,6 +499,9 @@ export interface EstoqueItem {
   saldo_uom2: number | null;
   estoque_minimo: number | null;
   abaixo_minimo: boolean;
+  percentual_alerta: number | null;
+  proximo_vencer: boolean;
+  limite_alerta: number | null;
 }
 
 export interface EstoqueMovimento {
@@ -521,6 +524,10 @@ export interface EstoqueSaidaPayload {
 
 export interface EstoqueMinimoPayload {
   estoque_minimo: number | null;
+}
+
+export interface PercentualAlertaPayload {
+  percentual_alerta: number | null;
 }
 
 export interface EstoqueMovimentoRecente {

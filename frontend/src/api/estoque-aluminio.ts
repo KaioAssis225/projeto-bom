@@ -6,6 +6,7 @@ import type {
   EstoqueMovimento,
   EstoqueMovimentoRecente,
   EstoqueSaidaPayload,
+  PercentualAlertaPayload,
   PaginatedResponse,
 } from "@/types";
 
@@ -62,6 +63,19 @@ export async function setEstoqueMinimo(
 ): Promise<EstoqueItem> {
   const response = await client.patch<EstoqueItem>(
     `/api/v1/estoque-aluminio/${itemId}/estoque-minimo`,
+    payload,
+    { params: { group_id: groupId } },
+  );
+  return response.data;
+}
+
+export async function setPercentualAlerta(
+  groupId: string,
+  itemId: string,
+  payload: PercentualAlertaPayload,
+): Promise<EstoqueItem> {
+  const response = await client.patch<EstoqueItem>(
+    `/api/v1/estoque-aluminio/${itemId}/percentual-alerta`,
     payload,
     { params: { group_id: groupId } },
   );
