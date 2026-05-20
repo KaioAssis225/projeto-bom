@@ -1,4 +1,17 @@
-import { Factory, FolderTree, Boxes, Package2, Ruler, Calculator, ScrollText, Coins, Truck, Upload, Warehouse } from "lucide-react";
+import {
+  Factory,
+  FolderTree,
+  Boxes,
+  Package2,
+  Ruler,
+  Calculator,
+  ScrollText,
+  Coins,
+  Truck,
+  Upload,
+  Warehouse,
+  ChevronLeft,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
@@ -60,9 +73,14 @@ function SidebarSection({ items }: { items: NavItem[] }) {
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  onCollapse: () => void;
+}
+
+export function Sidebar({ onCollapse }: SidebarProps) {
   return (
-    <aside className="w-56 h-screen bg-white border-r flex flex-col shrink-0">
+    <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-white">
+      {/* Logo / marca */}
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Factory className="h-5 w-5" />
@@ -73,6 +91,7 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* Navegação */}
       <nav className="flex-1 space-y-4 px-3 py-4">
         <SidebarSection items={primaryItems} />
         <div className="mx-2 border-t border-slate-200" />
@@ -80,6 +99,18 @@ export function Sidebar() {
         <div className="mx-2 border-t border-slate-200" />
         <SidebarSection items={tertiaryItems} />
       </nav>
+
+      {/* Botão Recolher */}
+      <div className="border-t border-slate-200 p-3">
+        <button
+          type="button"
+          onClick={onCollapse}
+          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span>Recolher</span>
+        </button>
+      </div>
     </aside>
   );
 }

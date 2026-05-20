@@ -26,14 +26,22 @@ export function AppLayout() {
   const location = useLocation();
   const title = getPageTitle(location.pathname);
 
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem("sidebar-collapsed") === "true"
-  );
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
 
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
-    localStorage.setItem("sidebar-collapsed", String(next));
+    try {
+      localStorage.setItem("sidebar-collapsed", String(next));
+    } catch {
+      // localStorage indisponível (ex: Safari private, iframe cross-origin)
+    }
   };
 
   return (
@@ -49,6 +57,7 @@ export function AppLayout() {
       {/* Botão flutuante visível apenas quando colapsada */}
       {collapsed && (
         <button
+          type="button"
           onClick={toggle}
           aria-label="Expandir sidebar"
           className="fixed left-0 top-1/2 z-50 -translate-y-1/2 rounded-r-md bg-blue-600 p-1.5 text-white shadow-md transition-colors hover:bg-blue-700"
