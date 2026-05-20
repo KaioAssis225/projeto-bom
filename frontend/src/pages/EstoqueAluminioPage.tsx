@@ -8,6 +8,7 @@ import {
   useEstoqueAluminio,
   useEstoqueHistorico,
   useSetEstoqueMinimo,
+  useSetPercentualAlerta,
   useUltimosMovimentos,
 } from "@/hooks/useEstoqueAluminio";
 import { useGrupos } from "@/hooks/useGrupos";
@@ -274,6 +275,87 @@ function InlineMinimoCell({
         </>
       ) : (
         <span className="text-xs text-slate-300">Definir</span>
+      )}
+    </button>
+  );
+}
+
+function InlineAlertaCell({
+  item,
+  groupId,
+}: {
+  item: EstoqueItem;
+  groupId: string | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const setAlerta = useSetPercentualAlerta(groupId);
+
+  const startEdit = () => {
+    const current = item.percentual_alerta !== null
+      ? Math.round(item.percentual_alerta * 100).toString()
+      : "";
+    setValue(current);
+    setEditing(true);
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const save = async () => {
+    const val = value.trim();
+    const parsed = val === "" ? null : Number(val) / 100;
+    await setAlerta.mutateAsync({
+      itemId: item.item_id,
+      payload: { percentual_alerta: parsed },
+    });
+    setEditing(false);
+  };
+
+  const cancel = () => setEditing(false);
+
+  if (editing) {
+    return (
+      <div className="flex items-center justify-end gap-1.5">
+        <input
+          ref={inputRef}
+          type="number"
+          step="1"
+          min="1"
+          max="99"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); void save(); }
+            if (e.key === "Escape") cancel();
+          }}
+          onBlur={() => void save()}
+          disabled={setAlerta.isPending}
+          className="w-20 rounded border border-blue-400 bg-white px-2 py-1 text-right font-mono text-sm text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+        />
+        <span className="text-xs text-slate-400 shrink-0">%</span>
+        {setAlerta.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 shrink-0" />}
+      </div>
+    );
+  }
+
+  const displayPct = item.percentual_alerta !== null
+    ? Math.round(item.percentual_alerta * 100)
+    : null;
+
+  return (
+    <button
+      type="button"
+      onClick={startEdit}
+      className="font-mono text-slate-600 underline-offset-2 hover:text-blue-600 hover:underline"
+      title={`Clique para editar o percentual de alerta${displayPct === null ? " (padrão: 80%)" : ""}`}
+    >
+      {displayPct !== null ? (
+        <span>{displayPct}%</span>
+      ) : (
+        <span className="text-xs text-slate-300">80%</span>
       )}
     </button>
   );
@@ -607,6 +689,7 @@ export default function EstoqueAluminioPage() {
                     <th className="px-4 py-3 text-right font-semibold text-slate-600">Saldo (UoM2)</th>
                   )}
                   <th className="px-4 py-3 text-right font-semibold text-slate-600">Mínimo</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-600">Alerta %</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-600">Ações</th>
                 </tr>
@@ -636,11 +719,18 @@ export default function EstoqueAluminioPage() {
                       <td className="px-4 py-3 text-right">
                         <InlineMinimoCell item={item} groupId={groupId} />
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        <InlineAlertaCell item={item} groupId={groupId} />
+                      </td>
                       <td className="px-4 py-3">
                         {item.estoque_minimo !== null ? (
                           item.abaixo_minimo ? (
                             <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">
                               Abaixo do mínimo
+                            </span>
+                          ) : item.proximo_vencer ? (
+                            <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                              Próximo a vencer
                             </span>
                           ) : (
                             <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
@@ -684,7 +774,7 @@ export default function EstoqueAluminioPage() {
                 ) : (
                   <tr>
                     <td
-                      colSpan={hasUom2 ? 7 : 6}
+                      colSpan={hasUom2 ? 8 : 7}
                       className="px-4 py-12 text-center text-sm text-slate-500"
                     >
                       Nenhum item encontrado
