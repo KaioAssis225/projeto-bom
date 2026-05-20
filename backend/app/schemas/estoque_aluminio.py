@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.common import BaseSchema, PaginatedResponse
 
@@ -20,6 +20,17 @@ class EstoqueSaidaPayload(BaseSchema):
 
 class EstoqueMinimoPayload(BaseSchema):
     estoque_minimo: Decimal | None = Field(default=None, ge=Decimal("0"))
+
+
+class PercentualAlertaPayload(BaseSchema):
+    percentual_alerta: Decimal | None = Field(default=None)
+
+    @field_validator("percentual_alerta")
+    @classmethod
+    def validar_percentual(cls, v: Decimal | None) -> Decimal | None:
+        if v is not None and not (Decimal("0.01") <= v <= Decimal("0.99")):
+            raise ValueError("percentual_alerta deve estar entre 0.01 e 0.99")
+        return v
 
 
 class EstoqueMovimentoResponse(BaseSchema):
@@ -41,6 +52,9 @@ class EstoqueItemResponse(BaseSchema):
     saldo_uom2: Decimal | None
     estoque_minimo: Decimal | None
     abaixo_minimo: bool
+    percentual_alerta: Decimal | None
+    proximo_vencer: bool
+    limite_alerta: Decimal | None
 
 
 class EstoqueMovimentoRecenteResponse(BaseSchema):

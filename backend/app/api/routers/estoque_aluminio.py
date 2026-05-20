@@ -15,6 +15,7 @@ from app.schemas.estoque_aluminio import (
     EstoqueMovimentoRecenteResponse,
     EstoqueMovimentoResponse,
     EstoqueSaidaPayload,
+    PercentualAlertaPayload,
 )
 from app.services.estoque_aluminio_service import EstoqueAluminioService
 
@@ -79,3 +80,15 @@ def set_estoque_minimo(
     db: Session = Depends(get_db_session),
 ) -> EstoqueItemResponse:
     return EstoqueAluminioService(db).set_estoque_minimo(group_id=group_id, item_id=item_id, payload=payload)
+
+
+@router.patch("/{item_id}/percentual-alerta", response_model=EstoqueItemResponse)
+def set_percentual_alerta(
+    item_id: UUID,
+    payload: PercentualAlertaPayload,
+    group_id: UUID = Query(...),
+    db: Session = Depends(get_db_session),
+) -> EstoqueItemResponse:
+    return EstoqueAluminioService(db).set_percentual_alerta(
+        group_id=group_id, item_id=item_id, payload=payload
+    )

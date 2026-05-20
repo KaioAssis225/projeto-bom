@@ -18,6 +18,7 @@ _ITEM_SELECT = """
         uom2.code AS uom2,
         rm.peso_liquido,
         rm.estoque_minimo,
+        rm.percentual_alerta,
         COALESCE(SUM(em.quantidade) FILTER (WHERE em.tipo = 'entrada'), 0)
         - COALESCE(SUM(em.quantidade) FILTER (WHERE em.tipo = 'saida'), 0) AS saldo_uom1
     FROM item i
@@ -30,7 +31,7 @@ _ITEM_SELECT = """
 """
 
 _ITEM_GROUP_BY = """
-    GROUP BY i.id, i.code, i.description, uom.code, uom2.code, rm.peso_liquido, rm.estoque_minimo
+    GROUP BY i.id, i.code, i.description, uom.code, uom2.code, rm.peso_liquido, rm.estoque_minimo, rm.percentual_alerta
 """
 
 
@@ -143,4 +144,11 @@ class EstoqueAluminioRepository:
             "UPDATE raw_material SET estoque_minimo = :val WHERE item_id = :item_id"
         )
         self.db.execute(stmt, {"val": estoque_minimo, "item_id": item_id})
+        self.db.commit()
+
+    def set_percentual_alerta(self, item_id: UUID, percentual_alerta: Decimal | None) -> None:
+        stmt = text(
+            "UPDATE raw_material SET percentual_alerta = :val WHERE item_id = :item_id"
+        )
+        self.db.execute(stmt, {"val": percentual_alerta, "item_id": item_id})
         self.db.commit()
