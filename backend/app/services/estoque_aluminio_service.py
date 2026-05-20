@@ -117,7 +117,8 @@ class EstoqueAluminioService:
         self._require_item_in_group(group_id=group_id, item_id=item_id)
         self.repository.set_estoque_minimo(item_id=item_id, estoque_minimo=payload.estoque_minimo)
         row = self.repository.get_item(group_id=group_id, item_id=item_id)
-        assert row is not None
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Item não pôde ser recuperado após atualização")
         return self._row_to_response(row)
 
     def set_percentual_alerta(self, group_id: UUID, item_id: UUID, payload: PercentualAlertaPayload) -> EstoqueItemResponse:
@@ -126,5 +127,6 @@ class EstoqueAluminioService:
             item_id=item_id, percentual_alerta=payload.percentual_alerta
         )
         row = self.repository.get_item(group_id=group_id, item_id=item_id)
-        assert row is not None
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Item não pôde ser recuperado após atualização")
         return self._row_to_response(row)
