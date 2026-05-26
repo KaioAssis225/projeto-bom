@@ -45,9 +45,28 @@ def _run_migrations() -> None:
         logger.exception("database_migrations_failed: %s", exc)
 
 
+def _cleanup_exports(max_age_days: int = 90) -> None:
+    from pathlib import Path
+    exports_dir = Path("exports")
+    if not exports_dir.exists():
+        return
+    cutoff = time.time() - max_age_days * 86400
+    removed = 0
+    for f in exports_dir.iterdir():
+        if f.is_file() and f.stat().st_mtime < cutoff:
+            try:
+                f.unlink()
+                removed += 1
+            except OSError:
+                pass
+    if removed:
+        logger.info("exports_cleanup", extra={"extra_data": {"removed_files": removed, "max_age_days": max_age_days}})
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _run_migrations()
+    _cleanup_exports()
     logger.info(
         "application_start",
         extra={
