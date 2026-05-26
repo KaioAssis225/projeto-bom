@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     DB_NAME: str = "bom_db"
     DB_USER: str = "postgres"
     DB_PASSWORD: str = "postgres"
+    PROXY_TRUSTED_HOSTS: str = "127.0.0.1"
+
     ALLOWED_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",

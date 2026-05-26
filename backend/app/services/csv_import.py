@@ -7,6 +7,9 @@ from decimal import Decimal, InvalidOperation
 from fastapi import HTTPException, UploadFile, status
 
 
+_MAX_CSV_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
 def parse_csv(file: UploadFile, required_columns: set[str]) -> list[dict[str, str | None]]:
     """Read an UploadFile as UTF-8 (with optional BOM) CSV with ';' delimiter.
 
@@ -14,7 +17,12 @@ def parse_csv(file: UploadFile, required_columns: set[str]) -> list[dict[str, st
     whitespace from every value and converts empty strings to ``None``.
     Returns rows as dicts keyed by header name.
     """
-    raw = file.file.read()
+    raw = file.file.read(_MAX_CSV_BYTES + 1)
+    if len(raw) > _MAX_CSV_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Arquivo CSV excede o limite de 5 MB",
+        )
     if not raw:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Arquivo CSV vazio")

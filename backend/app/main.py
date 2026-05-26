@@ -74,17 +74,17 @@ app = FastAPI(
 )
 register_exception_handlers(app)
 
-# Trust Railway's reverse proxy so FastAPI sees the correct scheme (https)
-# from the X-Forwarded-Proto header. Without this, Uvicorn treats every
-# request as plain HTTP and Starlette may issue 307 redirects.
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+# Trust Railway's reverse proxy so FastAPI sees the correct scheme (https).
+# PROXY_TRUSTED_HOSTS defaults to "127.0.0.1" for local dev.
+# Set PROXY_TRUSTED_HOSTS=* only on Railway (where proxy IPs are dynamic).
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.PROXY_TRUSTED_HOSTS)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_CORS_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "Authorization"],
 )
 
 

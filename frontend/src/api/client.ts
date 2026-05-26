@@ -38,8 +38,7 @@ function ensureHttps(url: string): string {
   return url.replace(/^http:\/\//i, "https://");
 }
 
-const rawBaseURL: string =
-  import.meta.env.VITE_API_URL ?? "https://projeto-bom-production.up.railway.app";
+const rawBaseURL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export const client: AxiosInstance = axios.create({
   baseURL: ensureHttps(rawBaseURL),
