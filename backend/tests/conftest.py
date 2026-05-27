@@ -18,8 +18,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.api.deps import get_db_session
 from app.core.database import Base
+from app.core.security import hash_password
 from app.main import app
 from app.models import Bom, BomItem, Item, ItemPriceHistory, ItemType, MaterialGroup, UnitOfMeasure
+from app.models.user import Area, Nivel, User, UserRole
 from app.repositories.price_repository import PriceRepository
 
 
@@ -293,3 +295,33 @@ def base_data(factories: TestFactories) -> dict[str, object]:
         "product": product,
         "inactive_product": inactive_product,
     }
+
+
+@pytest.fixture()
+def admin_user(db: Session) -> User:
+    user = User(
+        email="admin@test.com",
+        password_hash=hash_password("admin1234"),
+        full_name="Admin Test",
+    )
+    db.add(user)
+    db.flush()
+    db.add(UserRole(user_id=user.id, area=Area.CUSTOS, nivel=Nivel.ADMIN))
+    db.flush()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def custos_viewer(db: Session) -> User:
+    user = User(
+        email="viewer@test.com",
+        password_hash=hash_password("viewer1234"),
+        full_name="Viewer Test",
+    )
+    db.add(user)
+    db.flush()
+    db.add(UserRole(user_id=user.id, area=Area.CUSTOS, nivel=Nivel.VIEWER))
+    db.flush()
+    db.refresh(user)
+    return user
