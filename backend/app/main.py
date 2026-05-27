@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from app.api.routers.auth import router as auth_router
 from app.api.routers.audit import router as audit_router
 from app.api.routers.bom import router as bom_router
 from app.api.routers.calculations import router as calculations_router
@@ -129,6 +130,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(health_router, prefix="/api/v1/health", tags=["health"])
 app.include_router(bom_router, prefix="/api/v1/bom", tags=["bom"])
 app.include_router(calculations_router, prefix="/api/v1/calculos", tags=["calculos"])
