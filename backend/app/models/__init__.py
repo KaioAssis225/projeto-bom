@@ -13,8 +13,10 @@ from app.models.setor import Setor
 from app.models.supplier import Supplier
 from app.models.unit_conversion import UnitConversion
 from app.models.unit_of_measure import UnitOfMeasure
+from app.models.user import Area, Nivel, RefreshToken, User, UserRole
 
 __all__ = [
+    "Area",
     "AuditPriceChange",
     "Bom",
     "BomCostImpact",
@@ -27,9 +29,13 @@ __all__ = [
     "ItemPriceHistory",
     "ItemType",
     "MaterialGroup",
+    "Nivel",
     "RawMaterial",
+    "RefreshToken",
     "Setor",
     "Supplier",
     "UnitConversion",
     "UnitOfMeasure",
+    "User",
+    "UserRole",
 ]
