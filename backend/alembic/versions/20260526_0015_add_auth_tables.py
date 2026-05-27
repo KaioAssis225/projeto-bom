@@ -67,16 +67,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column(
-            "area",
-            sa.Enum("CUSTOS", "ESTOQUE", "CADASTRO", "GERAL", name="area_enum"),
-            nullable=False,
-        ),
-        sa.Column(
-            "nivel",
-            sa.Enum("VIEWER", "ESTOQUISTA", "ANALISTA", "GESTOR", "ADMIN", name="nivel_enum"),
-            nullable=False,
-        ),
+        sa.Column("area", area_enum, nullable=False),
+        sa.Column("nivel", nivel_enum, nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
