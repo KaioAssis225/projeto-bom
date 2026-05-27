@@ -13,7 +13,7 @@ from app.models.setor import Setor
 from app.models.supplier import Supplier
 from app.models.unit_conversion import UnitConversion
 from app.models.unit_of_measure import UnitOfMeasure
-from app.models.user import Area, Nivel, RefreshToken, User, UserRole
+from app.models.user import Area, NIVEL_ORDER, Nivel, RefreshToken, User, UserRole
 
 __all__ = [
     "Area",
@@ -29,6 +29,7 @@ __all__ = [
     "ItemPriceHistory",
     "ItemType",
     "MaterialGroup",
+    "NIVEL_ORDER",
     "Nivel",
     "RawMaterial",
     "RefreshToken",
