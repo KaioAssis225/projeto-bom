@@ -47,6 +47,41 @@ def _run_migrations() -> None:
         logger.exception("database_migrations_failed: %s", exc)
 
 
+def _seed_admin() -> None:
+    """Creates a default admin user if no admin exists yet."""
+    try:
+        from app.core.database import SessionLocal
+        from app.core.security import hash_password
+        from app.models.user import Area, Nivel, User, UserRole
+
+        db = SessionLocal()
+        try:
+            has_admin = (
+                db.query(UserRole)
+                .filter(UserRole.nivel == Nivel.ADMIN)
+                .first()
+            )
+            if has_admin:
+                return
+
+            user = User(
+                email="admin@bom.local",
+                password_hash=hash_password("Admin@1234"),
+                full_name="Administrador",
+            )
+            db.add(user)
+            db.flush()
+            db.add(UserRole(user_id=user.id, area=Area.CUSTOS, nivel=Nivel.ADMIN))
+            db.commit()
+            logger.warning(
+                "default_admin_created — TROQUE A SENHA: email=admin@bom.local senha=Admin@1234"
+            )
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.exception("seed_admin_failed: %s", exc)
+
+
 def _cleanup_exports(max_age_days: int = 90) -> None:
     from pathlib import Path
     exports_dir = Path("exports")
@@ -68,6 +103,7 @@ def _cleanup_exports(max_age_days: int = 90) -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _run_migrations()
+    _seed_admin()
     _cleanup_exports()
     logger.info(
         "application_start",
