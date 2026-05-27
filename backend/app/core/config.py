@@ -37,6 +37,11 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000",
     ]
 
+    SECRET_KEY: str = "CHANGE-ME-USE-64-RANDOM-CHARS-IN-PRODUCTION"
+    PASSWORD_PEPPER: str = "CHANGE-ME-USE-32-RANDOM-CHARS-IN-PRODUCTION"
+    ACCESS_TOKEN_TTL_MINUTES: int = 30
+    REFRESH_TOKEN_TTL_DAYS: int = 7
+
     @field_validator("ALLOWED_CORS_ORIGINS", mode="before")
     @classmethod
     def parse_allowed_cors_origins(cls, value: Any) -> list[str]:
