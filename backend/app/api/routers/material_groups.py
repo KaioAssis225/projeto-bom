@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
+from app.models.user import User
 from app.schemas.material_group import (
     MaterialGroupCreate,
     MaterialGroupPaginatedResponse,
@@ -30,6 +32,7 @@ def list_material_groups(
     active_only: bool = Query(default=True),
     controla_estoque_only: bool = Query(default=False),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> MaterialGroupPaginatedResponse:
     service = MaterialGroupService(db)
     return service.list(
@@ -50,6 +53,7 @@ def list_material_groups(
 def create_material_group(
     payload: MaterialGroupCreate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.create(payload)
@@ -64,6 +68,7 @@ def create_material_group(
 def get_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.get(id)
@@ -79,6 +84,7 @@ def update_material_group(
     id: UUID,
     payload: MaterialGroupUpdate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.update(id=id, payload=payload)
@@ -93,6 +99,7 @@ def update_material_group(
 def deactivate_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.deactivate(id)
@@ -107,5 +114,6 @@ def deactivate_material_group(
 def delete_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> None:
     MaterialGroupService(db).delete(id)

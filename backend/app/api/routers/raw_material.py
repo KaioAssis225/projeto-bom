@@ -7,6 +7,8 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
+from app.models.user import User
 from app.schemas.import_result import ImportResult
 from app.schemas.raw_material import (
     RawMaterialCreate,
@@ -40,6 +42,7 @@ def list_raw_materials(
     code: str | None = Query(default=None),
     desc: str | None = Query(default=None),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> RawMaterialPaginatedResponse:
     return RawMaterialService(db).list(
         skip=skip, limit=limit, active_only=active_only,
@@ -50,7 +53,7 @@ def list_raw_materials(
 @router.get("/template-csv", include_in_schema=False)
 def raw_material_template_csv() -> Response:
     return Response(
-        content="\ufeff" + _TEMPLATE_CSV,
+        content="﻿" + _TEMPLATE_CSV,
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="materias-primas-template.csv"'},
     )
@@ -74,31 +77,43 @@ def raw_material_template_xlsx() -> Response:
 def import_raw_materials_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> ImportResult:
     return RawMaterialImportService(db).import_csv(file)
 
 
 @router.get("/{id}", response_model=RawMaterialResponse)
-def get_raw_material(id: UUID, db: Session = Depends(get_db_session)) -> RawMaterialResponse:
+def get_raw_material(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+) -> RawMaterialResponse:
     return RawMaterialService(db).get(id)
 
 
 @router.post("/", response_model=RawMaterialResponse, status_code=201)
 def create_raw_material(
-    payload: RawMaterialCreate, db: Session = Depends(get_db_session)
+    payload: RawMaterialCreate,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).create(payload)
 
 
 @router.put("/{id}", response_model=RawMaterialResponse)
 def update_raw_material(
-    id: UUID, payload: RawMaterialUpdate, db: Session = Depends(get_db_session)
+    id: UUID,
+    payload: RawMaterialUpdate,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).update(id, payload)
 
 
 @router.patch("/{id}/inativar", response_model=RawMaterialResponse)
 def deactivate_raw_material(
-    id: UUID, db: Session = Depends(get_db_session)
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).deactivate(id)

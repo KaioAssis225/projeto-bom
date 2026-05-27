@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
 from app.models.calculation_execution_log import CalculationStatus
+from app.models.user import User
 from app.schemas.log import ExecutionLogPaginatedResponse, ExecutionLogResponse
 from app.services.execution_log_service import ExecutionLogService
 
@@ -26,6 +28,7 @@ def list_logs(
     status: CalculationStatus | None = Query(default=None),
     item_id: UUID | None = Query(default=None),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> ExecutionLogPaginatedResponse:
     service = ExecutionLogService(db)
     return service.list_logs(
@@ -45,6 +48,7 @@ def list_logs(
 def get_log(
     log_id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> ExecutionLogResponse:
     service = ExecutionLogService(db)
     return service.get(log_id)

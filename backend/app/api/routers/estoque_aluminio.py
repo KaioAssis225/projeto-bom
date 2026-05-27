@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
+from app.models.user import User
 from app.schemas.estoque_aluminio import (
     EstoqueEntradaPayload,
     EstoqueHistoricoPaginatedResponse,
@@ -27,6 +29,7 @@ def get_ultimos_movimentos(
     group_id: UUID = Query(...),
     limit: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="VIEWER")),
 ) -> list[EstoqueMovimentoRecenteResponse]:
     return EstoqueAluminioService(db).get_ultimos_movimentos(group_id=group_id, limit=limit)
 
@@ -37,6 +40,7 @@ def list_estoque(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=200, ge=1, le=500),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="VIEWER")),
 ) -> EstoqueItemPaginatedResponse:
     return EstoqueAluminioService(db).list_items(group_id=group_id, skip=skip, limit=limit)
 
@@ -47,6 +51,7 @@ def add_entrada(
     payload: EstoqueEntradaPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueMovimentoResponse:
     return EstoqueAluminioService(db).add_entrada(group_id=group_id, item_id=item_id, payload=payload)
 
@@ -57,6 +62,7 @@ def add_saida(
     payload: EstoqueSaidaPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueMovimentoResponse:
     return EstoqueAluminioService(db).add_saida(group_id=group_id, item_id=item_id, payload=payload)
 
@@ -68,6 +74,7 @@ def get_historico(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="VIEWER")),
 ) -> EstoqueHistoricoPaginatedResponse:
     return EstoqueAluminioService(db).get_historico(group_id=group_id, item_id=item_id, skip=skip, limit=limit)
 
@@ -78,6 +85,7 @@ def set_estoque_minimo(
     payload: EstoqueMinimoPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueItemResponse:
     return EstoqueAluminioService(db).set_estoque_minimo(group_id=group_id, item_id=item_id, payload=payload)
 
@@ -88,6 +96,7 @@ def set_percentual_alerta(
     payload: PercentualAlertaPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueItemResponse:
     return EstoqueAluminioService(db).set_percentual_alerta(
         group_id=group_id, item_id=item_id, payload=payload

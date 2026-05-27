@@ -8,6 +8,8 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require, require_price_read
+from app.models.user import User
 from app.schemas.bom_cost_impact import BomCostImpactPaginatedResponse, BomCostImpactSummary
 from app.schemas.finished_product import (
     FinishedProductCreate,
@@ -45,6 +47,7 @@ def list_finished_products(
     desc: str | None = Query(default=None),
     without_bom: bool = Query(default=False),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> FinishedProductPaginatedResponse:
     return FinishedProductService(db).list(
         skip=skip, limit=limit, active_only=active_only,
@@ -56,7 +59,7 @@ def list_finished_products(
 @router.get("/template-csv", include_in_schema=False)
 def finished_product_template_csv() -> Response:
     return Response(
-        content="\ufeff" + _TEMPLATE_CSV,
+        content="﻿" + _TEMPLATE_CSV,
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="produtos-acabados-template.csv"'},
     )
@@ -80,6 +83,7 @@ def finished_product_template_xlsx() -> Response:
 def import_finished_products_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> ImportResult:
     return FinishedProductImportService(db).import_csv(file)
 
@@ -98,6 +102,7 @@ def list_pa_cost_variations(
     date_to: date | None = Query(default=None),
     raw_material_group_id: UUID | None = Query(default=None),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> BomCostImpactPaginatedResponse:
     return BomCostImpactService(db).list_for_pa(
         finished_product_item_id=id,
@@ -118,31 +123,43 @@ def list_pa_cost_variations(
 def pa_cost_variations_summary(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> BomCostImpactSummary:
     return BomCostImpactService(db).summary_for_pa(finished_product_item_id=id)
 
 
 @router.get("/{id}", response_model=FinishedProductResponse)
-def get_finished_product(id: UUID, db: Session = Depends(get_db_session)) -> FinishedProductResponse:
+def get_finished_product(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+) -> FinishedProductResponse:
     return FinishedProductService(db).get(id)
 
 
 @router.post("/", response_model=FinishedProductResponse, status_code=201)
 def create_finished_product(
-    payload: FinishedProductCreate, db: Session = Depends(get_db_session)
+    payload: FinishedProductCreate,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).create(payload)
 
 
 @router.put("/{id}", response_model=FinishedProductResponse)
 def update_finished_product(
-    id: UUID, payload: FinishedProductUpdate, db: Session = Depends(get_db_session)
+    id: UUID,
+    payload: FinishedProductUpdate,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).update(id, payload)
 
 
 @router.patch("/{id}/inativar", response_model=FinishedProductResponse)
 def deactivate_finished_product(
-    id: UUID, db: Session = Depends(get_db_session)
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).deactivate(id)

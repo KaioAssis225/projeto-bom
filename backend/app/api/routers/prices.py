@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require, require_price_read
+from app.models.user import User
 from app.schemas.price import (
     CurrentPriceResponse,
     PriceCreate,
@@ -30,6 +32,7 @@ def set_price(
     item_id: UUID,
     payload: PriceCreate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> PriceResponse:
     service = PriceService(db)
     data = payload.model_copy(update={"item_id": item_id})
@@ -47,6 +50,7 @@ def get_price_history(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> PriceHistoryPaginatedResponse:
     service = PriceService(db)
     return service.get_history(item_id=item_id, skip=skip, limit=limit)
@@ -62,6 +66,7 @@ def get_current_or_at_date(
     item_id: UUID,
     data: datetime | None = Query(default=None),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> CurrentPriceResponse:
     service = PriceService(db)
     if data is not None:

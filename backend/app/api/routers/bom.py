@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
+from app.models.user import User
 from app.schemas.bom import (
     BomCreate,
     BomItemAdd,
@@ -33,6 +35,7 @@ def get_bom_tree(
     item_pai_id: UUID,
     reference_date: date = Query(default_factory=date.today),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="VIEWER")),
 ) -> BomTreeResponse:
     service = BomService(db)
     return service.get_tree(item_pai_id=item_pai_id, reference_date=reference_date)
@@ -48,6 +51,7 @@ def get_bom_tree(
 def create_bom(
     payload: BomCreate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> BomResponse:
     service = BomService(db)
     return service.create_bom(payload)
@@ -64,6 +68,7 @@ def add_bom_item(
     bom_id: UUID,
     payload: BomItemAdd,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> BomResponse:
     service = BomService(db)
     if payload.parent_item_id is not None:
@@ -96,6 +101,7 @@ def update_bom_item(
     bom_item_id: UUID,
     payload: BomItemUpdate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> BomResponse:
     service = BomService(db)
     updated = service.update_item(bom_item_id=bom_item_id, payload=payload)
@@ -114,6 +120,7 @@ def update_bom_item(
 def delete_bom_item(
     bom_item_id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> Response:
     service = BomService(db)
     service.remove_item(bom_item_id)
@@ -129,6 +136,7 @@ def delete_bom_item(
 def validate_bom_cycle(
     payload: CycleValidationRequest,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> CycleValidationResponse:
     service = BomService(db)
     return service.validate_cycle(payload)

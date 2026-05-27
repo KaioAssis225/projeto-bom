@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
+from app.models.user import User
 from app.schemas.setor import (
     SetorCreate,
     SetorPaginatedResponse,
@@ -23,6 +25,7 @@ def list_setores(
     limit: int = Query(default=20, ge=1, le=500),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> SetorPaginatedResponse:
     return SetorService(db).list(skip=skip, limit=limit, active_only=active_only)
 
@@ -31,12 +34,17 @@ def list_setores(
 def create_setor(
     payload: SetorCreate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> SetorResponse:
     return SetorService(db).create(payload)
 
 
 @router.get("/{id}", response_model=SetorResponse)
-def get_setor(id: UUID, db: Session = Depends(get_db_session)) -> SetorResponse:
+def get_setor(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+) -> SetorResponse:
     return SetorService(db).get(id)
 
 
@@ -45,15 +53,24 @@ def update_setor(
     id: UUID,
     payload: SetorUpdate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> SetorResponse:
     return SetorService(db).update(id=id, payload=payload)
 
 
 @router.patch("/{id}/inativar", response_model=SetorResponse)
-def deactivate_setor(id: UUID, db: Session = Depends(get_db_session)) -> SetorResponse:
+def deactivate_setor(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+) -> SetorResponse:
     return SetorService(db).deactivate(id)
 
 
 @router.delete("/{id}", status_code=204)
-def delete_setor(id: UUID, db: Session = Depends(get_db_session)) -> None:
+def delete_setor(
+    id: UUID,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+) -> None:
     SetorService(db).delete(id)

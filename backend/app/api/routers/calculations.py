@@ -8,6 +8,8 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require, require_price_read
+from app.models.user import User
 from app.schemas.calculation import (
     BomBatchRequest,
     BomCalculationRequest,
@@ -31,6 +33,7 @@ router = APIRouter(tags=["calculos"])
 def get_bom_cost_preview(
     item_id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> BomCostPreview:
     service = CalculationService(db)
     return service.get_bom_cost_preview(item_id)
@@ -45,6 +48,7 @@ def get_bom_cost_preview(
 def get_bom_cost_analysis(
     item_id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> BomCostAnalysis:
     service = CalculationService(db)
     return service.get_bom_cost_analysis(item_id)
@@ -59,6 +63,7 @@ def get_bom_cost_analysis(
 def calculate_product(
     payload: BomCalculationRequest,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> CalculationResponse:
     service = CalculationService(db)
     return service.calculate_product(payload)
@@ -73,6 +78,7 @@ def calculate_product(
 def calculate_batch(
     payload: BomBatchRequest,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> CalculationResponse:
     service = CalculationService(db)
     return service.calculate_batch(payload)
@@ -86,6 +92,7 @@ def calculate_batch(
 def calculate_batch_consumo_xlsx(
     payload: BomBatchRequest,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> Response:
     service = CalculationService(db)
     response = service.calculate_batch(payload)
@@ -104,7 +111,10 @@ def calculate_batch_consumo_xlsx(
     summary="Baixar arquivo de cálculo",
     description="Realiza o download do arquivo Excel gerado em uma execução de cálculo.",
 )
-def download_calculation_file(filename: str) -> FileResponse:
+def download_calculation_file(
+    filename: str,
+    _: User = Depends(require(area="CUSTOS", nivel_min="VIEWER")),
+) -> FileResponse:
     safe_name = Path(filename).name
     if safe_name != filename:
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")

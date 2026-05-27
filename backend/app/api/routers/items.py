@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require
 from app.models.item import ItemType
+from app.models.user import User
 from app.schemas.item import (
     ItemCreate,
     ItemListFilter,
@@ -34,6 +36,7 @@ def list_items(
     limit: int = Query(default=20, ge=1, le=5000),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> ItemPaginatedResponse:
     filters = ItemListFilter(
         type=type,
@@ -54,6 +57,7 @@ def list_items(
 def get_item(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.get(id)
@@ -69,6 +73,7 @@ def get_item(
 def create_item(
     payload: ItemCreate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.create(payload)
@@ -84,6 +89,7 @@ def update_item(
     id: UUID,
     payload: ItemUpdate,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.update(id=id, payload=payload)
@@ -98,6 +104,7 @@ def update_item(
 def deactivate_item(
     id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.deactivate(id)

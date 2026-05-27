@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db_session
+from app.core.permissions import require_price_read
+from app.models.user import User
 from app.schemas.price import AuditPriceChangeResponse
 from app.services.price_service import PriceService
 
@@ -22,6 +24,7 @@ router = APIRouter(tags=["auditoria"])
 def get_price_audit_history(
     item_id: UUID,
     db: Session = Depends(get_db_session),
+    _: User = Depends(require_price_read),
 ) -> list[AuditPriceChangeResponse]:
     service = PriceService(db)
     return service.get_audit_history(item_id)
