@@ -99,7 +99,6 @@ def _cleanup_exports(max_age_days: int = 90) -> None:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _run_migrations()
-    _seed_admin()
     _cleanup_exports()
     logger.info(
         "application_start",
