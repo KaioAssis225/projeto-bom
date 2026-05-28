@@ -56,12 +56,7 @@ def _seed_admin() -> None:
 
         db = SessionLocal()
         try:
-            has_admin = (
-                db.query(UserRole)
-                .filter(UserRole.nivel == Nivel.ADMIN)
-                .first()
-            )
-            if has_admin:
+            if db.query(User).filter(User.email == "admin@bomapp.com").first():
                 return
 
             user = User(
