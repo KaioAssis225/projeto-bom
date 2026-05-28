@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { authApi, type MeResponse } from "@/api/auth";
 import { client } from "@/api/client";
+import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 
 interface AuthContextValue {
   user: MeResponse | null;
@@ -118,9 +119,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const handlePasswordChanged = useCallback(() => {
+    setUser((prev) => prev ? { ...prev, must_change_password: false } : prev);
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
       {children}
+      {user?.must_change_password && (
+        <ForcePasswordChange onSuccess={handlePasswordChanged} />
+      )}
     </AuthContext.Provider>
   );
 }

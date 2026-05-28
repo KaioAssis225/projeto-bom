@@ -10,6 +10,7 @@ export interface MeResponse {
   id: string;
   email: string;
   full_name: string | null;
+  must_change_password: boolean;
   roles: { area: string; nivel: string }[];
 }
 
@@ -25,4 +26,7 @@ export const authApi = {
 
   me: () =>
     client.get<MeResponse>("/api/v1/auth/me").then((r) => r.data),
+
+  changePassword: (current_password: string, new_password: string) =>
+    client.post("/api/v1/auth/change-password", { current_password, new_password }),
 };
