@@ -11,8 +11,10 @@ import {
   Upload,
   Warehouse,
   ChevronLeft,
+  Users,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { cn } from "@/lib/utils";
 
@@ -78,6 +80,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onCollapse }: SidebarProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.roles.some((r) => r.nivel === "ADMIN") ?? false;
+
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-white">
       {/* Logo / marca */}
@@ -98,6 +103,12 @@ export function Sidebar({ onCollapse }: SidebarProps) {
         <SidebarSection items={secondaryItems} />
         <div className="mx-2 border-t border-slate-200" />
         <SidebarSection items={tertiaryItems} />
+        {isAdmin && (
+          <>
+            <div className="mx-2 border-t border-slate-200" />
+            <SidebarSection items={[{ label: "Usuários", to: "/usuarios", icon: Users }]} />
+          </>
+        )}
       </nav>
 
       {/* Botão Recolher */}

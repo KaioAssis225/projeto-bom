@@ -15,6 +15,7 @@ import SetoresPage from "@/pages/SetoresPage";
 import ImportacoesPage from "@/pages/ImportacoesPage";
 import ItensPage from "@/pages/ItensPage";
 import LogsPage from "@/pages/LogsPage";
+import UsuariosPage from "@/pages/UsuariosPage";
 import PrecosPage from "@/pages/PrecosPage";
 import UnidadesPage from "@/pages/UnidadesPage";
 
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/unidades" element={<UnidadesPage />} />
                 <Route path="/fornecedores" element={<FornecedoresPage />} />
                 <Route path="/logs" element={<LogsPage />} />
+                <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="*" element={<Navigate to="/itens" replace />} />
               </Route>
             </Route>
