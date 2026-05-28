@@ -44,10 +44,30 @@ def create_admin(email: str, password: str, full_name: str) -> None:
 
 if __name__ == "__main__":
     import getpass
+    import os
 
-    email = input("Email do admin: ").strip()
-    full_name = input("Nome completo: ").strip()
-    password = getpass.getpass("Senha (mín. 8 chars): ")
+    # Tentar usar variáveis de ambiente primeiro; cair em valores padrão ou
+    # input interativo quando executado manualmente.
+    email = os.getenv("ADMIN_EMAIL", "").strip()
+    password = os.getenv("ADMIN_PASSWORD", "").strip()
+    full_name = os.getenv("ADMIN_FULL_NAME", "").strip()
+
+    # Se não estiverem definidas, pedir input interativo (execução local)
+    if not email:
+        email = input("Email do admin: ").strip()
+    if not email:
+        email = "admin@bomapp.com"
+
+    if not full_name:
+        full_name = input("Nome completo: ").strip()
+    if not full_name:
+        full_name = "Admin"
+
+    if not password:
+        password = getpass.getpass("Senha (mín. 8 chars): ")
+    if not password:
+        password = "Admin@1234"
+
     if len(password) < 8:
         print("Senha muito curta.")
         sys.exit(1)
