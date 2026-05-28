@@ -65,7 +65,7 @@ def _seed_admin() -> None:
                 return
 
             user = User(
-                email="admin@bom.local",
+                email="admin@bomapp.com",
                 password_hash=hash_password("Admin@1234"),
                 full_name="Administrador",
             )
@@ -74,7 +74,7 @@ def _seed_admin() -> None:
             db.add(UserRole(user_id=user.id, area=Area.CUSTOS, nivel=Nivel.ADMIN))
             db.commit()
             logger.warning(
-                "default_admin_created — TROQUE A SENHA: email=admin@bom.local senha=Admin@1234"
+                "default_admin_created — TROQUE A SENHA: email=admin@bomapp.com senha=Admin@1234"
             )
         finally:
             db.close()
