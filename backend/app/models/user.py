@@ -44,6 +44,7 @@ class User(UUIDPrimaryKeyMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default="CURRENT_TIMESTAMP")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
 
     roles: Mapped[list[UserRole]] = relationship(
         "UserRole", back_populates="user", cascade="all, delete-orphan", lazy="joined"

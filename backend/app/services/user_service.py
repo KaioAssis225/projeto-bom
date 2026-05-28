@@ -38,6 +38,7 @@ class UserService:
             email=payload.email,
             full_name=payload.full_name,
             password_hash=hash_password(payload.senha_inicial),
+            must_change_password=True,
         )
         self.db.add(user)
         self.db.flush()
@@ -70,6 +71,7 @@ class UserService:
     def update_password(self, user_id: UUID, payload: UserPasswordPayload) -> None:
         user = self.get(user_id)
         user.password_hash = hash_password(payload.nova_senha)
+        user.must_change_password = False
         self.db.commit()
 
     def update_roles(self, user_id: UUID, payload: UserRolesPayload) -> User:

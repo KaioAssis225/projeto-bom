@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import EmailStr
+from pydantic import EmailStr, Field
 
 from app.schemas.common import BaseSchema
 
@@ -38,4 +38,10 @@ class MeResponse(BaseSchema):
     id: str
     email: str
     full_name: str | None
+    must_change_password: bool
     roles: list[UserRoleResponse]
+
+
+class ChangePasswordRequest(BaseSchema):
+    current_password: str
+    new_password: str = Field(min_length=8)
