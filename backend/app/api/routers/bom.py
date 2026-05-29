@@ -51,10 +51,10 @@ def get_bom_tree(
 def create_bom(
     payload: BomCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
+    current_user: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> BomResponse:
     service = BomService(db)
-    return service.create_bom(payload)
+    return service.create_bom(payload, created_by=current_user.full_name or current_user.email)
 
 
 @router.post(

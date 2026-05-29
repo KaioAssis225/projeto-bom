@@ -51,9 +51,12 @@ def add_entrada(
     payload: EstoqueEntradaPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
+    current_user: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueMovimentoResponse:
-    return EstoqueAluminioService(db).add_entrada(group_id=group_id, item_id=item_id, payload=payload)
+    return EstoqueAluminioService(db).add_entrada(
+        group_id=group_id, item_id=item_id, payload=payload,
+        solicitante=current_user.full_name or current_user.email,
+    )
 
 
 @router.post("/{item_id}/saida", response_model=EstoqueMovimentoResponse, status_code=201)
@@ -62,9 +65,12 @@ def add_saida(
     payload: EstoqueSaidaPayload,
     group_id: UUID = Query(...),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
+    current_user: User = Depends(require(area="ESTOQUE", nivel_min="ESTOQUISTA")),
 ) -> EstoqueMovimentoResponse:
-    return EstoqueAluminioService(db).add_saida(group_id=group_id, item_id=item_id, payload=payload)
+    return EstoqueAluminioService(db).add_saida(
+        group_id=group_id, item_id=item_id, payload=payload,
+        solicitante=current_user.full_name or current_user.email,
+    )
 
 
 @router.get("/{item_id}/historico", response_model=EstoqueHistoricoPaginatedResponse)

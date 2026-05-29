@@ -27,7 +27,6 @@ class BomCalculationRequest(BaseSchema):
     quantity: Decimal = Field(gt=Decimal("0"))
     reference_date: datetime | None = None
     material_group_id: UUID | None = None
-    requested_by: str = Field(min_length=1, max_length=100)
     simulation_reference: str | None = Field(default=None, max_length=100)
 
 
@@ -57,7 +56,6 @@ class BomBatchRequest(BaseSchema):
     itens: list[BomBatchItem]
     reference_date: datetime | None = None
     material_group_id: UUID | None = None
-    requested_by: str = Field(min_length=1, max_length=100)
     simulation_reference: str | None = Field(default=None, max_length=100)
 
 

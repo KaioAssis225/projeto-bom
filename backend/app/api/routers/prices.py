@@ -32,11 +32,12 @@ def set_price(
     item_id: UUID,
     payload: PriceCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
+    current_user: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> PriceResponse:
     service = PriceService(db)
     data = payload.model_copy(update={"item_id": item_id})
-    return service.set_price(data)
+    created_by = current_user.full_name or current_user.email
+    return service.set_price(data, created_by=created_by)
 
 
 @router.get(

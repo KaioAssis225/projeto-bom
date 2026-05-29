@@ -63,10 +63,10 @@ def get_bom_cost_analysis(
 def calculate_product(
     payload: BomCalculationRequest,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
+    current_user: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> CalculationResponse:
     service = CalculationService(db)
-    return service.calculate_product(payload)
+    return service.calculate_product(payload, requested_by=current_user.full_name or current_user.email)
 
 
 @router.post(
@@ -78,10 +78,10 @@ def calculate_product(
 def calculate_batch(
     payload: BomBatchRequest,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
+    current_user: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> CalculationResponse:
     service = CalculationService(db)
-    return service.calculate_batch(payload)
+    return service.calculate_batch(payload, requested_by=current_user.full_name or current_user.email)
 
 
 @router.post(
@@ -92,10 +92,10 @@ def calculate_batch(
 def calculate_batch_consumo_xlsx(
     payload: BomBatchRequest,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
+    current_user: User = Depends(require(area="CUSTOS", nivel_min="ANALISTA")),
 ) -> Response:
     service = CalculationService(db)
-    response = service.calculate_batch(payload)
+    response = service.calculate_batch(payload, requested_by=current_user.full_name or current_user.email)
     content = build_consumption_xlsx(response.linhas)
     return Response(
         content=content,

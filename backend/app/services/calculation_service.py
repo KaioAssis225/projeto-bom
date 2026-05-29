@@ -132,10 +132,10 @@ class CalculationService:
         lines = calculator.calculate(accumulated=accumulated, price_map=price_map)
         return BomCostPreview(item_id=item_id, custo_total=BomCalculator.total_cost(lines))
 
-    def calculate_product(self, payload: BomCalculationRequest) -> CalculationResponse:
+    def calculate_product(self, payload: BomCalculationRequest, requested_by: str) -> CalculationResponse:
         started_at = now_sp()
         log_id = self.log_service.start_log(
-            requested_by=payload.requested_by,
+            requested_by=requested_by,
             root_item_id=payload.root_item_id,
             group_id=payload.material_group_id,
             payload=payload.model_dump(mode="json"),
@@ -167,7 +167,7 @@ class CalculationService:
             return self._build_response(
                 lines=lines,
                 root_item_id=root_item.id,
-                requested_by=payload.requested_by,
+                requested_by=requested_by,
                 material_group_id=payload.material_group_id,
                 simulation_reference=payload.simulation_reference,
                 request_payload=payload.model_dump(mode="json"),
@@ -187,11 +187,11 @@ class CalculationService:
             logger.info("Calculation logged: root_item_id=%s status=%s", payload.root_item_id, CalculationStatus.ERROR.value)
             raise
 
-    def calculate_batch(self, payload: BomBatchRequest) -> CalculationResponse:
+    def calculate_batch(self, payload: BomBatchRequest, requested_by: str) -> CalculationResponse:
         started_at = now_sp()
         first_requested_item = payload.itens[0].produto_id
         log_id = self.log_service.start_log(
-            requested_by=payload.requested_by,
+            requested_by=requested_by,
             root_item_id=first_requested_item,
             group_id=payload.material_group_id,
             payload=payload.model_dump(mode="json"),
@@ -234,7 +234,7 @@ class CalculationService:
             return self._build_response(
                 lines=lines,
                 root_item_id=first_root_item_id or first_requested_item,
-                requested_by=payload.requested_by,
+                requested_by=requested_by,
                 material_group_id=payload.material_group_id,
                 simulation_reference=payload.simulation_reference,
                 request_payload=payload.model_dump(mode="json"),

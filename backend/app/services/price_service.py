@@ -27,7 +27,7 @@ class PriceService:
         self.item_repository = ItemRepository(db)
         self.repository = PriceRepository(db)
 
-    def set_price(self, payload: PriceCreate):
+    def set_price(self, payload: PriceCreate, created_by: str):
         item = self.item_repository.get_by_id(payload.item_id)
         if item is None:
             raise ItemNotFoundError()
@@ -43,7 +43,7 @@ class PriceService:
             item_id=payload.item_id,
             price_value=payload.price_value,
             valid_from=payload.valid_from,
-            created_by=payload.created_by,
+            created_by=created_by,
             reason=payload.changed_reason,
         )
         logger.info(
@@ -53,7 +53,7 @@ class PriceService:
                     "item_id": str(payload.item_id),
                     "price_value": str(payload.price_value),
                     "valid_from": payload.valid_from.isoformat(),
-                    "created_by": payload.created_by,
+                    "created_by": created_by,
                 }
             },
         )
@@ -66,7 +66,7 @@ class PriceService:
                     old_unit_price=old_unit_price,
                     new_unit_price=payload.price_value,
                     reference_date=payload.valid_from,
-                    changed_by=payload.created_by,
+                    changed_by=created_by,
                     changed_reason=payload.changed_reason,
                     price_history_id=price.id,
                 )

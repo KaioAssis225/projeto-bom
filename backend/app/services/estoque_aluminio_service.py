@@ -84,17 +84,17 @@ class EstoqueAluminioService:
             limit=limit,
         )
 
-    def add_entrada(self, group_id: UUID, item_id: UUID, payload: EstoqueEntradaPayload) -> EstoqueMovimentoResponse:
+    def add_entrada(self, group_id: UUID, item_id: UUID, payload: EstoqueEntradaPayload, solicitante: str) -> EstoqueMovimentoResponse:
         self._require_item_in_group(group_id=group_id, item_id=item_id)
         mov = self.repository.add_movimento(
-            item_id=item_id, tipo="entrada", quantidade=payload.quantidade, solicitante=None,
+            item_id=item_id, tipo="entrada", quantidade=payload.quantidade, solicitante=solicitante,
         )
         return EstoqueMovimentoResponse.model_validate(mov)
 
-    def add_saida(self, group_id: UUID, item_id: UUID, payload: EstoqueSaidaPayload) -> EstoqueMovimentoResponse:
+    def add_saida(self, group_id: UUID, item_id: UUID, payload: EstoqueSaidaPayload, solicitante: str) -> EstoqueMovimentoResponse:
         self._require_item_in_group(group_id=group_id, item_id=item_id)
         mov = self.repository.add_movimento(
-            item_id=item_id, tipo="saida", quantidade=payload.quantidade, solicitante=payload.solicitante,
+            item_id=item_id, tipo="saida", quantidade=payload.quantidade, solicitante=solicitante,
         )
         return EstoqueMovimentoResponse.model_validate(mov)
 

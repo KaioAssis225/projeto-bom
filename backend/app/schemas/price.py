@@ -26,7 +26,6 @@ class PriceCreate(BaseSchema):
     price_value: Decimal = Field(gt=Decimal("0"))
     valid_from: datetime
     changed_reason: str | None = None
-    created_by: str = Field(min_length=1, max_length=100)
 
 
 class PriceResponse(BaseSchema):

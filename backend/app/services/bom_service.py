@@ -35,7 +35,7 @@ class BomService:
         self.repository = BomRepository(db)
         self.item_repository = ItemRepository(db)
 
-    def create_bom(self, payload: BomCreate):
+    def create_bom(self, payload: BomCreate, created_by: str):
         parent_item = self._get_active_item(payload.parent_item_id, field_name="parent_item_id")
         existing = self.repository.get_bom_by_parent_and_version(
             parent_item_id=payload.parent_item_id,
@@ -50,7 +50,7 @@ class BomService:
         bom = self.repository.create_bom(
             {
                 **payload.model_dump(),
-                "created_by": "system",
+                "created_by": created_by,
             }
         )
         logger.info("BOM created: id=%s parent_item=%s", bom.id, parent_item.code)
