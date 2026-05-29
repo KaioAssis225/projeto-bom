@@ -346,7 +346,6 @@ export interface PriceCreatePayload {
   price_value: number;
   valid_from: string;
   changed_reason?: string;
-  created_by: string;
 }
 
 export interface CurrentPrice {
@@ -415,7 +414,6 @@ export interface CalculationProductPayload {
   quantity: number;
   reference_date?: string;
   material_group_id?: string;
-  requested_by: string;
   simulation_reference?: string;
 }
 
@@ -428,7 +426,6 @@ export interface CalculationBatchPayload {
   itens: CalculationBatchItemPayload[];
   reference_date?: string;
   material_group_id?: string;
-  requested_by: string;
   simulation_reference?: string;
 }
 

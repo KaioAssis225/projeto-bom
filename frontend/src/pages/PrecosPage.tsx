@@ -24,7 +24,6 @@ const priceSchema = z.object({
   price_value: z.number().min(0.000001, "Informe um valor maior que zero"),
   valid_from: z.string().min(1, "Informe a data e hora"),
   changed_reason: z.string().max(255, "Máximo de 255 caracteres").optional(),
-  created_by: z.string().trim().min(1, "Informe o responsável").max(100, "Máximo de 100 caracteres"),
 });
 
 type PriceFormValues = z.infer<typeof priceSchema>;
@@ -69,7 +68,6 @@ function PriceModal({
       price_value: 0,
       valid_from: nowLocalDateTime(),
       changed_reason: "",
-      created_by: "",
     },
   });
 
@@ -79,7 +77,6 @@ function PriceModal({
         price_value: 0,
         valid_from: nowLocalDateTime(),
         changed_reason: "",
-        created_by: "",
       });
     }
   }, [form, open]);
@@ -93,7 +90,6 @@ function PriceModal({
         price_value: values.price_value,
         valid_from: new Date(values.valid_from).toISOString(),
         changed_reason: values.changed_reason?.trim() || undefined,
-        created_by: values.created_by.trim(),
       },
     });
     onClose();
@@ -160,19 +156,6 @@ function PriceModal({
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               {...form.register("changed_reason")}
             />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="price-created-by" className="text-sm font-medium text-slate-700">Registrado por</label>
-            <input
-              id="price-created-by"
-              type="text"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...form.register("created_by")}
-            />
-            {form.formState.errors.created_by ? (
-              <p className="text-sm text-red-600">{form.formState.errors.created_by.message}</p>
-            ) : null}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

@@ -191,7 +191,6 @@ function PasteModal({
 
 export default function CalculoPorMateriaPrima() {
   const [rows, setRows] = useState<Row[]>([newRow(), newRow(), newRow()]);
-  const [requestedBy, setRequestedBy] = useState("");
   const [pasteOpen, setPasteOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState<string>("__all__");
   const [openCards, setOpenCards] = useState<Set<string>>(new Set());
@@ -261,10 +260,9 @@ export default function CalculoPorMateriaPrima() {
   };
 
   const handleCalculate = async () => {
-    if (validRows.length === 0 || !requestedBy.trim()) return;
+    if (validRows.length === 0) return;
     const response = await calcularLote.mutateAsync({
       itens: validRows.map((r) => ({ produto_id: r.product!.id, quantidade: r.qty })),
-      requested_by: requestedBy.trim(),
     });
     setResult(response);
     setActiveGroup("__all__");
@@ -299,12 +297,11 @@ export default function CalculoPorMateriaPrima() {
   );
 
   const handleExportXlsx = async () => {
-    if (validRows.length === 0 || !requestedBy.trim()) return;
+    if (validRows.length === 0) return;
     setExporting(true);
     try {
       await calculosApi.baixarConsumoMpXlsx({
         itens: validRows.map((r) => ({ produto_id: r.product!.id, quantidade: r.qty })),
-        requested_by: requestedBy.trim(),
       });
       toast.success("Excel exportado");
     } catch (error) {
@@ -326,7 +323,7 @@ export default function CalculoPorMateriaPrima() {
   const collapseAll = () => setOpenCards(new Set());
 
   const canCalculate =
-    validRows.length > 0 && lineErrors === 0 && !!requestedBy.trim() && !calcularLote.isPending;
+    validRows.length > 0 && lineErrors === 0 && !calcularLote.isPending;
 
   return (
     <>
@@ -477,14 +474,6 @@ export default function CalculoPorMateriaPrima() {
           </div>
 
           <div className="flex flex-col items-end gap-2 md:flex-row md:items-center md:gap-3">
-            <input
-              type="text"
-              maxLength={100}
-              value={requestedBy}
-              onChange={(e) => setRequestedBy(e.target.value)}
-              placeholder="Solicitante"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 md:w-48"
-            />
             <button
               type="button"
               onClick={() => void handleCalculate()}
