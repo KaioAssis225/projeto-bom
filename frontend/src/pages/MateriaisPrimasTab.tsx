@@ -312,18 +312,8 @@ const materiaisSchema = z
     peso_liquido: z.number().positive("Deve ser maior que zero").optional().nullable(),
     unidade_conversao_id: z.string().optional().nullable(),
     custo: z.number().positive("Deve ser maior que zero").optional().nullable(),
-    created_by: z.string().trim().max(100).optional().nullable(),
     notes: z.string().optional(),
     atualizar_custo: z.boolean(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.custo && !data.created_by && data.atualizar_custo) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Registrado por é obrigatório quando o custo é informado",
-        path: ["created_by"],
-      });
-    }
   });
 
 type MateriaisFormValues = z.infer<typeof materiaisSchema>;
@@ -372,7 +362,6 @@ function MateriaisPrimasModal({
       supplier_ids: [],
       peso_liquido: null,
       custo: null,
-      created_by: null,
       notes: "",
       atualizar_custo: false,
     },
@@ -394,8 +383,7 @@ function MateriaisPrimasModal({
         supplier_ids: [],
         peso_liquido: null,
         custo: null,
-        created_by: null,
-        notes: "",
+          notes: "",
         atualizar_custo: false,
       });
       return;
@@ -411,7 +399,6 @@ function MateriaisPrimasModal({
       supplier_ids: item?.supplier_ids ?? [],
       peso_liquido: item?.peso_liquido ?? null,
       custo: null,
-      created_by: null,
       notes: item?.notes ?? "",
       atualizar_custo: false,
     });
@@ -464,7 +451,7 @@ function MateriaisPrimasModal({
       }
 
       const shouldSavePrice =
-        values.custo != null && values.created_by != null &&
+        values.custo != null &&
         (!isEditing || values.atualizar_custo);
 
       if (shouldSavePrice) {
@@ -474,7 +461,6 @@ function MateriaisPrimasModal({
             item_id: itemId,
             price_value: values.custo!,
             valid_from: new Date().toISOString(),
-            created_by: values.created_by!.trim(),
             changed_reason: "Cadastro de custo",
           },
         });
@@ -783,25 +769,6 @@ function MateriaisPrimasModal({
                   ) : null}
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="mp-createdby" className="text-sm font-medium text-slate-700">
-                    Registrado por
-                  </label>
-                  <input
-                    id="mp-createdby"
-                    type="text"
-                    maxLength={100}
-                    disabled={isSubmitting || custoLocked}
-                    placeholder="Obrigatório se custo informado"
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-                    {...form.register("created_by")}
-                  />
-                  {form.formState.errors.created_by ? (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.created_by.message}
-                    </p>
-                  ) : null}
-                </div>
               </div>
             </div>
 
