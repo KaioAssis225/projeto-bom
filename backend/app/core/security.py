@@ -18,12 +18,12 @@ _ph = PasswordHasher(
 
 
 def hash_password(password: str) -> str:
-    return _ph.hash(password + settings.PASSWORD_PEPPER)
+    return _ph.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     try:
-        return _ph.verify(hashed, plain + settings.PASSWORD_PEPPER)
+        return _ph.verify(hashed, plain)
     except VerifyMismatchError:
         return False
 
