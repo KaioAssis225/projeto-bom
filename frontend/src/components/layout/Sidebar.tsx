@@ -16,8 +16,22 @@ import {
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-
 import { cn } from "@/lib/utils";
+
+// Quais áreas enxergam cada rota
+const ROUTE_AREAS: Record<string, string[]> = {
+  "/itens":        ["CUSTOS", "CADASTRO", "GERAL"],
+  "/bom":          ["CUSTOS", "CADASTRO", "GERAL"],
+  "/precos":       ["CUSTOS", "GERAL"],
+  "/calculos":     ["CADASTRO"],
+  "/estoques":     ["ESTOQUE"],
+  "/grupos":       ["CUSTOS", "CADASTRO", "GERAL"],
+  "/setores":      ["CUSTOS", "CADASTRO", "GERAL"],
+  "/unidades":     ["CUSTOS", "CADASTRO", "GERAL"],
+  "/fornecedores": ["CUSTOS", "CADASTRO", "GERAL"],
+  "/importacoes":  ["CADASTRO"],
+  "/logs":         ["CUSTOS", "GERAL"],
+};
 
 interface NavItem {
   label: string;
@@ -25,29 +39,22 @@ interface NavItem {
   icon: typeof Package2;
 }
 
-const primaryItems: NavItem[] = [
-  { label: "Itens", to: "/itens", icon: Package2 },
-  { label: "BOM", to: "/bom", icon: FolderTree },
-  { label: "Preços", to: "/precos", icon: Coins },
-  { label: "Cálculo", to: "/calculos", icon: Calculator },
-  { label: "Estoques", to: "/estoques", icon: Warehouse },
-];
-
-const secondaryItems: NavItem[] = [
-  { label: "Grupos", to: "/grupos", icon: Boxes },
-  { label: "Setores", to: "/setores", icon: Boxes },
-  { label: "Unidades", to: "/unidades", icon: Ruler },
-  { label: "Fornecedores", to: "/fornecedores", icon: Truck },
-  { label: "Importações", to: "/importacoes", icon: Upload },
-];
-
-const tertiaryItems: NavItem[] = [
-  { label: "Logs", to: "/logs", icon: ScrollText },
+const ALL_ITEMS: NavItem[] = [
+  { label: "Itens",        to: "/itens",        icon: Package2   },
+  { label: "BOM",          to: "/bom",          icon: FolderTree },
+  { label: "Preços",       to: "/precos",       icon: Coins      },
+  { label: "Cálculo",      to: "/calculos",     icon: Calculator },
+  { label: "Estoques",     to: "/estoques",     icon: Warehouse  },
+  { label: "Grupos",       to: "/grupos",       icon: Boxes      },
+  { label: "Setores",      to: "/setores",      icon: Boxes      },
+  { label: "Unidades",     to: "/unidades",     icon: Ruler      },
+  { label: "Fornecedores", to: "/fornecedores", icon: Truck      },
+  { label: "Importações",  to: "/importacoes",  icon: Upload     },
+  { label: "Logs",         to: "/logs",         icon: ScrollText },
 ];
 
 function SidebarLink({ item }: { item: NavItem }) {
   const Icon = item.icon;
-
   return (
     <NavLink
       to={item.to}
@@ -66,27 +73,30 @@ function SidebarLink({ item }: { item: NavItem }) {
   );
 }
 
-function SidebarSection({ items }: { items: NavItem[] }) {
-  return (
-    <div className="space-y-1">
-      {items.map((item) => (
-        <SidebarLink key={item.to} item={item} />
-      ))}
-    </div>
-  );
-}
-
 interface SidebarProps {
   onCollapse: () => void;
 }
 
 export function Sidebar({ onCollapse }: SidebarProps) {
-  const { realUser } = useAuth();
-  const isAdmin = realUser?.roles.some((r) => r.nivel === "ADMIN") ?? false;
+  const { user, realUser, viewingAs } = useAuth();
+
+  const isRealAdmin = realUser?.roles.some((r) => r.nivel === "ADMIN") ?? false;
+  // In view-as mode, filter by the simulated user's areas
+  const userAreas = user?.roles.map((r) => r.area) ?? [];
+
+  const canSee = (route: string): boolean => {
+    // Real admin not in view-as mode sees everything
+    if (isRealAdmin && !viewingAs) return true;
+    const allowed = ROUTE_AREAS[route];
+    if (!allowed) return true;
+    return userAreas.some((a) => allowed.includes(a));
+  };
+
+  const visibleItems = ALL_ITEMS.filter((item) => canSee(item.to));
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-white">
-      {/* Logo / marca */}
+      {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-slate-200 px-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
           <Factory className="h-5 w-5" />
@@ -98,24 +108,21 @@ export function Sidebar({ onCollapse }: SidebarProps) {
       </div>
 
       {/* Navegação */}
-      <nav className="flex-1 space-y-4 px-3 py-4">
-        <SidebarSection items={primaryItems} />
-        <div className="mx-2 border-t border-slate-200" />
-        <SidebarSection items={secondaryItems} />
-        <div className="mx-2 border-t border-slate-200" />
-        <SidebarSection items={tertiaryItems} />
-        {isAdmin && (
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        {visibleItems.map((item) => (
+          <SidebarLink key={item.to} item={item} />
+        ))}
+
+        {isRealAdmin && (
           <>
-            <div className="mx-2 border-t border-slate-200" />
-            <SidebarSection items={[
-              { label: "Usuários", to: "/usuarios", icon: Users },
-              { label: "Permissões", to: "/permissoes", icon: ShieldCheck },
-            ]} />
+            <div className="mx-2 my-3 border-t border-slate-200" />
+            <SidebarLink item={{ label: "Usuários",   to: "/usuarios",   icon: Users       }} />
+            <SidebarLink item={{ label: "Permissões", to: "/permissoes", icon: ShieldCheck }} />
           </>
         )}
       </nav>
 
-      {/* Botão Recolher */}
+      {/* Recolher */}
       <div className="border-t border-slate-200 p-3">
         <button
           type="button"

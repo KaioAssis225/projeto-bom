@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ViewAsBanner } from "@/components/ViewAsBanner";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -30,6 +30,17 @@ const queryClient = new QueryClient({
   },
 });
 
+function SmartRedirect() {
+  const { user, realUser } = useAuth();
+  const isAdmin = realUser?.roles.some((r) => r.nivel === "ADMIN");
+  if (isAdmin) return <Navigate to="/itens" replace />;
+  const areas = user?.roles.map((r) => r.area) ?? [];
+  if (areas.includes("ESTOQUE") && !areas.includes("CUSTOS") && !areas.includes("CADASTRO")) {
+    return <Navigate to="/estoques" replace />;
+  }
+  return <Navigate to="/itens" replace />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -44,7 +55,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/itens" replace />} />
+                <Route path="/" element={<SmartRedirect />} />
                 <Route path="/itens" element={<ItensPage />} />
                 <Route path="/importacoes" element={<ImportacoesPage />} />
                 <Route path="/bom" element={<BomPage />} />
@@ -60,7 +71,7 @@ export default function App() {
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="/permissoes" element={<PermissoesPage />} />
-                <Route path="*" element={<Navigate to="/itens" replace />} />
+                <Route path="*" element={<SmartRedirect />} />
               </Route>
             </Route>
           </Routes>

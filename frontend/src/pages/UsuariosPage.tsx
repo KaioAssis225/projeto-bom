@@ -24,7 +24,12 @@ import {
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const AREAS = ["CUSTOS", "ESTOQUE", "CADASTRO", "GERAL"] as const;
-const NIVEIS = ["VIEWER", "ESTOQUISTA", "ANALISTA", "GESTOR", "ADMIN"] as const;
+
+// Apenas Viewer e Editor para criação; mapeamos Editor → ANALISTA no backend
+const NIVEL_OPTIONS = [
+  { value: "VIEWER",   label: "Viewer — somente leitura" },
+  { value: "ANALISTA", label: "Editor — pode criar e editar" },
+] as const;
 
 const AREA_LABEL: Record<string, string> = {
   CUSTOS: "Custos",
@@ -46,6 +51,15 @@ const NIVEL_BADGE: Record<string, string> = {
   ANALISTA:   "bg-indigo-100 text-indigo-700",
   GESTOR:     "bg-purple-100 text-purple-700",
   ADMIN:      "bg-red-100 text-red-700",
+};
+
+// Label legível para o usuário final
+const NIVEL_LABEL: Record<string, string> = {
+  VIEWER:     "Viewer",
+  ESTOQUISTA: "Editor",
+  ANALISTA:   "Editor",
+  GESTOR:     "Gestor",
+  ADMIN:      "Admin",
 };
 
 const AVATAR_COLORS = [
@@ -149,7 +163,7 @@ function RolesEditor({
               disabled={disabled}
               className="flex-1 rounded border-0 bg-transparent text-sm outline-none cursor-pointer"
             >
-              {NIVEIS.map((n) => <option key={n} value={n}>{n}</option>)}
+              {NIVEL_OPTIONS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
             </select>
             <button type="button" onClick={() => remove(i)} disabled={disabled}
               className="ml-1 rounded p-1 text-current opacity-60 hover:opacity-100 transition">
@@ -404,7 +418,7 @@ function UserCard({ user, onEdit, onRoles, onRevogar, onViewAs }: {
             )}>
               {AREA_LABEL[r.area] ?? r.area}
               <span className={cn("rounded-full px-1.5 py-px text-[10px] font-semibold", NIVEL_BADGE[r.nivel])}>
-                {r.nivel}
+                {NIVEL_LABEL[r.nivel] ?? r.nivel}
               </span>
             </span>
           ))}
