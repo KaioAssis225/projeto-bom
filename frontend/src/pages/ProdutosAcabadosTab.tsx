@@ -15,6 +15,7 @@ import {
   useProdutoAcabado,
   useUpdateProdutoAcabado,
 } from "@/hooks/useProdutoAcabado";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn, extractErrorMessage, formatDecimal } from "@/lib/utils";
 import type { FinishedProduct } from "@/types";
 
@@ -431,11 +432,13 @@ function ActionsDropdown({
   onEdit,
   onDeactivate,
   onHistory,
+  canWrite,
 }: {
   item: FinishedProduct;
   onEdit: () => void;
   onDeactivate: () => void;
   onHistory: () => void;
+  canWrite: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -468,13 +471,15 @@ function ActionsDropdown({
 
       {isOpen ? (
         <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-          <button
-            type="button"
-            onClick={() => { setIsOpen(false); onEdit(); }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          >
-            ✏️ Editar
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => { setIsOpen(false); onEdit(); }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              ✏️ Editar
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { setIsOpen(false); onHistory(); }}
@@ -482,7 +487,7 @@ function ActionsDropdown({
           >
             📈 Histórico de custo
           </button>
-          {item.active ? (
+          {canWrite && item.active ? (
             <button
               type="button"
               onClick={() => { setIsOpen(false); onDeactivate(); }}
@@ -540,6 +545,8 @@ export default function ProdutosAcabadosTab() {
   const [selectedItem, setSelectedItem] = useState<FinishedProduct | null>(null);
   const importMutation = useImportProdutosAcabadosCsv();
 
+  const canWrite = useCanWrite("CADASTRO");
+
   const filters = useMemo(
     () => ({
       code: search.trim() || undefined,
@@ -593,22 +600,26 @@ export default function ProdutosAcabadosTab() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Importar CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSelectedItem(null); setModalOpen(true); }}
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Produto
-            </button>
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Importar CSV
+              </button>
+            )}
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => { setSelectedItem(null); setModalOpen(true); }}
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Produto
+              </button>
+            )}
           </div>
         </div>
 
@@ -716,6 +727,7 @@ export default function ProdutosAcabadosTab() {
                               onEdit={() => { setSelectedItem(item); setModalOpen(true); }}
                               onDeactivate={() => void handleDeactivate(item)}
                               onHistory={() => setHistoryItem(item)}
+                              canWrite={canWrite}
                             />
                           </div>
                         </td>

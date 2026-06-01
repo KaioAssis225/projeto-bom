@@ -12,6 +12,7 @@ import {
   useFornecedores,
   useUpdateFornecedor,
 } from "@/hooks/useFornecedores";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { Supplier } from "@/types";
 
@@ -173,6 +174,8 @@ export default function FornecedoresPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
+  const canWrite = useCanWrite("CADASTRO");
+
   const fornecedoresQuery = useFornecedores({ skip: 0, limit: 100, active_only: false });
   const deactivateFornecedor = useDeactivateFornecedor();
   const deleteFornecedor = useDeleteFornecedor();
@@ -196,26 +199,27 @@ export default function FornecedoresPage() {
   };
 
   const buildActions = (supplier: Supplier): RowAction[] => {
-    const actions: RowAction[] = [
-      {
+    const actions: RowAction[] = [];
+    if (canWrite) {
+      actions.push({
         label: "Editar",
         icon: Pencil,
         onClick: () => { setSelectedSupplier(supplier); setModalOpen(true); },
-      },
-    ];
-    if (supplier.active) {
+      });
+      if (supplier.active) {
+        actions.push({
+          label: "Inativar",
+          icon: Ban,
+          onClick: () => void handleDeactivate(supplier),
+        });
+      }
       actions.push({
-        label: "Inativar",
-        icon: Ban,
-        onClick: () => void handleDeactivate(supplier),
+        label: "Excluir",
+        icon: Trash2,
+        variant: "danger",
+        onClick: () => void handleDelete(supplier),
       });
     }
-    actions.push({
-      label: "Excluir",
-      icon: Trash2,
-      variant: "danger",
-      onClick: () => void handleDelete(supplier),
-    });
     return actions;
   };
 
@@ -230,14 +234,16 @@ export default function FornecedoresPage() {
               Gerencie os fornecedores vinculados às matérias-primas.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => { setSelectedSupplier(null); setModalOpen(true); }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Fornecedor
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => { setSelectedSupplier(null); setModalOpen(true); }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Fornecedor
+            </button>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -308,7 +314,7 @@ export default function FornecedoresPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <RowActionsMenu actions={buildActions(supplier)} />
+                          {buildActions(supplier).length > 0 && <RowActionsMenu actions={buildActions(supplier)} />}
                         </div>
                       </td>
                     </tr>

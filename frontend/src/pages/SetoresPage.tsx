@@ -12,6 +12,7 @@ import {
   useSetores,
   useUpdateSetor,
 } from "@/hooks/useSetores";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { Setor } from "@/types";
 
@@ -149,6 +150,8 @@ export default function SetoresPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSetor, setSelectedSetor] = useState<Setor | null>(null);
 
+  const canWrite = useCanWrite("CADASTRO");
+
   const setoresQuery = useSetores({ skip: 0, limit: 200, active_only: false });
   const deactivateSetor = useDeactivateSetor();
   const deleteSetor = useDeleteSetor();
@@ -177,29 +180,30 @@ export default function SetoresPage() {
   };
 
   const buildActions = (setor: Setor): RowAction[] => {
-    const actions: RowAction[] = [
-      {
+    const actions: RowAction[] = [];
+    if (canWrite) {
+      actions.push({
         label: "Editar",
         icon: Pencil,
         onClick: () => {
           setSelectedSetor(setor);
           setModalOpen(true);
         },
-      },
-    ];
-    if (setor.active) {
+      });
+      if (setor.active) {
+        actions.push({
+          label: "Inativar",
+          icon: Ban,
+          onClick: () => void handleDeactivate(setor),
+        });
+      }
       actions.push({
-        label: "Inativar",
-        icon: Ban,
-        onClick: () => void handleDeactivate(setor),
+        label: "Excluir",
+        icon: Trash2,
+        variant: "danger",
+        onClick: () => void handleDelete(setor),
       });
     }
-    actions.push({
-      label: "Excluir",
-      icon: Trash2,
-      variant: "danger",
-      onClick: () => void handleDelete(setor),
-    });
     return actions;
   };
 
@@ -213,17 +217,19 @@ export default function SetoresPage() {
               Gerencie os setores usados para classificar matérias-primas.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedSetor(null);
-              setModalOpen(true);
-            }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Setor
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSetor(null);
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Setor
+            </button>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -290,7 +296,7 @@ export default function SetoresPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <RowActionsMenu actions={buildActions(setor)} />
+                          {buildActions(setor).length > 0 && <RowActionsMenu actions={buildActions(setor)} />}
                         </div>
                       </td>
                     </tr>

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
 import { useCreateGrupo, useDeactivateGrupo, useDeleteGrupo, useGrupos, useUpdateGrupo } from "@/hooks/useGrupos";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { MaterialGroup } from "@/types";
 
@@ -194,6 +195,8 @@ export default function GruposPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<MaterialGroup | null>(null);
 
+  const canWrite = useCanWrite("CADASTRO");
+
   const gruposQuery = useGrupos({ skip: 0, limit: 100, active_only: false });
   const deactivateGrupo = useDeactivateGrupo();
   const deleteGrupo = useDeleteGrupo();
@@ -226,29 +229,30 @@ export default function GruposPage() {
   };
 
   const buildActions = (group: MaterialGroup): RowAction[] => {
-    const actions: RowAction[] = [
-      {
+    const actions: RowAction[] = [];
+    if (canWrite) {
+      actions.push({
         label: "Editar",
         icon: Pencil,
         onClick: () => {
           setSelectedGroup(group);
           setModalOpen(true);
         },
-      },
-    ];
-    if (group.active) {
+      });
+      if (group.active) {
+        actions.push({
+          label: "Inativar",
+          icon: Ban,
+          onClick: () => void handleDeactivate(group),
+        });
+      }
       actions.push({
-        label: "Inativar",
-        icon: Ban,
-        onClick: () => void handleDeactivate(group),
+        label: "Excluir",
+        icon: Trash2,
+        variant: "danger",
+        onClick: () => void handleDelete(group),
       });
     }
-    actions.push({
-      label: "Excluir",
-      icon: Trash2,
-      variant: "danger",
-      onClick: () => void handleDelete(group),
-    });
     return actions;
   };
 
@@ -262,17 +266,19 @@ export default function GruposPage() {
               Gerencie os grupos usados para organizar matérias-primas no cálculo.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedGroup(null);
-              setModalOpen(true);
-            }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Grupo
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedGroup(null);
+                setModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Grupo
+            </button>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -347,7 +353,7 @@ export default function GruposPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <RowActionsMenu actions={buildActions(group)} />
+                          {buildActions(group).length > 0 && <RowActionsMenu actions={buildActions(group)} />}
                         </div>
                       </td>
                     </tr>

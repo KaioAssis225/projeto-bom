@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useMateriaPrima";
 import { usePrecoHistory, useSetPreco } from "@/hooks/usePrecos";
 import { useUnidades } from "@/hooks/useUnidades";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn, extractErrorMessage, formatCurrency, formatDate, formatDecimal } from "@/lib/utils";
 import type { MaterialGroup, RawMaterial, Setor, Supplier, UnitOfMeasure } from "@/types";
 
@@ -818,11 +819,13 @@ function ActionsDropdown({
   onEdit,
   onHistory,
   onDeactivate,
+  canWrite,
 }: {
   item: RawMaterial;
   onEdit: () => void;
   onHistory: () => void;
   onDeactivate: () => void;
+  canWrite: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -859,16 +862,18 @@ function ActionsDropdown({
 
       {isOpen ? (
         <div className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-          <button
-            type="button"
-            onClick={() => {
-              setIsOpen(false);
-              onEdit();
-            }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          >
-            ✏️ Editar
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onEdit();
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
+            >
+              ✏️ Editar
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -879,7 +884,7 @@ function ActionsDropdown({
           >
             💰 Histórico de Custo
           </button>
-          {item.active ? (
+          {canWrite && item.active ? (
             <button
               type="button"
               onClick={() => {
@@ -927,6 +932,8 @@ export default function MateriaisPrimasTab() {
   const [selectedItem, setSelectedItem] = useState<RawMaterial | null>(null);
   const [historyItem, setHistoryItem] = useState<RawMaterial | null>(null);
   const importMutation = useImportMateriasPrimasCsv();
+
+  const canWrite = useCanWrite("CADASTRO");
 
   const groupsQuery = useGrupos({ active_only: true, skip: 0, limit: 100 });
   const setoresQuery = useSetores({ active_only: true, skip: 0, limit: 200 });
@@ -982,25 +989,29 @@ export default function MateriaisPrimasTab() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setImportOpen(true)}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Importar CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedItem(null);
-                setModalOpen(true);
-              }}
-              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Matéria-Prima
-            </button>
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Importar CSV
+              </button>
+            )}
+            {canWrite && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedItem(null);
+                  setModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Matéria-Prima
+              </button>
+            )}
           </div>
         </div>
 
@@ -1125,6 +1136,7 @@ export default function MateriaisPrimasTab() {
                               }}
                               onHistory={() => setHistoryItem(item)}
                               onDeactivate={() => void handleDeactivate(item)}
+                              canWrite={canWrite}
                             />
                           </div>
                         </td>

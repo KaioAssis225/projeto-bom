@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
 import { useCreateUnidade, useDeleteUnidade, useUnidades, useUpdateUnidade } from "@/hooks/useUnidades";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { UnitOfMeasure } from "@/types";
 
@@ -106,10 +107,12 @@ function UnitRow({
   unit,
   onEdit,
   onDelete,
+  canWrite,
 }: {
   unit: UnitOfMeasure;
   onEdit: () => void;
   onDelete: () => void;
+  canWrite: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const category = UNIT_CATEGORIES[unit.code] ?? "Outro";
@@ -151,12 +154,14 @@ function UnitRow({
         </td>
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end">
-            <RowActionsMenu
-              actions={[
-                { label: "Editar", icon: Pencil, onClick: onEdit },
-                { label: "Excluir", icon: Trash2, variant: "danger", onClick: onDelete },
-              ]}
-            />
+            {canWrite && (
+              <RowActionsMenu
+                actions={[
+                  { label: "Editar", icon: Pencil, onClick: onEdit },
+                  { label: "Excluir", icon: Trash2, variant: "danger", onClick: onDelete },
+                ]}
+              />
+            )}
           </div>
         </td>
       </tr>
@@ -354,6 +359,8 @@ export default function UnidadesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<UnitOfMeasure | null>(null);
 
+  const canWrite = useCanWrite("CADASTRO");
+
   const unidadesQuery = useUnidades({ skip: 0, limit: 100 });
   const deleteUnidade = useDeleteUnidade();
 
@@ -382,14 +389,16 @@ export default function UnidadesPage() {
               Unidades padrão com regras de conversão. Clique em uma linha para ver as conversões.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => { setSelectedUnit(null); setModalOpen(true); }}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Unidade
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => { setSelectedUnit(null); setModalOpen(true); }}
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Unidade
+            </button>
+          )}
         </div>
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -446,6 +455,7 @@ export default function UnidadesPage() {
                       unit={unit}
                       onEdit={() => { setSelectedUnit(unit); setModalOpen(true); }}
                       onDelete={() => void handleDelete(unit)}
+                      canWrite={canWrite}
                     />
                   ))
                 ) : (

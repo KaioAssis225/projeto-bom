@@ -12,6 +12,7 @@ import {
   useUltimosMovimentos,
 } from "@/hooks/useEstoqueAluminio";
 import { useGrupos } from "@/hooks/useGrupos";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { EstoqueItem, EstoqueMovimento, EstoqueMovimentoRecente, MaterialGroup } from "@/types";
 
@@ -566,6 +567,8 @@ export default function EstoqueAluminioPage() {
   const [modalSaida, setModalSaida] = useState<EstoqueItem | null>(null);
   const [modalHistorico, setModalHistorico] = useState<EstoqueItem | null>(null);
 
+  const canWrite = useCanWrite("ESTOQUE");
+
   const gruposQuery = useGrupos({ skip: 0, limit: 100, active_only: true, controla_estoque_only: true });
   const grupos: MaterialGroup[] = gruposQuery.data?.items ?? [];
   const groupId = selectedGroup?.id ?? null;
@@ -741,24 +744,28 @@ export default function EstoqueAluminioPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setModalEntrada(item)}
-                            title="Registrar entrada"
-                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Entrada
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setModalSaida(item)}
-                            title="Registrar saída"
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                          >
-                            <Minus className="h-3 w-3" />
-                            Saída
-                          </button>
+                          {canWrite && (
+                            <button
+                              type="button"
+                              onClick={() => setModalEntrada(item)}
+                              title="Registrar entrada"
+                              className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Entrada
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              type="button"
+                              onClick={() => setModalSaida(item)}
+                              title="Registrar saída"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                            >
+                              <Minus className="h-3 w-3" />
+                              Saída
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setModalHistorico(item)}

@@ -14,6 +14,7 @@ import { useCustoBomAnalise } from "@/hooks/useCalculos";
 import { useItens } from "@/hooks/useItens";
 import { usePrecoHistory, usePrecoVigente, useSetPreco } from "@/hooks/usePrecos";
 import { useResumoVariacoesCustoPA } from "@/hooks/useProdutoAcabado";
+import { useCanWrite } from "@/hooks/usePermissions";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import type { BomAnalysisLine, Item } from "@/types";
 
@@ -296,11 +297,13 @@ function PainelMateriaPrima({
   onSelect,
   onClear,
   onOpenModal,
+  canWrite,
 }: {
   selectedItem: Item | null;
   onSelect: (item: Item) => void;
   onClear: () => void;
   onOpenModal: () => void;
+  canWrite: boolean;
 }) {
   const [historySkip, setHistorySkip] = useState(0);
 
@@ -373,14 +376,16 @@ function PainelMateriaPrima({
               ) : null}
             </div>
 
-            <button
-              type="button"
-              onClick={onOpenModal}
-              className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-            >
-              <Coins className="mr-2 h-4 w-4" />
-              Registrar novo preço
-            </button>
+            {canWrite && (
+              <button
+                type="button"
+                onClick={onOpenModal}
+                className="inline-flex items-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                <Coins className="mr-2 h-4 w-4" />
+                Registrar novo preço
+              </button>
+            )}
           </div>
         </div>
       ) : null}
@@ -1424,6 +1429,7 @@ export default function PrecosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const queryClient = useQueryClient();
+  const canWrite = useCanWrite("CUSTOS");
 
   const handleRefreshCosts = async () => {
     setRefreshing(true);
@@ -1503,6 +1509,7 @@ export default function PrecosPage() {
           onSelect={setSelectedMP}
           onClear={() => setSelectedMP(null)}
           onOpenModal={() => setModalOpen(true)}
+          canWrite={canWrite}
         />
       ) : activeTab === "comp" ? (
         <PainelComparacaoCustos />
