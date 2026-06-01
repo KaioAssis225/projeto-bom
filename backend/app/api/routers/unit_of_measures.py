@@ -47,7 +47,7 @@ def list_units_of_measure(
 def create_unit_of_measure(
     payload: UnitOfMeasureCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> UnitOfMeasureResponse:
     service = UnitOfMeasureService(db)
     return service.create(payload)
@@ -78,7 +78,7 @@ def update_unit_of_measure(
     id: UUID,
     payload: UnitOfMeasureUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> UnitOfMeasureResponse:
     service = UnitOfMeasureService(db)
     return service.update(id=id, payload=payload)
@@ -93,7 +93,7 @@ def update_unit_of_measure(
 def deactivate_unit_of_measure(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> UnitOfMeasureResponse:
     service = UnitOfMeasureService(db)
     return service.deactivate(id)
@@ -108,6 +108,6 @@ def deactivate_unit_of_measure(
 def delete_unit_of_measure(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> None:
     UnitOfMeasureService(db).delete(id)

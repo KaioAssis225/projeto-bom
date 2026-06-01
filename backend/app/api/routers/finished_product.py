@@ -83,7 +83,7 @@ def finished_product_template_xlsx() -> Response:
 def import_finished_products_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> ImportResult:
     return FinishedProductImportService(db).import_csv(file)
 
@@ -141,7 +141,7 @@ def get_finished_product(
 def create_finished_product(
     payload: FinishedProductCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).create(payload)
 
@@ -151,7 +151,7 @@ def update_finished_product(
     id: UUID,
     payload: FinishedProductUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).update(id, payload)
 
@@ -160,6 +160,6 @@ def update_finished_product(
 def deactivate_finished_product(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> FinishedProductResponse:
     return FinishedProductService(db).deactivate(id)

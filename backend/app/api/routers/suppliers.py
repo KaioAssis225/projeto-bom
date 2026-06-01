@@ -47,7 +47,7 @@ def list_suppliers(
 def create_supplier(
     payload: SupplierCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SupplierResponse:
     service = SupplierService(db)
     return service.create(payload)
@@ -78,7 +78,7 @@ def update_supplier(
     id: UUID,
     payload: SupplierUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SupplierResponse:
     service = SupplierService(db)
     return service.update(id=id, payload=payload)
@@ -93,7 +93,7 @@ def update_supplier(
 def deactivate_supplier(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SupplierResponse:
     service = SupplierService(db)
     return service.deactivate(id)
@@ -108,6 +108,6 @@ def deactivate_supplier(
 def delete_supplier(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> None:
     SupplierService(db).delete(id)

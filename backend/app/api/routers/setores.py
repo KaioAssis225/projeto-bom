@@ -34,7 +34,7 @@ def list_setores(
 def create_setor(
     payload: SetorCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SetorResponse:
     return SetorService(db).create(payload)
 
@@ -53,7 +53,7 @@ def update_setor(
     id: UUID,
     payload: SetorUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SetorResponse:
     return SetorService(db).update(id=id, payload=payload)
 
@@ -62,7 +62,7 @@ def update_setor(
 def deactivate_setor(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> SetorResponse:
     return SetorService(db).deactivate(id)
 
@@ -71,6 +71,6 @@ def deactivate_setor(
 def delete_setor(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> None:
     SetorService(db).delete(id)

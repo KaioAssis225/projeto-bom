@@ -53,7 +53,7 @@ def list_material_groups(
 def create_material_group(
     payload: MaterialGroupCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.create(payload)
@@ -84,7 +84,7 @@ def update_material_group(
     id: UUID,
     payload: MaterialGroupUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.update(id=id, payload=payload)
@@ -99,7 +99,7 @@ def update_material_group(
 def deactivate_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.deactivate(id)
@@ -114,6 +114,6 @@ def deactivate_material_group(
 def delete_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> None:
     MaterialGroupService(db).delete(id)

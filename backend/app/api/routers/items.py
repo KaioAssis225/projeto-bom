@@ -73,7 +73,7 @@ def get_item(
 def create_item(
     payload: ItemCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.create(payload)
@@ -89,7 +89,7 @@ def update_item(
     id: UUID,
     payload: ItemUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.update(id=id, payload=payload)
@@ -104,7 +104,7 @@ def update_item(
 def deactivate_item(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> ItemResponse:
     service = ItemService(db)
     return service.deactivate(id)

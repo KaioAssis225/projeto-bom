@@ -77,7 +77,7 @@ def raw_material_template_xlsx() -> Response:
 def import_raw_materials_csv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> ImportResult:
     return RawMaterialImportService(db).import_csv(file)
 
@@ -95,7 +95,7 @@ def get_raw_material(
 def create_raw_material(
     payload: RawMaterialCreate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).create(payload)
 
@@ -105,7 +105,7 @@ def update_raw_material(
     id: UUID,
     payload: RawMaterialUpdate,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).update(id, payload)
 
@@ -114,6 +114,6 @@ def update_raw_material(
 def deactivate_raw_material(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="GESTOR")),
+    _: User = Depends(require(area="CADASTRO", nivel_min="ANALISTA")),
 ) -> RawMaterialResponse:
     return RawMaterialService(db).deactivate(id)
