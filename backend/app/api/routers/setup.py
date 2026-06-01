@@ -16,6 +16,7 @@ class SetupAdminPayload(BaseSchema):
     email: EmailStr
     password: str = Field(min_length=8)
     full_name: str | None = None
+    force: bool = False
 
 
 class SetupAdminResponse(BaseSchema):
@@ -30,10 +31,13 @@ def setup_admin(
 ) -> SetupAdminResponse:
     any_admin = db.query(UserRole).filter(UserRole.nivel == Nivel.ADMIN).first()
     if any_admin:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe um administrador cadastrado.",
-        )
+        if not payload.force:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe um administrador cadastrado. Use force: true para recriar.",
+            )
+        db.query(User).delete()
+        db.commit()
 
     user = User(
         email=payload.email,
