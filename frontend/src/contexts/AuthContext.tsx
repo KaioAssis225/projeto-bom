@@ -3,10 +3,13 @@ import { authApi, type MeResponse } from "@/api/auth";
 import { client } from "@/api/client";
 import { ForcePasswordChange } from "@/components/ForcePasswordChange";
 
-interface AuthContextValue {
-  user: MeResponse | null;
+export interface AuthContextValue {
+  user: MeResponse | null;        // effective user (real or simulated)
+  realUser: MeResponse | null;    // always the authenticated admin
   isAuthenticated: boolean;
   isLoading: boolean;
+  viewingAs: MeResponse | null;
+  setViewingAs: (u: MeResponse | null) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -17,30 +20,26 @@ const STORAGE_ACCESS = "bom_access_token";
 const STORAGE_REFRESH = "bom_refresh_token";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<MeResponse | null>(null);
+  const [realUser, setRealUser] = useState<MeResponse | null>(null);
+  const [viewingAs, setViewingAs] = useState<MeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshingRef = useRef(false);
 
-  // On mount, try to restore session from localStorage
+  // user exposed to the rest of the app — simulated when viewingAs is set
+  const user = viewingAs ?? realUser;
+
   useEffect(() => {
     const token = localStorage.getItem(STORAGE_ACCESS);
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+    if (!token) { setIsLoading(false); return; }
     authApi.me()
-      .then(setUser)
+      .then(setRealUser)
       .catch(() => {
-        // token is invalid/expired — try refresh
         const refreshToken = localStorage.getItem(STORAGE_REFRESH);
-        if (!refreshToken) {
-          localStorage.removeItem(STORAGE_ACCESS);
-          return;
-        }
+        if (!refreshToken) { localStorage.removeItem(STORAGE_ACCESS); return; }
         return authApi.refresh(refreshToken)
           .then(({ access_token }) => {
             localStorage.setItem(STORAGE_ACCESS, access_token);
-            return authApi.me().then(setUser);
+            return authApi.me().then(setRealUser);
           })
           .catch(() => {
             localStorage.removeItem(STORAGE_ACCESS);
@@ -50,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Axios request interceptor: inject Bearer token
   useEffect(() => {
     const reqId = client.interceptors.request.use((config) => {
       const token = localStorage.getItem(STORAGE_ACCESS);
@@ -58,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return config;
     });
 
-    // Axios response interceptor: auto-refresh on 401
     const resId = client.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -82,12 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               refreshingRef.current = false;
               localStorage.removeItem(STORAGE_ACCESS);
               localStorage.removeItem(STORAGE_REFRESH);
-              setUser(null);
+              setRealUser(null);
+              setViewingAs(null);
             }
           } else {
             localStorage.removeItem(STORAGE_ACCESS);
             localStorage.removeItem(STORAGE_REFRESH);
-            setUser(null);
+            setRealUser(null);
+            setViewingAs(null);
           }
         }
         return Promise.reject(error);
@@ -105,7 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_ACCESS, access_token);
     localStorage.setItem(STORAGE_REFRESH, refresh_token);
     const me = await authApi.me();
-    setUser(me);
+    setRealUser(me);
+    setViewingAs(null);
   }, []);
 
   const logout = useCallback(async () => {
@@ -115,18 +115,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       localStorage.removeItem(STORAGE_ACCESS);
       localStorage.removeItem(STORAGE_REFRESH);
-      setUser(null);
+      setRealUser(null);
+      setViewingAs(null);
     }
   }, []);
 
   const handlePasswordChanged = useCallback(() => {
-    setUser((prev) => prev ? { ...prev, must_change_password: false } : prev);
+    setRealUser((prev) => prev ? { ...prev, must_change_password: false } : prev);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      realUser,
+      isAuthenticated: !!realUser,
+      isLoading,
+      viewingAs,
+      setViewingAs,
+      login,
+      logout,
+    }}>
       {children}
-      {user?.must_change_password && (
+      {realUser?.must_change_password && !viewingAs && (
         <ForcePasswordChange onSuccess={handlePasswordChanged} />
       )}
     </AuthContext.Provider>

@@ -4,13 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Loader2, Pencil, Plus, Search, Shield, Trash2, X, LogOut,
-  UserCircle2, CheckCircle2, XCircle, Clock,
+  UserCircle2, CheckCircle2, XCircle, Clock, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { RowActionsMenu, type RowAction } from "@/components/RowActionsMenu";
 import { extractErrorMessage } from "@/api/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { UserAdminResponse, UserRoleInput } from "@/api/usuarios";
 import {
   useUsuarios,
@@ -341,13 +342,15 @@ function RolesModal({ user, onClose }: { user: UserAdminResponse | null; onClose
 
 // ─── Card de usuário ──────────────────────────────────────────────────────────
 
-function UserCard({ user, onEdit, onRoles, onRevogar }: {
+function UserCard({ user, onEdit, onRoles, onRevogar, onViewAs }: {
   user: UserAdminResponse;
   onEdit: () => void;
   onRoles: () => void;
   onRevogar: () => void;
+  onViewAs: () => void;
 }) {
   const actions: RowAction[] = [
+    { label: "Visualizar como", icon: Eye, onClick: onViewAs },
     { label: "Editar dados", icon: Pencil, onClick: onEdit },
     { label: "Permissões", icon: Shield, onClick: onRoles },
     { label: "Revogar sessões", icon: LogOut, onClick: onRevogar },
@@ -448,6 +451,7 @@ export default function UsuariosPage() {
   const [modal, setModal] = useState<ModalState>("none");
   const [selected, setSelected] = useState<UserAdminResponse | null>(null);
 
+  const { setViewingAs, realUser } = useAuth();
   const usuariosQuery = useUsuarios();
   const revogar = useRevogarSessoes();
 
@@ -465,6 +469,16 @@ export default function UsuariosPage() {
   const handleRevogar = async (u: UserAdminResponse) => {
     if (!window.confirm(`Revogar todas as sessões de ${u.email}?`)) return;
     await revogar.mutateAsync(u.id);
+  };
+
+  const handleViewAs = (u: UserAdminResponse) => {
+    setViewingAs({
+      id: u.id,
+      email: u.email,
+      full_name: u.full_name,
+      must_change_password: false,
+      roles: u.roles.map((r) => ({ area: r.area, nivel: r.nivel })),
+    });
   };
 
   const total = usuariosQuery.data?.total ?? 0;
@@ -559,6 +573,7 @@ export default function UsuariosPage() {
                   onEdit={() => openEdit(u)}
                   onRoles={() => openRoles(u)}
                   onRevogar={() => void handleRevogar(u)}
+                  onViewAs={() => handleViewAs(u)}
                 />
               ))}
             </div>

@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ViewAsBanner } from "@/components/ViewAsBanner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import LoginPage from "@/pages/LoginPage";
 import BomPage from "@/pages/BomPage";
@@ -16,6 +17,7 @@ import ImportacoesPage from "@/pages/ImportacoesPage";
 import ItensPage from "@/pages/ItensPage";
 import LogsPage from "@/pages/LogsPage";
 import UsuariosPage from "@/pages/UsuariosPage";
+import PermissoesPage from "@/pages/PermissoesPage";
 import PrecosPage from "@/pages/PrecosPage";
 import UnidadesPage from "@/pages/UnidadesPage";
 
@@ -57,10 +59,12 @@ export default function App() {
                 <Route path="/fornecedores" element={<FornecedoresPage />} />
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />
+                <Route path="/permissoes" element={<PermissoesPage />} />
                 <Route path="*" element={<Navigate to="/itens" replace />} />
               </Route>
             </Route>
           </Routes>
+          <ViewAsBanner />
           <Toaster position="top-right" richColors />
         </AuthProvider>
       </BrowserRouter>

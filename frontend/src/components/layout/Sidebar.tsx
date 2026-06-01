@@ -12,6 +12,7 @@ import {
   Warehouse,
   ChevronLeft,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -80,8 +81,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onCollapse }: SidebarProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.roles.some((r) => r.nivel === "ADMIN") ?? false;
+  const { realUser } = useAuth();
+  const isAdmin = realUser?.roles.some((r) => r.nivel === "ADMIN") ?? false;
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r bg-white">
@@ -106,7 +107,10 @@ export function Sidebar({ onCollapse }: SidebarProps) {
         {isAdmin && (
           <>
             <div className="mx-2 border-t border-slate-200" />
-            <SidebarSection items={[{ label: "Usuários", to: "/usuarios", icon: Users }]} />
+            <SidebarSection items={[
+              { label: "Usuários", to: "/usuarios", icon: Users },
+              { label: "Permissões", to: "/permissoes", icon: ShieldCheck },
+            ]} />
           </>
         )}
       </nav>
