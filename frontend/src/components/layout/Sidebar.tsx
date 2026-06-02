@@ -17,21 +17,7 @@ import {
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-
-// Quais áreas enxergam cada rota
-const ROUTE_AREAS: Record<string, string[]> = {
-  "/itens":        ["CUSTOS", "CADASTRO", "GERAL"],
-  "/bom":          ["CUSTOS", "CADASTRO", "GERAL"],
-  "/precos":       ["CUSTOS", "GERAL"],
-  "/calculos":     ["CADASTRO"],
-  "/estoques":     ["ESTOQUE"],
-  "/grupos":       ["CUSTOS", "CADASTRO", "GERAL"],
-  "/setores":      ["CUSTOS", "CADASTRO", "GERAL"],
-  "/unidades":     ["CUSTOS", "CADASTRO", "GERAL"],
-  "/fornecedores": ["CUSTOS", "CADASTRO", "GERAL"],
-  "/importacoes":  ["CADASTRO"],
-  "/logs":         ["CUSTOS", "GERAL"],
-};
+import { ROUTE_AREAS } from "@/lib/routeAreas";
 
 interface NavItem {
   label: string;
