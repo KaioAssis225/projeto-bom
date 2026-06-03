@@ -25,11 +25,19 @@ import {
 
 const AREAS = ["CUSTOS", "ESTOQUE", "CADASTRO", "GERAL"] as const;
 
-// Apenas Viewer e Editor para criação; mapeamos Editor → ANALISTA no backend
-const NIVEL_OPTIONS = [
+// Opções por área
+const NIVEL_OPTIONS_DEFAULT = [
   { value: "VIEWER",   label: "Viewer — somente leitura" },
   { value: "ANALISTA", label: "Editor — pode criar e editar" },
-] as const;
+];
+const NIVEL_OPTIONS_ESTOQUE = [
+  { value: "REQUISITOR", label: "Requisitor — apenas requisições" },
+  { value: "VIEWER",     label: "Viewer — somente leitura" },
+  { value: "ANALISTA",   label: "Editor — entradas e saídas" },
+];
+function getNivelOptions(area: string) {
+  return area === "ESTOQUE" ? NIVEL_OPTIONS_ESTOQUE : NIVEL_OPTIONS_DEFAULT;
+}
 
 const AREA_LABEL: Record<string, string> = {
   CUSTOS: "Custos",
@@ -55,6 +63,7 @@ const NIVEL_BADGE: Record<string, string> = {
 
 // Label legível para o usuário final
 const NIVEL_LABEL: Record<string, string> = {
+  REQUISITOR: "Requisitor",
   VIEWER:     "Viewer",
   ESTOQUISTA: "Editor",
   ANALISTA:   "Editor",
@@ -163,7 +172,7 @@ function RolesEditor({
               disabled={disabled}
               className="flex-1 rounded border-0 bg-transparent text-sm outline-none cursor-pointer"
             >
-              {NIVEL_OPTIONS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+              {getNivelOptions(role.area).map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
             </select>
             <button type="button" onClick={() => remove(i)} disabled={disabled}
               className="ml-1 rounded p-1 text-current opacity-60 hover:opacity-100 transition">

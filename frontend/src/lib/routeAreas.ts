@@ -1,5 +1,7 @@
 /** Mapa de rota → áreas que têm acesso. Ausência de chave = acesso livre. */
 export const ROUTE_AREAS: Record<string, string[]> = {
+  "/requisicoes":      ["ESTOQUE"],
+  "/requisicoes/nova": ["ESTOQUE"],
   "/itens":        ["CUSTOS", "CADASTRO", "GERAL"],
   "/bom":          ["CUSTOS", "CADASTRO", "GERAL"],
   "/precos":       ["CUSTOS", "GERAL"],

@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   Users,
   ShieldCheck,
+  ClipboardList,
+  PlusCircle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,8 +69,9 @@ export function Sidebar({ onCollapse }: SidebarProps) {
   const { user, realUser, viewingAs } = useAuth();
 
   const isRealAdmin = realUser?.roles.some((r) => r.nivel === "ADMIN") ?? false;
-  // In view-as mode, filter by the simulated user's areas
   const userAreas = user?.roles.map((r) => r.area) ?? [];
+  const isRequisitor = user?.roles.every((r) => r.nivel === "REQUISITOR") ?? false;
+  const isEstoqueUser = userAreas.includes("ESTOQUE");
 
   const canSee = (route: string): boolean => {
     // Real admin not in view-as mode sees everything
@@ -98,6 +101,14 @@ export function Sidebar({ onCollapse }: SidebarProps) {
         {visibleItems.map((item) => (
           <SidebarLink key={item.to} item={item} />
         ))}
+
+        {isEstoqueUser && (
+          <>
+            <div className="mx-2 my-3 border-t border-slate-200" />
+            <SidebarLink item={{ label: "Requisições",      to: "/requisicoes",      icon: ClipboardList }} />
+            <SidebarLink item={{ label: "Nova Requisição",  to: "/requisicoes/nova", icon: PlusCircle    }} />
+          </>
+        )}
 
         {isRealAdmin && (
           <>

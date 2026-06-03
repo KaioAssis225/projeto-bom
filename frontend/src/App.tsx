@@ -19,6 +19,8 @@ import ItensPage from "@/pages/ItensPage";
 import LogsPage from "@/pages/LogsPage";
 import UsuariosPage from "@/pages/UsuariosPage";
 import PermissoesPage from "@/pages/PermissoesPage";
+import RequisicoesPage from "@/pages/RequisicoesPage";
+import RequisicaoNovaPage from "@/pages/RequisicaoNovaPage";
 import PrecosPage from "@/pages/PrecosPage";
 import UnidadesPage from "@/pages/UnidadesPage";
 
@@ -81,6 +83,8 @@ export default function App() {
                 <Route path="/unidades"     element={<A path="/unidades">    <UnidadesPage />    </A>} />
                 <Route path="/fornecedores" element={<A path="/fornecedores"><FornecedoresPage /></A>} />
                 <Route path="/logs"         element={<A path="/logs">        <LogsPage />        </A>} />
+                <Route path="/requisicoes"     element={<A path="/requisicoes">     <RequisicoesPage />    </A>} />
+                <Route path="/requisicoes/nova" element={<A path="/requisicoes/nova"><RequisicaoNovaPage /></A>} />
                 <Route path="/usuarios"     element={<UsuariosPage />} />
                 <Route path="/permissoes"   element={<PermissoesPage />} />
                 <Route path="*"             element={<SmartRedirect />} />
