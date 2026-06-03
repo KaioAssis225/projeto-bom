@@ -19,6 +19,7 @@ class Area(str, enum.Enum):
 
 
 class Nivel(str, enum.Enum):
+    REQUISITOR = "REQUISITOR"
     VIEWER = "VIEWER"
     ESTOQUISTA = "ESTOQUISTA"
     ANALISTA = "ANALISTA"
@@ -27,6 +28,7 @@ class Nivel(str, enum.Enum):
 
 
 NIVEL_ORDER = [
+    Nivel.REQUISITOR,
     Nivel.VIEWER,
     Nivel.ESTOQUISTA,
     Nivel.ANALISTA,

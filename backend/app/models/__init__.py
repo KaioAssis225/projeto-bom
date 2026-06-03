@@ -8,6 +8,7 @@ from app.models.finished_product import FinishedProduct
 from app.models.item import Item, ItemType
 from app.models.item_price_history import ItemPriceHistory
 from app.models.material_group import MaterialGroup
+from app.models.requisicao import Requisicao, RequisicaoItem, RequisicaoStatus
 from app.models.raw_material import RawMaterial
 from app.models.setor import Setor
 from app.models.supplier import Supplier
@@ -33,6 +34,9 @@ __all__ = [
     "Nivel",
     "RawMaterial",
     "RefreshToken",
+    "Requisicao",
+    "RequisicaoItem",
+    "RequisicaoStatus",
     "Setor",
     "Supplier",
     "UnitConversion",
