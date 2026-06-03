@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db_session
+from app.api.deps import get_current_user, get_db_session
 from app.core.permissions import require
 from app.models.user import User
 from app.schemas.setor import (
@@ -25,7 +25,7 @@ def list_setores(
     limit: int = Query(default=20, ge=1, le=500),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> SetorPaginatedResponse:
     return SetorService(db).list(skip=skip, limit=limit, active_only=active_only)
 
@@ -43,7 +43,7 @@ def create_setor(
 def get_setor(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> SetorResponse:
     return SetorService(db).get(id)
 

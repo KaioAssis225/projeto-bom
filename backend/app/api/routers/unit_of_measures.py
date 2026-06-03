@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db_session
+from app.api.deps import get_current_user, get_db_session
 from app.core.permissions import require
 from app.models.user import User
 from app.schemas.unit_of_measure import (
@@ -31,7 +31,7 @@ def list_units_of_measure(
     limit: int = Query(default=20, ge=1, le=100),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> UnitOfMeasurePaginatedResponse:
     service = UnitOfMeasureService(db)
     return service.list(skip=skip, limit=limit, active_only=active_only)
@@ -62,7 +62,7 @@ def create_unit_of_measure(
 def get_unit_of_measure(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> UnitOfMeasureResponse:
     service = UnitOfMeasureService(db)
     return service.get(id)

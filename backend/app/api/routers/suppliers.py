@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db_session
+from app.api.deps import get_current_user, get_db_session
 from app.core.permissions import require
 from app.models.user import User
 from app.schemas.supplier import (
@@ -31,7 +31,7 @@ def list_suppliers(
     limit: int = Query(default=20, ge=1, le=100),
     active_only: bool = Query(default=True),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> SupplierPaginatedResponse:
     service = SupplierService(db)
     return service.list(skip=skip, limit=limit, active_only=active_only)
@@ -62,7 +62,7 @@ def create_supplier(
 def get_supplier(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> SupplierResponse:
     service = SupplierService(db)
     return service.get(id)

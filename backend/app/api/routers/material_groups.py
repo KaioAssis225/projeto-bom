@@ -5,7 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db_session
+from app.api.deps import get_current_user, get_db_session
 from app.core.permissions import require
 from app.models.user import User
 from app.schemas.material_group import (
@@ -32,7 +32,7 @@ def list_material_groups(
     active_only: bool = Query(default=True),
     controla_estoque_only: bool = Query(default=False),
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> MaterialGroupPaginatedResponse:
     service = MaterialGroupService(db)
     return service.list(
@@ -68,7 +68,7 @@ def create_material_group(
 def get_material_group(
     id: UUID,
     db: Session = Depends(get_db_session),
-    _: User = Depends(require(area="CADASTRO", nivel_min="VIEWER")),
+    _: User = Depends(get_current_user),
 ) -> MaterialGroupResponse:
     service = MaterialGroupService(db)
     return service.get(id)
